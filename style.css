@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css?family=Droid+Sans+Mono');
+
+body {
+    margin: 0px;
+    background-color: #f0f0f0;
+}
+
+.headback {
+    background-color: #15BED2;
+    padding: 20px;
+    min-height: 174px
+}
+
+.footer {
+    margin: 40px 0px 0px;
+    background-color: #f0f0f0;
+    padding: 20px;
+}
+
+.whiteback {
+    background-color: white;
+}
+
+.headwrapper {
+    max-width: 720px;
+    margin: 0px auto;
+    padding: 10px;
+}
+
+div.wrapper {
+    max-width: 720px;
+    margin: 0px auto;
+    padding: 40px 0px;
+}
+
+div.inner {
+    padding: 0px 40px;
+}
+
+.center {
+    text-align: center;
+}
+
+.rounded {
+    border-radius: 50%;
+    max-width: 155px;
+    float: left;
+    /*border: 8px solid white;*/
+}
+
+p, h1, h2, h3, li, tr {
+    margin: 10px;
+    font-family: sans-serif;
+    font-size: 16px;
+    color: #666666;
+    line-height: 1.6;
+}
+
+li, tr {
+    margin: 6px;
+    font-size: 16px;
+}
+
+td {
+    padding: 4px;
+    margin: 0px;
+    border: none;
+}
+
+thead {
+    background-color: #f0f0f0;
+}
+
+h1 {
+    font-size: 48px;
+}
+
+.blue {
+    background-color: #15BED2;
+}
+
+h2 {
+    font-size: 38px;
+    margin: 40px 40px;
+    color: white;
+}
+
+h3 {
+    font-size: 24px;
+    margin: 20px 0px 0px 0px;
+}
+
+.white {
+    color: white;
+}
+
+button {
+    font-size: 18px;
+    background-color: #eb8b34;
+    padding: 20px;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    margin: 4px;
+    transition: 0.1s ease-in-out;
+}
+
+button:hover {
+    transform: scale(1.1);
+}
+
+table {
+    margin: 20px 0px;
+}
+
+span.imp {
+    color: #0d8998;
+}
+
+code {
+    font-family: 'Droid Sans Mono', monospace;
+    padding: 0px 5px;
+    margin: 0px 1px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+}
+
+@media screen and (max-width: 500px) {
+
+    img {
+        display: none;
+    }
+
+    .inner {
+        padding: 20px;
+    }
+
+}
