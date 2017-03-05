@@ -53,12 +53,13 @@
                     <li>latex</li>
                     <li>wolf</li>
                     <li>calc</li>
+                    <li>settings</li>
                 </ul>
 
                 <h3><code>=about</code></h3>
                 <p>Gets some information about the bot.</p>
 
-                <h3><code>=stats</code> (private message only)</h3>
+                <h3><code>=stats</code></h3>
                 <p>Returns some statistics from the bot, namely the total number of servers and its current uptime.</p>
             </div>
 
@@ -99,9 +100,8 @@
 
                     <p>
                         The there are a few non-standard shortcuts to make your life easier.
-                        For example, <code>*</code> is replaced by <code>\times</code>. Parenthesis <code>(</code> and <code>)</code>
-                        get <code>\left</code> and <code>\right</code> added to them automatically.
-                        In some cases, the bot will recognize malformed <i>LaTeX</i>, and will tell you how to correct it.
+                        Parenthesis <code>(</code> and <code>)</code> get <code>\left</code> and <code>\right</code> added to them automatically.
+                        In a few cases, the bot will recognize malformed <i>LaTeX</i>, and will tell you how to correct it.
                         These features can be disabled by using the the <code>=rtex</code> command instead.
                     </p>
 
@@ -174,6 +174,55 @@
                         the calculation that many times. This is only usefull only if you want to roll many
                         dice at once. Using the <code>=csort</code> or <code>=sort</code> command will sort the numbers
                         in increasing order. <code><span class="imp">R</span></code> may not be greater than 50.</p>
+            </div>
+
+            <div class="blue"><h2>Settings and Management</h2></div>
+
+            <div class="inner">
+                <p>
+                    MathBot allows you to assign permissions on who may use various commands and where they may be used.
+                    Settings are currently considered experimental. Any bugs or issues should be reported on the official server.
+                </p>
+
+                <h3>Command Syntax</h3>
+                <p>
+                    The general structure of the settings command is:
+                </p>
+
+                <p><code>=set <span class="imp">context setting value</span></code></p>
+
+                <ul>
+                    <li>
+                        <code><span class="imp">context</span></code> should be either <code>server</code> to apply the setting to the whole server, or <code>channel</code>, to apply the setting to the current channel. These can be shortened to <code>s</code> and <code>c</code> respectively.
+                    </li>
+                    <li>
+                        <code><span class="imp">setting</span></code> should be the name of once of the settings, listed below.
+                    </li>
+                    <li>
+                        <code><span class="imp">value</span></code> should be either <code>enable</code>, <code>disable</code>, or <code>original</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>original</code> will revert the setting to its default value.
+                    </li>
+                </ul>
+
+                <h3>List of Settings</h3>
+                <ul>
+                    <li><code>c-tex</code> : Enable or disable the <code>=tex</code> command. Default: Enabled</li>
+                    <li><code>c-calc</code> : Enable or disable the <code>=calc</code> command. Default: Enabled</li>
+                    <li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
+                </ul>
+
+                <h3>Setting Priorities</h3>
+                <p>Channel-specific settings always override the server setting. If neither is specified, the default value is used.</p>
+
+                <h3>Examples</h3>
+                <p>Disable the <code>=wolf</code> command on a server:</p>
+                <p><code>=set server c-wolf disable</code></p>
+                <p>Enable the <code>=calc</code> command on a single channel:</p>
+                <p><code>=set channel c-calc enable</code></p>
+
+                <h3>Troubleshooting</h3>
+                <p>Ensure you are typing words exactly as shown.</p>
+                <p>If you are still having problems you can ask on the <a href="https://discord.gg/JbJbRZS">official server</a>.</p>
+
             </div>
 
         </div>
