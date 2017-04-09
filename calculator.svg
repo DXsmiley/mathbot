@@ -16,7 +16,7 @@
    version="1.1"
    inkscape:version="0.91 r13725"
    sodipodi:docname="calculator.svg"
-   inkscape:export-filename="C:\Users\DXsmiley\Code\Html\MathBotPage2\calculator.png"
+   inkscape:export-filename="C:\Users\DXsmiley\Code\Html\MathBotPage\calculator.png"
    inkscape:export-xdpi="40"
    inkscape:export-ydpi="40">
   <defs
@@ -28,9 +28,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="434.63806"
-     inkscape:cy="491.37055"
+     inkscape:zoom="1.4"
+     inkscape:cx="542.98254"
+     inkscape:cy="499.61301"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -193,13 +193,10 @@
        height="55.558395"
        x="201.33145"
        y="729.61847" />
-    <rect
+    <path
        style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
-       id="rect4138-7-2-0"
-       width="58.588833"
-       height="98.415535"
-       x="484.17419"
-       y="686.76135" />
+       d="M 484.17383 659.1875 L 484.17383 686.76172 L 484.17383 714.74609 L 484.17383 785.17773 L 542.76367 785.17773 L 542.76367 714.74609 L 542.76367 686.76172 L 542.76367 659.1875 L 484.17383 659.1875 z "
+       id="rect4138-7-2-0" />
     <rect
        style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
        id="rect4138-7-2-9-9"
@@ -227,13 +224,6 @@
        width="58.588833"
        height="55.558395"
        x="201.33145"
-       y="659.18744" />
-    <rect
-       style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
-       id="rect4138-7-2-0-7"
-       width="58.588833"
-       height="55.558395"
-       x="484.17419"
        y="659.18744" />
     <rect
        style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
