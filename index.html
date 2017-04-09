@@ -1,245 +1,96 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
-    <title>MathBot</title>
-    <link rel="stylesheet" href="style.css" media="screen" title="no title">
-</head>
-<body>
-    <div class="headback">
-        <div class="headwrapper">
-            <img src="logo.png" class="rounded"/>
-            <div class="center">
-                <h1 class="white">MathBot</h1>
-                <p class="white">Mathematics for Discord</p>
-            </div>
-        </div>
-    </div>
-    <div class="wrapper whiteback">
-
-        <div class="inner">
-            <div class="center">
-                <a href="https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=35840"><button>Add To Server</button></a> &nbsp;
-                <a href="https://discord.gg/JbJbRZS"><button>Join Official Server</button></a>
-            </div>
-        </div>
-
-        <div class="blue"><h2>About</h2></div>
-
-        <div class="inner">
-            <p>MathBot is a discord bot that has a number of features designed to help with maths.</p>
-            <p>
-                It currently has three main features:
-                <ul>
-                    <li>Query Wolfram|Alpha</li>
-                    <li>Render <i>LaTeX</i></li>
-                    <li>Calculate Equations</li>
-                </ul>
-            </p>
-        </div>
-
-        <div class="blue"><h2>Information Commands</h2></div>
-
-        <div class="inner">
-            <h3><code>=help</code></h3>
-            <p>
-                Get help from the bot in discord. Help will be sent as a private message.
-            </p>
-
-            <h3><code>=help <span class="imp">topic</span></code></h3>
-            <p>Get help on a particular topic or command. Help will be sent as a private message</p>
-            <p>The following topics exist:</p>
-            <ul>
-                <li>latex</li>
-                <li>wolf</li>
-                <li>calc</li>
-                <li>settings</li>
-            </ul>
-
-            <h3><code>=about</code></h3>
-            <p>Gets some information about the bot.</p>
-
-            <h3><code>=stats</code></h3>
-            <p>Returns some statistics from the bot, namely the total number of servers and its current uptime.</p>
-        </div>
-
-
-        <div class="blue"><h2>Querying Wolfram|Alpha</h2></div>
-
-        <div class="inner">
-            <p>
-                The <code>=wolf <span class="imp">query</span></code> command is used to query <a href="http://www.wolframalpha.com/" target="_blank">Wolfram|Alpha</a>.
-                <code><span class="imp">query</span></code> can be anything that you'd be able to put into Wolfram|Alpha normally.
-                Due to both the speed of W|A and the amount of data that gets send to Discord, this command can be slow, so please be patient.
-            </p>
-
-            <p>Examples:</p>
-            <ul>
-                <li><code>=wolf intersection of sin(x) and cos(x)</code></li>
-                <li><code>=wolf plot x^3 - x^2 + x - 1</code></li>
-                <li><code>=wolf dark blue</code></li>
-            </ul>
-        </div>
-
-        <div class="blue"><h2>Rendering <i>LaTeX</i></h2></div>
-
-        <div class="inner">
-            <p>
-                The <code>=tex <span class="imp">equation</span></code> command is used render <i>LaTeX</i> equations.
-                <code><span class="imp">query</span></code> can be any valid <i>LaTeX</i> equation.
-            </p>
-
-            <p>Examples:</p>
-            <ul>
-                <li><code>=tex x = 7</code></li>
-                <li><code>=tex \sqrt{a^2 + b^2} = c</code></li>
-                <li><code>=tex \int_0^{2\pi} \sin{(4\theta)} \mathrm{d}\theta</code></li>
-            </ul>
-
-            <h3>Notes</h3>
-
-            <p>
-                The there are a few non-standard shortcuts to make your life easier.
-                Parenthesis <code>(</code> and <code>)</code> get <code>\left</code> and <code>\right</code> added to them automatically.
-                In a few cases, the bot will recognize malformed <i>LaTeX</i>, and will tell you how to correct it.
-                These features can be disabled by using the the <code>=rtex</code> command instead.
-            </p>
-
-            <p>Rendering is done by <a href="http://quicklatex.com/">QuickLatex.com</a>.</p>
-
-            <h3>Limitations</h3>
-
-            <p>The bot currently uses an external rendering service. The following features are known to fail:</p>
-            <ul>
-                <li><code>$</code> to start and end the equations. These are not required, and may do strange things. Use <code>\text{words}</code> to place text.</li>
-                <li><code>\usepackage</code>, for any reason.</li>
-                <li>Macros such as <code>\@ifpackageloaded</code>.</li>
-            </ul>
-            <p>Other features such as loading images and whatnot will definitely break things</p>
-        </div>
-
-        <div class="blue"><h2>Performing Calculations</h2></div>
-
-        <div class="inner">
-            <p>
-                The calculator can be invoked with either <code>=calc <span class="imp">equation</span></code>
-                or <code>==<span class="imp">equation</span></code>.
-            </p>
-
-            <p>Examples:</p>
-            <ul>
-                <li><code>=calc 2 ^ (1 + 3) * 5</code></li>
-                <li><code>=calc round(10 / 3)</code></li>
-                <li><code>=sort 8d6 : 10</code></li>
-            </ul>
-
-            <h3>Operations</h3>
-            <ul>
-                <li><code>+</code> : addition</li>
-                <li><code>-</code> : subtraction</li>
-                <li><code>*</code> : multiplication</li>
-                <li><code>/</code> : division</li>
-                <li><code>^</code> : exponentiation (has some limitations to prevent exploits)</li>
-            </ul>
-
-            <h3>Constants</h3>
-            <ul>
-                <li><code>pi</code> : 3.141592...</li>
-                <li><code>e</code> : 2.178281...</li>
-            </ul>
-
-            <h3>Functions</h3>
-            <ul>
-                <li><code>round</code> : rounds a number to the nearest integer</li>
-                <li><code>int</code> : rounds *down* to the nearest integer</li>
-                <li><code>sin</code> : sine of an angle (in radians)</li>
-                <li><code>cos</code> : cosine of an angle (in radians)</li>
-                <li><code>tan</code> : tan of an angle (in radians)</li>
-                <li><code>deg</code> : converts radians to degrees</li>
-                <li><code>rad</code> : converts degrees to radians</li>
-            </ul>
-
-            <h3>Dice Rolling</h3>
-            <ul>
-                <li>
-                    <code>d<span class="imp">X</span></code> : rolls an <code><span class="imp">X</span></code>-sided die. (e.g. <code>d20</code>)
-                </li>
-                <li>
-                    <code><span class="imp">Y</span>d<span class="imp">X</span></code> : rolls <code><span class="imp">Y</span></code>
-                    <code><span class="imp">X</span></code>-sided dice and gives the total. (e.g. <code>2d6</code>)
-                </li>
-            </ul>
-
-            <p>You cannot roll more than 1000 dice at once.</p>
-
-            <h3>Repeating Equations</h3>
-            <p>
-                Appending the equation with <code>: <span class="imp">R</span></code>, where <code><span class="imp">R</span></code> is an integer will repeat
-                the calculation that many times. This is only useful only if you want to roll many
-                dice at once. Using the <code>=csort</code> or <code>=sort</code> command will sort the numbers
-                in increasing order. <code><span class="imp">R</span></code> may not be greater than 50.
-            </p>
-        </div>
-
-        <div class="blue"><h2>Settings and Management</h2></div>
-
-        <div class="inner">
-            <p>
-                MathBot allows you to assign permissions on who may use various commands and where they may be used.
-                Settings are currently considered experimental. Any bugs or issues should be reported on the official server.
-            </p>
-            <p><i>Note:</i> role-based permissions are still in development.</p>
-
-            <h3>Command Syntax</h3>
-            <p>
-                The general structure of the settings command is:
-            </p>
-
-            <p><code>=set <span class="imp">context setting value</span></code></p>
-
-            <ul>
-                <li>
-                    <code><span class="imp">context</span></code> should be either <code>server</code> to apply the setting to the whole server, or <code>channel</code>, to apply the setting to the current channel. These can be shortened to <code>s</code> and <code>c</code> respectively.
-                </li>
-                <li>
-                    <code><span class="imp">setting</span></code> should be the name of once of the settings, listed below.
-                </li>
-                <li>
-                    <code><span class="imp">value</span></code> should be either <code>enable</code>, <code>disable</code>, or <code>original</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>original</code> will revert the setting to its default value.
-                </li>
-            </ul>
-
-            <h3>List of Settings</h3>
-            <ul>
-                <li><code>c-tex</code> : Enable or disable the <code>=tex</code> command. Default: Enabled</li>
-                <li><code>c-calc</code> : Enable or disable the <code>=calc</code> command. Default: Enabled</li>
-                <li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
-            </ul>
-
-            <h3>Setting Priorities</h3>
-            <p>Channel-specific settings always override the server setting. If neither is specified, the default value is used.</p>
-
-            <h3>Examples</h3>
-            <p>Disable the <code>=wolf</code> command on a server:</p>
-            <p><code>=set server c-wolf disable</code></p>
-            <p>Enable the <code>=calc</code> command on a single channel:</p>
-            <p><code>=set channel c-calc enable</code></p>
-
-            <h3>Troubleshooting</h3>
-            <p>Ensure you are typing words exactly as shown.</p>
-            <p>If you are still having problems you can ask on the <a href="https://discord.gg/JbJbRZS">official server</a>.</p>
-
-        </div>
-
-    </div>
-
-    <div class="footer">
-        <div class="center">
-            <p>
-                Made with &#x1F499; by <a href="https://github.com/dxsmiley/">DXsmiley</a>
-            </p>
-        </div>
-    </div>
-
-</body>
+	<head>
+		<meta charset="utf-8">
+		<link href="https://fonts.googleapis.com/css?family=Inconsolata|Josefin+Sans:300|Titillium+Web:300" rel="stylesheet">
+		<link rel="stylesheet" href="style.css">
+		<title>MathBot</title>
+	</head>
+	<body>
+		<div class="navbox">
+			<p>
+				<a href="docs.html">Docs</a>
+				<!-- <a href="#">Support</a> -->
+				<!-- <a href="#">Dashboard</a> -->
+				<!-- <a href="#">Donate</a> -->
+			</p>
+		</div>
+		<div class="banner center-content">
+			<div class="center-content">
+				<div>
+					<div class="center-text">
+						<h1>MathBot</h1>
+					</div>
+					<div class="center-text">
+						<h2>Mathematics For Discord</h2>
+					</div>
+					<div class="center-content">
+						<a href="https://discordapp.com/oauth2/authorize?client_id=172236682245046272&scope=bot&permissions=35904" target="_blank">
+							<button>Add to your server</button>
+						</a>
+					</div>
+					<br>
+					<div class="center-content">
+						<a href="https://discord.gg/JbJbRZS" target="_blank">
+							<button>Join the official server</button>
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="bottom">
+				<div>
+					<p>
+						Features this way
+						<img src="downarrow.png" id="downarrow">
+					</p>
+				</div>
+			</div>
+		</div>
+		<div class="banner center-content">
+			<div class="center-text">
+				<h2>Query Wolfram|Alpha</h2>
+				<img src="wa-logo.jpg"></img>
+				<p>Right from Discord</p>
+			</div>
+		</div>
+		<div class="banner center-content">
+			<div class="center-text">
+				<h2>Format beautiful equations</h2>
+				<img src="tex.png"></img>
+				<p>Harness the power of <i>LaTeX</i></p>
+			</div>
+		</div>
+		<div class="banner center-content">
+			<div class="center-text">
+				<h2>Fast and powerful calculator</h2>
+				<img src="calculator.png"></img>
+				<p>With trigonometry and dice rolling</p>
+			</div>
+		</div>
+		<div class="banner center-content">
+			<div class="center-text">
+				<h1>What are you waiting for?</h1>
+				<div class="center-content">
+					<a href="https://discordapp.com/oauth2/authorize?client_id=172236682245046272&scope=bot&permissions=35904" target="_blank">
+						<button>Add it!</button>
+					</a>
+				</div>
+				<br>
+				<div class="center-content">
+					<a href="https://discord.gg/JbJbRZS" target="_blank">
+						<button>Try it out first</button>
+					</a>
+				</div>
+			</div>
+			<div class="bottom">
+				<div>
+					<p>
+						Made with
+						<img src="blue_heart.png" id="heart">
+						by DXsmiley
+					</p>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>
