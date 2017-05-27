@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 	<head>
@@ -16,198 +17,179 @@
 		<div class="doc-nav">
 			<a href="index.html"><p>Home</p></a>
 			<h1>Docs</h1>
-			<a href="#h-info"><p>Information</p></a>
+			<a href="#h-about"><p>About</p></a>
+
+<a href="#h-wolfram"><p>Wolfram|Alpha</p></a>
+
+<a href="#h-latex"><p>LaTeX</p></a>
+
+<a href="#h-calculator"><p>Calculator</p></a>
+
+<a href="#h-theme"><p>Themes</p></a>
+
+<a href="#h-settings"><p>Settings</p></a>
+
+<a href="#h-blame"><p>Blame</p></a>
+
+<a href="#h-purge"><p>Purge</p></a>
+			<!-- <a href="#h-info"><p>Information</p></a>
 			<a href="#h-wolfram"><p>Wolfram</p></a>
 			<a href="#h-latex"><p>LaTeX</p></a>
 			<a href="#h-calc"><p>Calculator</p></a>
 			<a href="#h-settings"><p>Settings</p></a>
-			<a href="#h-faq"><p>FAQ</p></a>
+			<a href="#h-faq"><p>FAQ</p></a> -->
 		</div>
 		<div class="doc-body">
 			<div>
-				<h1 id="h-info">Information Commands</h1>
-				<h2><code>=help</code></h2>
-				<p>
-					Get help from the bot in discord. Help will be sent as a private message.
-				</p>
+				<h1 id="h-about">About</h1>
 
-				<h2><code>=help <span class="imp">topic</span></code></h2>
-				<p>Get help on a particular topic or command. Help will be sent as a private message</p>
-				<p>The following topics exist:</p>
-				<ul>
-					<li>latex</li>
-					<li>wolf</li>
-					<li>calc</li>
-					<li>settings</li>
-				</ul>
+<p>Add MathBot to your <a href="https://discordapp.com/oauth2/authorize?&amp;client_id=172236682245046272&amp;scope=bot&amp;permissions=35840">server using this link</a>.</p>
+<p>MathBot is developed by DXsmiley. You can talk to him via the <a href="https://discord.gg/JbJbRZS">official MathBot server</a>.</p>
+<p>MathBot is written in Python using <a href="https://github.com/Rapptz/discord.py">discord.py</a>.</p>
 
-				<h2><code>=about</code></h2>
-				<p>Gets some information about the bot.</p>
+<h1 id="h-wolfram">Wolfram|Alpha</h1>
 
-				<h2><code>=stats</code></h2>
-				<p>Returns some statistics from the bot, namely the total number of servers and its current uptime.</p>
+<p>The <code>=wolf</code> command is used to query Wolfram|Alpha.</p>
+<p>This command can be very slow at times, so please be patient.</p>
+<p>You can use the <code>=theme</code> command to change the colour of the results.</p>
+<h2>Examples</h2>
+<p><code>=wolf intersection of sin(x) and cos(x)</code></p>
+<p><code>=wolf x^3 - x^2 + x - 1</code></p>
+<h2>Refining your results</h2>
+<p>This command will give you <em>all</em> the information that Wolfram|Alpha spits out, which is often more than you want. It understand some english, so you can use words to refine your query. For example, you might use <code>roots of x^2 - x - 1</code> rather than <code>y = x^2 - x - 1</code> if you only want the solutions to the equation.</p>
+<h2>Assumptions</h2>
+<p>Sometimes Wolfram|Alpha will make some assumptions about your intentions. These will be displayed at the bottom of the message. If you wish to change what W|A assumes, you can click on the letter reactions (🇦, 🇧, etc...), and then click the 🔄 reaction to re-run the query.</p>
+<h2>Query Filters</h2>
+<p>To avoid people abusing the bot, some queries will not be run. The filter applies to all channels except for direct messages and channels marked as nsfw.</p>
+<p>A server admin can be manually disable the filter in a channel by running <code>=set channel f-wolf-filter disable</code>.
+It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.</p>
+<p>See <code>=help settings</code> for more details on managing settings.</p>
 
-				<h1 id="h-wolfram">Querying Wolfram|Alpha</h1>
-				<p>
-					The <code>=wolf <span class="imp">query</span></code> command is used to query <a href="http://www.wolframalpha.com/" target="_blank">Wolfram|Alpha</a>.
-					<code><span class="imp">query</span></code> can be anything that you'd be able to put into Wolfram|Alpha normally.
-					Due to both the speed of W|A and the amount of data that gets send to Discord, this command can be slow, so please be patient.
-				</p>
+<h1 id="h-latex">LaTeX</h1>
 
-				<p>Examples:</p>
-				<ul>
-					<li><code>=wolf intersection of sin(x) and cos(x)</code></li>
-					<li><code>=wolf plot x^3 - x^2 + x - 1</code></li>
-					<li><code>=wolf dark blue</code></li>
-				</ul>
+<p>The <code>=tex</code> command is used render <em>LaTeX</em> equations.</p>
+<p>The <em>LaTeX</em> rendering is done by <a href="http://quicklatex.com/">http://quicklatex.com/</a></p>
+<p>You can use the <code>=theme</code> command to change the colour of the results.</p>
+<h2>Example</h2>
+<p><code>=tex x = 7</code></p>
+<p><code>=tex \sqrt{a^2 + b^2} = c</code></p>
+<p><code>=tex \int_0^{2\pi} \sin{(4\theta)} \mathrm{d}\theta</code></p>
+<h2>Limitations</h2>
+<p>The bot currently uses an external rendering service. The following features are known to break things:</p>
+<ul>
+<li><code>$</code> to start and end the equations. These are not required, and may do strange things. Use <code>\text{words}</code> to place text.</li>
+<li><code>\usepackage</code>, for any reason.</li>
+<li>Macros such as <code>\@ifpackageloaded</code>.</li>
+<li>Loading of external images, and other resources.</li>
+</ul>
 
-				<h1 id="h-latex">Formatting equations with LaTeX</h1>
-				<p>
-					The <code>=tex <span class="imp">equation</span></code> command is used render <i>LaTeX</i> equations.
-					<code><span class="imp">equation</span></code> can be any valid <i>LaTeX</i> equation.
-				</p>
+<h1 id="h-calculator">Calculator</h1>
 
-				<p>Examples:</p>
-				<ul>
-					<li><code>=tex x = 7</code></li>
-					<li><code>=tex \sqrt{a^2 + b^2} = c</code></li>
-					<li><code>=tex \int_0^{2\pi} \sin{(4\theta)} \mathrm{d}\theta</code></li>
-				</ul>
+<p>The calculator can be invoked with the command <code>=calc</code>.</p>
+<p>It is also possible to use the shortcut <code>==</code>, however <strong>this may be disabled on some servers or channels</strong>. Using the shortcut will not produce an error message if it is disabled.</p>
+<p>The calculator supports the following operations:</p>
+<ul>
+<li><code>+</code> : addition</li>
+<li><code>-</code> : subtraction</li>
+<li><code>*</code> : multiplication (can also use <code>x</code> or <code>×</code>)</li>
+<li><code>/</code> : division (can also use <code>÷</code>)</li>
+<li><code>^</code> : exponentiation (has some limitations to prevent exploits)</li>
+<li><code>!</code> : factorial (cannot be applied to numbers greater than 200)</li>
+</ul>
+<p>The following constants exist:</p>
+<ul>
+<li><code>pi</code> : 3.141592...</li>
+<li><code>e</code>  : 2.178281...</li>
+</ul>
+<p>The following functions are available:</p>
+<ul>
+<li><code>round</code> : rounds a number to the nearest integer</li>
+<li><code>int</code> : rounds <em>down</em> to the nearest integer</li>
+<li><code>sin</code> : sine of an angle (in radians)</li>
+<li><code>cos</code> : cosine of an angle (in radians)</li>
+<li><code>tan</code> : tan of an angle (in radians)</li>
+<li><code>asin</code> : inverse sine (result is in radians)</li>
+<li><code>acos</code> : inverse cosine (result is in radians)</li>
+<li><code>atan</code> : inverse tan (result is in radians)</li>
+<li><code>deg</code> : converts radians to degrees</li>
+<li><code>rad</code> : converts degrees to radians</li>
+<li><code>log</code> : log in base 10</li>
+<li><code>ln</code>  : log in base <code>e</code></li>
+<li><code>sqrt</code> : calculates the square root of a number</li>
+</ul>
+<p>You can use the following notation to roll dice:</p>
+<ul>
+<li><code>dX</code> : rolls an <code>X</code>-sided die. (e.g. <code>d20</code>)</li>
+<li><code>YdX</code> : rolls <code>Y</code> <code>X</code>-sided dice. (e.g. <code>2d6</code>) and gives the total.</li>
+</ul>
+<p>You cannot roll more than 1000 dice at once.</p>
+<p>Appending the equation with <code>: R</code>, where <code>R</code> is an integer will repeat
+the calculation that many times. Useful only if you want to roll many
+dice at once. Using the <code>=csort</code> or <code>=sort</code> command will sort the numbers
+in increasing order. <code>R</code> may not be greater than 50.</p>
+<h2>Examples</h2>
+<p><code>=calc 2 ^ (1 + 3) * 5</code></p>
+<p><code>=calc round(10 / 3)</code></p>
+<p><code>=calc sin(pi / 2)</code></p>
+<p><code>=calc 8d6 : 10</code></p>
 
-				<h2>Notes</h2>
+<h1 id="h-theme">Themes</h1>
 
-				<p>
-					The there are a few non-standard shortcuts to make your life easier.
-					Parenthesis <code>(</code> and <code>)</code> get <code>\left</code> and <code>\right</code> added to them automatically.
-					In a few cases, the bot will recognize malformed <i>LaTeX</i>, and will tell you how to correct it.
-					These features can be disabled by using the the <code>=rtex</code> command instead.
-				</p>
+<p>The <code>=theme</code> command is used to change the colour of the results for the <code>=tex</code> and <code>=wolf</code> commands.</p>
+<p>Use <code>=theme dark</code> to apply the dark theme.
+Use <code>=theme light</code> to apply the light theme.</p>
+<p>The colours are designed to match Discord's dark and light schemes respectively.</p>
+<p>Note that this only impacts commands that <em>you</em> invoke. If someone else calls one of the above commands, the results with use their chosen theme.</p>
 
-				<p>Rendering is done by <a href="http://quicklatex.com/" target="_blank">QuickLatex.com</a>.</p>
+<h1 id="h-settings">Settings</h1>
 
-				<h2>Limitations</h2>
+<p>MathBot has a number of settings that can be changed in order to modify its behaviour.</p>
+<p>Most notably, server admins are able to enable or disable certain commands on their own servers, on a per-channel basis.</p>
+<p>There are also settings for customising command output.</p>
+<h2>Command Description</h2>
+<p>The general structure of the settings command is:</p>
+<p><code>=set context setting value</code></p>
+<p><code>context</code> should be one of the following:</p>
+<ul>
+<li><code>server</code> - to apply the setting to the current server</li>
+<li><code>channel</code> - to apply the setting to the current channel</li>
+<li><code>self</code> - to apply the setting to yourself</li>
+</ul>
+<p><code>setting</code> should be the name of one of the settings, listed below.</p>
+<p><code>value</code> should be a valid value for the setting. See below for details.</p>
+<h2>Permission Settings</h2>
+<p>These settings can be applied to the <code>server</code> and <code>channel</code> contexts, but only by server admins.</p>
+<p><code>value</code> should be either <code>enable</code>, <code>disable</code>, or <code>original</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>original</code> will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to <code>original</code> will mean that it defers to the setting used by the server.</p>
+<ul>
+<li><code>c-tex</code> : Enable or disable the <code>=tex</code> command. Default: Enabled</li>
+<li><code>c-calc</code> : Enable or disable the <code>=calc</code> command. Default: Enabled</li>
+<li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
+<li><code>f-calc-shortcut</code> : Enable or disable the <code>==</code> shortcut for the <code>=calc</code> command. Disabling this <strong>will not</strong> produce an error message if a user attempts to use this command. This is intended to be used <em>only</em> if this command conflicts with other bots on your server. Default: Enabled</li>
+<li><code>f-wolf-filter</code>: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.</li>
+</ul>
+<h2>Examples</h2>
+<p>Disable the <code>=wolf</code> command on a server:
+<code>=set server c-wolf disable</code></p>
+<p>Enable the <code>=calc</code> command on a single channel:
+<code>=set channel c-calc enable</code></p>
+<h2>Troubleshooting</h2>
+<p>Ensure you are typing words <em>exactly</em> as shown.
+If you are still having problems you can ask on the official server: https://discord.gg/JbJbRZS</p>
 
-				<p>The bot currently uses an external rendering service. As such, the following quirks should be acknowledged.</p>
-				<ul>
-					<li><code>$</code> to start and end equations are not required, and may do strange things. Use <code>\text{words}</code> to place text.</li>
-					<li><code>\usepackage</code>, will not work.</li>
-					<li>Macros such as <code>\@ifpackageloaded</code> will probably fail.</li>
-					<li>Loading images is not officially supported. It might work but probably won't.</li>
-				</ul>
+<h1 id="h-blame">Blame</h1>
 
-				<h1 id="h-calc">Using the Calculator</h1>
-				<p>
-					The calculator can be invoked with either <code>=calc <span class="imp">equation</span></code>
-					or <code>==<span class="imp">equation</span></code>.
-				</p>
+<p>The <code>=blame</code> command is used to find who caused the bot to post a certain message.</p>
+<p>Usage: <code>=blame message_id</code></p>
+<p>The <code>message_id</code> should be the id of the message that the bot posted. You can find this by enabling developer tools, and then right-clicking on the message you wish to investigate.</p>
+<p>The bot keeps message blames for only 50 hours. After this, blame records are removed to conserve space.</p>
 
-				<p>Examples:</p>
-				<ul>
-					<li><code>=calc 2 ^ (1 + 3) * 5</code></li>
-					<li><code>=calc round(10 / 3)</code></li>
-					<li><code>=sort 8d6 : 10</code></li>
-				</ul>
+<h1 id="h-purge">Purge</h1>
 
-				<h2>Operations</h2>
-				<ul>
-					<li><code>+</code> : addition</li>
-					<li><code>-</code> : subtraction</li>
-					<li><code>*</code> : multiplication</li>
-					<li><code>/</code> : division</li>
-					<li><code>^</code> : exponentiation (has some limitations to prevent exploits)</li>
-				</ul>
-
-				<h2>Constants</h2>
-				<ul>
-					<li><code>pi</code> : 3.141592...</li>
-					<li><code>e</code> : 2.178281...</li>
-				</ul>
-
-				<h2>Functions</h2>
-				<ul>
-					<li><code>round</code> : rounds a number to the nearest integer</li>
-					<li><code>int</code> : rounds *down* to the nearest integer</li>
-					<li><code>sin</code> : sine of an angle (in radians)</li>
-					<li><code>cos</code> : cosine of an angle (in radians)</li>
-					<li><code>tan</code> : tan of an angle (in radians)</li>
-					<li><code>deg</code> : converts radians to degrees</li>
-					<li><code>rad</code> : converts degrees to radians</li>
-				</ul>
-
-				<h2>Dice Rolling</h2>
-				<ul>
-					<li>
-						<code>d<span class="imp">X</span></code> : rolls an <code><span class="imp">X</span></code>-sided die. (e.g. <code>d20</code>)
-					</li>
-					<li>
-						<code><span class="imp">Y</span>d<span class="imp">X</span></code> : rolls <code><span class="imp">Y</span></code>
-						<code><span class="imp">X</span></code>-sided dice and gives the total. (e.g. <code>2d6</code>)
-					</li>
-				</ul>
-
-				<p>You cannot roll more than 1000 dice at once.</p>
-
-				<h2>Repeating Equations</h2>
-				<p>
-					Appending the equation with <code>: <span class="imp">R</span></code>, where <code><span class="imp">R</span></code> is an integer will repeat
-					the calculation that many times. This is only useful only if you want to roll many
-					dice at once. Using the <code>=csort</code> or <code>=sort</code> command will sort the numbers
-					in increasing order. <code><span class="imp">R</span></code> may not be greater than 50.
-				</p>
-
-				<h1 id="h-settings">Settings and Management</h1>
-
-				<p>
-					MathBot allows you to assign permissions on who may use various commands and where they may be used.
-					Settings are currently considered experimental. Any bugs or issues should be reported on the official server.
-				</p>
-				<p><i>Note:</i> role-based permissions are still in development.</p>
-
-				<h2>Command Syntax</h2>
-				<p>
-					The general structure of the settings command is:
-				</p>
-
-				<p><code>=set <span class="imp">context setting value</span></code></p>
-
-				<ul>
-					<li>
-						<code><span class="imp">context</span></code> should be either <code>server</code> to apply the setting to the whole server, or <code>channel</code>, to apply the setting to the current channel. These can be shortened to <code>s</code> and <code>c</code> respectively.
-					</li>
-					<li>
-						<code><span class="imp">setting</span></code> should be the name of once of the settings, listed below.
-					</li>
-					<li>
-						<code><span class="imp">value</span></code> should be either <code>enable</code>, <code>disable</code>, or <code>original</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>original</code> will revert the setting to its default value.
-					</li>
-				</ul>
-
-				<h2>List of Settings</h2>
-				<ul>
-					<li><code>c-tex</code> : Enable or disable the <code>=tex</code> command. Default: Enabled</li>
-					<li><code>c-calc</code> : Enable or disable the <code>=calc</code> command. Default: Enabled</li>
-					<li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
-				</ul>
-
-				<h2>Setting Priorities</h2>
-				<p>Channel-specific settings always override the server setting. If neither is specified, the default value is used.</p>
-
-				<h2>Examples</h2>
-				<p>Disable the <code>=wolf</code> command on a server:</p>
-				<p><code>=set server c-wolf disable</code></p>
-				<p>Enable the <code>=calc</code> command on a single channel:</p>
-				<p><code>=set channel c-calc enable</code></p>
-
-				<h2>Troubleshooting</h2>
-				<p>Ensure you are typing words exactly as shown.</p>
-				<p>If you are still having problems you can ask on the <a href="https://discord.gg/JbJbRZS" target="_blank">official server</a>.</p>
-
-				<h1 id="h-faq">Frequently Asked Questions</h1>
-				<h2>Q: How do I change the colour of the <code>=tex</code> image?</h2>
-				<p>A: You can't. The shade of grey has been chosen to be readable on Discord's light and dark themes. If you really don't like it I can add a solid black-on-white setting.</p>
-				<h2>Q: Do you sleep?</h2>
-				<p>A: ¯\_(ツ)_/¯</p>
+<p><code>=purge number</code></p>
+<p>This command will search through most recent <em>number</em> messages and delete any that were sent by the bot. The bot will not search more than the 500 most recent messages.</p>
+<p>This command can only be run by users who have the <em>manage messages</em> permission in the respective channel. It will <em>not</em> work in any private channels.</p>
 			</div>
 		</div>
 	</body>
 </html>
+
