@@ -29,6 +29,8 @@
 
 <a href="#h-settings"><p>Settings</p></a>
 
+<a href="#h-prefix"><p>Prefix</p></a>
+
 <a href="#h-blame"><p>Blame</p></a>
 
 <a href="#h-purge"><p>Purge</p></a>
@@ -37,7 +39,7 @@
 			<div>
 				<h1 id="h-about">About</h1>
 
-<p>Add MathBot to your <a href="https://discordapp.com/oauth2/authorize?&amp;client_id=172236682245046272&amp;scope=bot&amp;permissions=35840">server using this link</a>.</p>
+<p>Add MathBot to your <a href="https://discordapp.com/oauth2/authorize?&amp;client_id=172236682245046272&amp;scope=bot&amp;permissions=126016">server using this link</a>.</p>
 <p>MathBot is developed by DXsmiley. You can talk to him via the <a href="https://discord.gg/JbJbRZS">official MathBot server</a>.</p>
 <p>MathBot is written in Python using <a href="https://github.com/Rapptz/discord.py">discord.py</a>.</p>
 
@@ -168,7 +170,14 @@ Use <code>=theme light</code> to apply the light theme.</p>
 <code>=set channel c-calc enable</code></p>
 <h2>Troubleshooting</h2>
 <p>Ensure you are typing words <em>exactly</em> as shown.
-If you are still having problems you can ask on the official server: https://discord.gg/JbJbRZS</p>
+If you are still having problems you can ask <a href="https://discord.gg/JbJbRZS">on the official server</a>.</p>
+
+<h1 id="h-prefix">Prefix</h1>
+
+<p>Running <code>@MathBot prefix</code> with no arguments will simply display the bot's current prefix.</p>
+<p>If you are a server admin, <code>@MathBot prefix new_prefix</code> will set the bot's prefix to <code>new_prefix</code> for the server. Use <code>@MathBot prefix =</code> to reset it to the default value.</p>
+<p>In the case you want the prefix have leading or trailing whitespace, <code>new_prefix</code> should be wrapped in <em>backticks</em> (` symbols).</p>
+<p>Prefix changes are reflected in the help commands when they are run from the server itself.</p>
 
 <h1 id="h-blame">Blame</h1>
 
@@ -180,7 +189,7 @@ If you are still having problems you can ask on the official server: https://dis
 <h1 id="h-purge">Purge</h1>
 
 <p><code>=purge number</code></p>
-<p>This command will search through most recent <em>number</em> messages and delete any that were sent by the bot. The bot will not search more than the 500 most recent messages.</p>
+<p>This command will search through most recent <code>number</code> messages and delete any <em>that were sent by the bot</em>. The bot will not search more than the 500 most recent messages.</p>
 <p>This command can only be run by users who have the <em>manage messages</em> permission in the respective channel. It will <em>not</em> work in any private channels.</p>
 			</div>
 		</div>

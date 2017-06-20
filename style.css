@@ -200,6 +200,13 @@ div.doc-body {
 	padding: 10px 70px;
 }
 
+div.doc-body h1 {
+	position: relative;
+	left: -16px;
+	border-left: 8px solid rgb(28, 190, 233);
+	padding-left: 16px;
+}
+
 code {
 	font-family: 'Inconsolata', monospace;
 	border: 1px solid lightgrey;
