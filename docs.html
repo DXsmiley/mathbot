@@ -25,6 +25,8 @@
 
 <a href="#h-calculator"><p>Calculator</p></a>
 
+<a href="#h-turing"><p>Turing Completeness</p></a>
+
 <a href="#h-theme"><p>Themes</p></a>
 
 <a href="#h-settings"><p>Settings</p></a>
@@ -82,7 +84,8 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <h1 id="h-calculator">Calculator</h1>
 
 <p>The calculator can be invoked with the command <code>=calc</code>.</p>
-<p>It is also possible to use the shortcut <code>==</code>, however <strong>this may be disabled on some servers or channels</strong>. Using the shortcut will not produce an error message if it is disabled.</p>
+<p>It is also possible to use the shortcut <code>==</code>, however <em>this may be disabled on some servers or channels</em>. Using the shortcut will not produce an error message if it is disabled.</p>
+<p>To see details on the calculator's Turing completeness, run <code>=help turing</code>.</p>
 <p>The calculator supports the following operations:</p>
 <ul>
 <li><code>+</code> : addition</li>
@@ -92,27 +95,47 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li><code>^</code> : exponentiation (has some limitations to prevent exploits)</li>
 <li><code>!</code> : factorial (cannot be applied to numbers greater than 200)</li>
 </ul>
+<p>The following comparisons are supported</p>
+<ul>
+<li><code>&gt;</code> : Greater than.</li>
+<li><code>&lt;</code> : Less than.</li>
+<li><code>==</code> : Equal to (two <code>=</code> signs for comparison)</li>
+<li><code>&gt;=</code> : Greater or equal.</li>
+<li><code>&lt;=</code> : Less than or equal.</li>
+<li><code>!=</code> : Not equal.</li>
+</ul>
+<p>For example, <code>2 &lt; 5 &lt; 8</code> evaluates to <code>True</code>, whereas <code>3 == 6</code> equates to <code>False</code>.</p>
 <p>The following constants exist:</p>
 <ul>
-<li><code>pi</code> : 3.141592...</li>
-<li><code>e</code>  : 2.178281...</li>
+<li><code>pi</code>  : 3.141592... (also <code>π</code>)</li>
+<li><code>tau</code> : 6.283185... (twice pi)</li>
+<li><code>e</code>   : 2.178281...</li>
 </ul>
 <p>The following functions are available:</p>
 <ul>
-<li><code>round</code> : rounds a number to the nearest integer</li>
-<li><code>int</code> : rounds <em>down</em> to the nearest integer</li>
-<li><code>sin</code> : sine of an angle (in radians)</li>
-<li><code>cos</code> : cosine of an angle (in radians)</li>
-<li><code>tan</code> : tan of an angle (in radians)</li>
-<li><code>asin</code> : inverse sine (result is in radians)</li>
-<li><code>acos</code> : inverse cosine (result is in radians)</li>
-<li><code>atan</code> : inverse tan (result is in radians)</li>
-<li><code>deg</code> : converts radians to degrees</li>
-<li><code>rad</code> : converts degrees to radians</li>
-<li><code>log</code> : log in base 10</li>
-<li><code>ln</code>  : log in base <code>e</code></li>
-<li><code>sqrt</code> : calculates the square root of a number</li>
+<li><code>sin(x)</code> : sine of an angle</li>
+<li><code>cos(x)</code> : cosine of an angle</li>
+<li><code>tan(x)</code> : tan of an angle</li>
+<li><code>asin(x)</code> : inverse sine</li>
+<li><code>acos(x)</code> : inverse cosine</li>
+<li><code>atan(x)</code> : inverse tan</li>
+<li><code>sinh(x)</code> : hyperbolic sine function</li>
+<li><code>cosh(x)</code> : hyperbolic cosine function</li>
+<li><code>tanh(x)</code> : hyperbolic tan function</li>
+<li><code>asinh(x)</code> : inverse hyperbolic sine</li>
+<li><code>acosh(x)</code> : inverse hyperbolic cosine</li>
+<li><code>atanh(x)</code> : inverse hyperbolic tan</li>
+<li><code>deg(r)</code> : converts radians to degrees</li>
+<li><code>rad(d)</code> : converts degrees to radians</li>
+<li><code>log(x)</code> : log in base 10</li>
+<li><code>log(x, b)</code> : log of <code>x</code> in base <code>b</code></li>
+<li><code>ln(x)</code>  : log in base <code>e</code></li>
+<li><code>sqrt(x)</code> : calculates the square root of a number</li>
+<li><code>round(x)</code> : rounds a number to the nearest integer</li>
+<li><code>int(x)</code> : rounds <em>down</em> to the nearest integer</li>
+<li><code>gamma(x)</code> : computes the gamma function</li>
 </ul>
+<p>All trig operations work in <em>radians</em>.</p>
 <p>You can use the following notation to roll dice:</p>
 <ul>
 <li><code>dX</code> : rolls an <code>X</code>-sided die. (e.g. <code>d20</code>)</li>
@@ -128,6 +151,36 @@ in increasing order. <code>R</code> may not be greater than 50.</p>
 <p><code>=calc round(10 / 3)</code></p>
 <p><code>=calc sin(pi / 2)</code></p>
 <p><code>=calc 8d6 : 10</code></p>
+
+<h1 id="h-turing">Turing Completeness</h1>
+
+<p>The calculator is actually Turing complete, and can function as it's own small programming language, allowing you to perform more complicated operations.</p>
+<ul>
+<li>Any variables that are assigned are contained to the channel that they are created in.</li>
+<li>Values are purged at least once every 24 hours, so don't rely on the bot to store important information for you.</li>
+</ul>
+<h2>Assignments</h2>
+<p>Assigning variables is simple:
+<code>x = 7</code></p>
+<p>Recalling them works the same as it normally would
+<code>x</code></p>
+<p>Note that the single-letter variable name <strong>d</strong> <em>cannot</em> be used, since it clashes with the die-rolling operator.</p>
+<h2>If Statements</h2>
+<p>If statements are use as follows:
+<code>if(condition, expression_if_true, expression_if_false)</code></p>
+<p>So for instance <code>if(1 &gt; 2, 30, 40)</code> would evaluate to <code>30</code>, but <code>if(4 &gt; 2, 30, 40)</code> would evaluate to <code>40</code>.</p>
+<p>Unlike normal functions, the arguments that are passed to the <code>if</code> statement are only evaluated when they are used internally, not beforehand. This means that only one of <code>expression_if_true</code> and <code>expression_if_false</code> will ever be evaluated.</p>
+<h2>Defining Functions</h2>
+<p>Functions are defined using the following syntax
+<code>(arguments, ...) -&gt; expression</code></p>
+<p>Example:
+<code>(x, y, z) -&gt; (x * y) / z</code></p>
+<p>Functions are not given names, but they can be assigned to variables so that they may be used later.
+<code>sum = (x, y) -&gt; x + y
+sum(3, 5)</code></p>
+<h2>Combining the two</h2>
+<p>These tools are enough to create things such as the Fibonacci function:
+<code>fib = (n) -&gt; if (n &lt; 2, 1, fib(n - 2) + fib(n - 1))</code></p>
 
 <h1 id="h-theme">Themes</h1>
 
