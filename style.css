@@ -116,13 +116,13 @@ div.navbox p {
 
 }
 
-@media (min-width: 1300px) {
+/*@media (min-width: 1300px) {
 
 	div.navbox {
 		background-color: transparent;
 	}
 
-}
+}*/
 
 @media (min-width: 1600px) {
 
@@ -134,6 +134,10 @@ div.navbox p {
 
 div.navbox a:visited {
 	color: rgb(28, 190, 233);
+}
+
+div.navbox a.orange {
+	color: rgb(233, 127, 28);
 }
 
 /*img {
