@@ -86,11 +86,11 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <p>The calculator can be invoked with the command <code>=calc</code>.</p>
 <p>It is also possible to use the shortcut <code>==</code>, however <em>this may be disabled on some servers or channels</em>. Using the shortcut will not produce an error message if it is disabled.</p>
 <p>To see details on the calculator's Turing completeness, run <code>=help turing</code>.</p>
-<p>The calculator supports the following operations:</p>
+<p>The calculator supports the following arithmetic operations:</p>
 <ul>
 <li><code>+</code> : addition</li>
 <li><code>-</code> : subtraction</li>
-<li><code>*</code> : multiplication (can also use <code>x</code> or <code>×</code>)</li>
+<li><code>*</code> : multiplication (can also use <code>×</code>)</li>
 <li><code>/</code> : division (can also use <code>÷</code>)</li>
 <li><code>^</code> : exponentiation (has some limitations to prevent exploits)</li>
 <li><code>!</code> : factorial (cannot be applied to numbers greater than 200)</li>
@@ -105,11 +105,20 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li><code>!=</code> : Not equal.</li>
 </ul>
 <p>For example, <code>2 &lt; 5 &lt; 8</code> evaluates to <code>True</code>, whereas <code>3 == 6</code> equates to <code>False</code>.</p>
+<p>The following logical operators are supported:</p>
+<ul>
+<li><code>|</code> : Or  (<code>x | y</code>)</li>
+<li><code>&amp;</code> : And (<code>x &amp; y</code>)</li>
+<li><code>!</code> : Not (<code>!x</code>)</li>
+</ul>
+<p>The value <code>0</code> is considered falsy. Everything else is truthy.</p>
 <p>The following constants exist:</p>
 <ul>
 <li><code>pi</code>  : 3.141592... (also <code>π</code>)</li>
 <li><code>tau</code> : 6.283185... (twice pi)</li>
 <li><code>e</code>   : 2.178281...</li>
+<li><code>true</code>  : 1</li>
+<li><code>false</code> : 0</li>
 </ul>
 <p>The following functions are available:</p>
 <ul>
@@ -169,7 +178,7 @@ in increasing order. <code>R</code> may not be greater than 50.</p>
 <h2>If Statements</h2>
 <p>If statements are use as follows:
 <code>if(condition, expression_if_true, expression_if_false)</code></p>
-<p>So for instance <code>if(1 &gt; 2, 30, 40)</code> would evaluate to <code>30</code>, but <code>if(4 &gt; 2, 30, 40)</code> would evaluate to <code>40</code>.</p>
+<p>So for instance <code>if(1 &lt; 2, 3, 4)</code> would evaluate to <code>3</code>, but <code>if(1 &gt; 2, 3, 4)</code> would evaluate to <code>4</code>.</p>
 <p>Unlike normal functions, the arguments that are passed to the <code>if</code> statement are only evaluated when they are used internally, not beforehand. This means that only one of <code>expression_if_true</code> and <code>expression_if_false</code> will ever be evaluated.</p>
 <h2>Defining Functions</h2>
 <p>Functions are defined using the following syntax
