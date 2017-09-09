@@ -1,0 +1,34 @@
+makelist = (arguments.) -> arguments,
+
+_reduce = (list, function, place) ->
+	if (place <= 0,
+		l(0),
+		function(list(place), _reduce(list, function, place - 1))
+	),
+
+reduce = (list, function) -> if (list(list) == 0, makelist(), reduce(list, function, length(list) - 1)),
+
+_map = (list, function, place) -> if (place == len(list),
+	makelist(),
+	prepend(function(list(0), _map(list, function, place + 1)))
+),
+
+map = (list, function) -> _map,
+
+min = (list) -> reduce(list, (a, b) -> if (a < b, a, b)),
+max = (list) -> reduce(list, (a, b) -> if (a > b, a, b)),
+
+prepend = (item, list) -> join(makelist(item), list),
+append = (list, item) -> join(list, makelist(item)),
+rest = (list) -> splice(list, 1, length(list)),
+
+reverse = (list) -> if(length(list) == 1, list, append(reverse(rest(list)), list(0))),
+
+makelist(
+	reverse(makelist(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
+	join(
+		makelist(1, 2, 3),
+		makelist(4, 5, 6),
+		makelist(7, 8, 9)
+	)
+)

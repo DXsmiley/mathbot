@@ -1,0 +1,6 @@
+*.png
+__pycache__
+*.sublime*
+.cache
+*.zip
+ignore

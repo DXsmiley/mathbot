@@ -1,0 +1,922 @@
+from calculator.myparser import *
+from calculator.errors import *
+import calculator.operators
+import asyncio
+import math
+import weakref
+import calculator.attempt6
+
+
+DIGITS_LIMIT = 2000
+
+
+def except_math_error(f):
+	def internal(*x):
+		try:
+			return f(*x)
+		except Exception:
+			if len(x) == 0:
+				raise EvaluationError('Can\'t run {} function with no arguments.'.format(f.__name__))
+			elif len(x) == 1:
+				formatted = calculator.errors.format_value(x[0])
+				raise EvaluationError('Can\'t run {} function on value {}'.format(f.__name__, formatted))
+			else:
+				formatted = ', '.join(map(calculator.errors.format_value, x))
+				raise EvaluationError('Can\'t run {} function on values ({})'.format(f.__name__, formatted))
+	internal.__name__ = f.__name__
+	return internal
+
+
+class DoubleEndedArray:
+
+	def __init__(self, values):
+		self.front = []
+		self.back = values[:]
+
+	def __getitem__(self, index):
+		if index < 0:
+			return self.front[abs(index) - 1]
+		return self.back[index]
+
+	def __setitem__(self, index, value):
+		if index < 0:
+			self.front[abs(index) - 1] = value
+		else:
+			self.back[index] = value
+
+	def __len__(self):
+		return len(self.front) + len(self.back)
+
+	def append(self, item):
+		self.back.append(item)
+
+	def prepend(self, item):
+		self.front.append(item)
+
+
+
+class BaseFunction: pass
+
+
+class Array(BaseFunction):
+
+	def __init__(self, values):
+		# self.front = []
+		self.back = values
+		# self.has_ownership = True
+		self.values = list(values)
+		if len(values) > 128:
+			raise EvaluationError('Created an array with more than 128 elements. This limitation is in place while the feature is in the development.')
+
+	def call(self, arguments, interpereter):
+		if len(arguments) != 1 or not isinstance(arguments[0], int) or not (0 <= arguments[0] < len(self.values)):
+			raise EvaluationError('Attempted to get non-existent value of array')
+		return self.values[arguments[0]]
+		yield
+
+	# def slice(self, start, end):
+	# 	new = Array()
+	# 	new.front = self.front
+	# 	new.back = self.back
+	# 	new.has_ownership = False
+	#
+	# def append(self, value):
+	# 	if self.has_ownership:
+	# 		self.back.append(value)
+
+	def __str__(self):
+		return 'array({})'.format(', '.join(map(str, self.values)))
+
+
+class Function(BaseFunction):
+
+	def __init__(self, parameters, expression, scope, variadic):
+		self.parameters = parameters
+		self.expression = expression
+		self.scope = scope
+		# self.cache = weakref.WeakKeyDictionary()
+		self.cache = {}
+		self.variadic = variadic
+
+	def call(self, arguments, interpereter):
+		# TODO: setup scope
+		if len(arguments) > 128:
+			raise EvaluationError('No more than 128 arguments may be passed to a function at once.')
+		if self.variadic:
+			if len(arguments) < len(self.parameters) - 1:
+				raise EvaluationError('Incorrect number of arguments for function.')
+		else:
+			if len(arguments) != len(self.parameters):
+				raise EvaluationError('Incorrect number of arguments for function.')
+		tp = tuple(arguments)
+		if tp not in self.cache:
+			if self.variadic:
+				extra_arguments = arguments[len(self.parameters) - 1:]
+				main_arguments = arguments[:len(self.parameters)]
+				values = {key:value for key, value in zip(self.parameters[:-1], main_arguments)}
+				values[self.parameters[-1]] = Array(extra_arguments)
+				subscope = Scope(self.scope, values)
+				self.cache[tp] = yield from ev(self.expression, subscope, interpereter)
+			else:
+				subscope = Scope(self.scope, {key: value for key, value in zip(self.parameters, arguments)})
+				self.cache[tp] = yield from ev(self.expression, subscope, interpereter)
+		return self.cache[tp]
+
+	def __str__(self):
+		return 'user defined function'
+
+
+class BuiltinFunction(BaseFunction):
+
+	def __init__(self, function, name = None):
+		self.function = function
+		self.name = name or self.function.__name__
+
+	def call(self, arguments, interpereter):
+		return self.function(*arguments)
+		yield
+
+	def __str__(self):
+		return 'builtin function {}'.format(self.name)
+
+
+class BuiltinCoroutine(BaseFunction):
+
+	def __init__(self, function):
+		self.function = function
+
+	# This one's not good.
+	def call(self, arguments, interpereter):
+		raise NotImplementedException
+		# return await self.function(*arguments)
+
+
+class BuiltinGenerator(BaseFunction):
+
+	def __init__(self, function):
+		self.function = function
+
+	def call(self, arguments, interpereter):
+		return (yield from self.function(*arguments))
+
+	def __str__(self):
+		return 'builtin function "{}"'.format(self.function.__name__)
+
+
+class MacroArgumentFunction(BaseFunction):
+
+	__slots__ = ['function']
+
+	def __init__(self, function):
+		self.function = function
+
+	def call(self, arguments, interpereter):
+		if len(arguments) != 0:
+			raise EvaluationError('Macro argument functions take no arguments.')
+		return self.function()
+
+	def __call__(self):
+		return self.function()
+
+	def __str__(self):
+		return 'macro argument function'
+
+
+# A Macro is a function where the arguments are functions which can
+# be called to get the ACTUAL values. Used to implement things like
+# if statements
+class Macro:
+
+	def __init__(self, function):
+		self.function = function
+
+	def call(self, *args):
+		return (yield from self.function.call(*args))
+
+	def __str__(self):
+		return str(self.function)
+
+
+class List:
+
+	def __init__(self, values):
+		self.values = list(values)
+
+	def __getitem__(self, index):
+		return self.values[index]
+
+	def __len__(self):
+		return len(self.values)
+
+
+class Scope:
+
+	def __init__(self, previous, values, protected_names = None):
+		self.values = values
+		self.previous = previous
+		self.protected_names = protected_names
+		if self.protected_names is None and self.previous is not None:
+			self.protected_names = self.previous.protected_names
+
+	def __getitem__(self, key):
+		try:
+			return self.values[key]
+		except KeyError:
+			try:
+				return self.previous[key]
+			except TypeError:
+				raise EvaluationError('Unknown name: {}'.format(key))
+
+	def __setitem__(self, key, value):
+		if self.protected_names is not None and key in self.protected_names:
+			raise EvaluationError('\'{}\' is a protected constant and cannot be overridden'.format(key))
+		# if key in self.values:
+		# 	raise EvaluationError('{} has already been assigned in this scope'.format(key))
+		self.values[key] = value
+
+	def clear_cache(self, seen = None):
+		if seen is None:
+			seen = set()
+		if self not in seen:
+			seen.add(self)
+			if self.previous != None:
+				self.previous.clear_cache()
+			for key, value in self.values.items():
+				if isinstance(value, Function):
+					value.cache = {}
+					value.scope.clear_cache(seen)
+
+	def __repr__(self):
+		return '{} -> {}'.format(repr(self.values), repr(self.previous))
+
+
+def if_statement(*arguments):
+	if len(arguments) < 3:
+		raise EvaluationError('Too few arguments for if function. Requires 3.')
+	if len(arguments) > 3:
+		raise EvaluationError('Too many arguments for if function. Requires 3.')
+	condition, if_true, if_false = arguments
+	if (yield from condition()):
+		return (yield from if_true())
+	return (yield from if_false())
+
+
+def switch_statement(*arguments):
+	if len(arguments) % 2 == 0 or len(arguments) < 3:
+		raise EvaluationError('Invalid number of arguments for switch expression')
+	for i in range(0, len(arguments) - 2, 2):
+		if (yield from arguments[i]()):
+			return (yield from arguments[i + 1]())
+	return (yield from arguments[-1]())
+
+
+def func_map(function, iterable):
+	if not isinstance(iterable, List):
+		raise EvaluationError('Cannot run map function on non-List')
+	return List(map(function, ))
+
+
+def mergemany(*args):
+	r = {}
+	for i in args:
+		for k, v in i.items():
+			assert(k not in r)
+			r[k] = v
+	return r
+
+
+def oneify(x):
+	return 1 if x else 0
+
+
+def is_function(x):
+	return oneify(isinstance(x, BaseFunction) or isinstance(x, Macro))
+
+
+def is_real(x):
+	return oneify(isinstance(x, int) or isinstance(x, float))
+
+
+def is_comlpex(x):
+	return oneify(isinstance(x, complex))
+
+
+def array_length(x):
+	if not isinstance(x, Array):
+		raise EvaluationError('Cannot get the length of non-array object')
+	return len(x.values)
+
+
+def array_splice(array, start, end):
+	if not isinstance(array, Array):
+		raise EvaluationError('Cannot splice non-array')
+	if not isinstance(start, int) or not isinstance(end, int):
+		raise EvaluationError('Non-integer indexes passed to splice')
+	# Todo: Make this efficient
+	return Array(array.values[start:end])
+
+# Todo: Make this more efficient
+def array_join(*items):
+	if len(items) == 0:
+		raise EvaluationError('Cannot join no arrays together.')
+	result = []
+	for i in items:
+		if not isinstance(i, Array):
+			raise EvaluationError('Cannot call join on non-array')
+		result += i.values
+	return Array(result)
+
+
+class Expanded:
+
+	def __init__(self, arrays):
+		self.arrays = arrays
+
+	def __iter__(self):
+		for i in self.arrays:
+			yield from i.values
+
+	def __str__(self):
+		return 'expanded_array'
+
+
+def array_expand(*arrays):
+	for i in arrays:
+		if not isinstance(i, Array):
+			raise EvaluationError('Cannot expand non-array')
+	return Expanded(arrays)
+
+
+
+# def is_int(x):
+# 	return oneify(isinstance(x, int))
+#
+#
+# def is_float(x):
+# 	return oneify(isinstance(x, float))
+
+
+# Changes a trig function to take degrees as its arguments
+def fdeg(func):
+	return lambda x : func(math.radians(x))
+
+# Changes a trig function to produce degrees as its output
+def adeg(func):
+	return lambda x : math.degrees(func(x))
+
+
+def m_choose(n, k):
+	return calculator.operators.operator_division(
+		calculator.operators.function_factorial(n),
+		calculator.operators.operator_multiply(
+			calculator.operators.function_factorial(k),
+			calculator.operators.function_factorial(
+				calculator.operators.operator_subtract(
+					n,
+					k
+				)
+			)
+		)
+	)
+
+
+BUILTIN_FUNCTIONS = {
+	# 'interval': lambda a, b: List(range(a, b)),
+	'sin': except_math_error(math.sin),
+	'cos': except_math_error(math.cos),
+	'tan': except_math_error(math.tan),
+	'sind': except_math_error(fdeg(math.sin)),
+	'cosd': except_math_error(fdeg(math.cos)),
+	'tand': except_math_error(fdeg(math.tan)),
+	'asin': except_math_error(math.asin),
+	'acos': except_math_error(math.acos),
+	'atan': except_math_error(math.atan),
+	'asind': except_math_error(adeg(math.asin)),
+	'acosd': except_math_error(adeg(math.acos)),
+	'atand': except_math_error(adeg(math.atan)),
+	'sinh': except_math_error(math.sinh),
+	'cosh': except_math_error(math.cosh),
+	'tanh': except_math_error(math.tanh),
+	'asinh': except_math_error(math.asinh),
+	'acosh': except_math_error(math.acosh),
+	'atanh': except_math_error(math.atanh),
+	'deg': except_math_error(math.degrees),
+	'rad': except_math_error(math.radians),
+	'log': calculator.operators.function_logarithm,
+	'ln': except_math_error(math.log),
+	'round': round,
+	'int': except_math_error(int),
+	'sqrt': lambda x : x ** 0.5,
+	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
+	'gcd': calculator.operators.function_gcd,
+	'lcm': calculator.operators.function_lcm,
+	'choose': m_choose,
+	'is_real': is_real,
+	'is_complex': is_comlpex,
+	'is_function': is_function,
+	'length': array_length,
+	'join': array_join,
+	'splice': array_splice,
+	'expand': array_expand
+}
+
+
+# OPERATORS = {
+# 	'+': lambda a, b: a + b,
+# 	'*': lambda a, b:
+# }
+
+
+FIXED_VALUES = {
+	'e': math.e,
+	'pi': math.pi,
+	'π': math.pi,
+	'i': 1j,
+	'euler_gamma': 0.577215664901,
+	'tau': math.pi * 2,
+	'true': 1,
+	'false': 0
+}
+
+
+CONSTANTS = mergemany(
+	{
+		'if': Macro(BuiltinGenerator(if_statement)),
+		'switch': Macro(BuiltinGenerator(switch_statement))
+	},
+	FIXED_VALUES,
+	{k: BuiltinFunction(v, name = k) for k, v in BUILTIN_FUNCTIONS.items()}
+)
+
+
+ROOT_SCOPE = Scope(None, CONSTANTS, set(CONSTANTS))
+
+
+def new_scope():
+	return Scope(ROOT_SCOPE, {})
+
+
+def rolldie(times, faces):
+	if isinstance(times, float):
+		times = int(times)
+	if isinstance(faces, float):
+		faces = int(faces)
+	if not isinstance(times, int) or not isinstance(faces, int):
+		raise EvaluationError('Cannot roll {} dice with {} faces'.format(
+			calculator.errors.format_value(times),
+			calculator.errors.format_value(faces)
+		))
+	if times < 1:
+		return 0
+	if times > 1000:
+		raise EvaluationError('Cannot roll more than 1000 dice')
+	if faces < 1:
+		raise EvaluationError('Cannot roll die with less than one face')
+	if isinstance(faces, float) and not faces.is_integer():
+		raise EvaluationError('Cannot roll die with fractional number of faces')
+	return sum(random.randint(1, faces) for i in range(times))
+
+
+def wrap_ev(p, scope, it):
+	def f():
+		result = yield from ev(p, scope, it)
+		if isinstance(result, Expanded):
+			raise EvaluationError('Expanded ')
+		return result
+	return MacroArgumentFunction(f)
+
+
+class Interpereter():
+
+	def __init__(self, limit_stack_size):
+		self.stack = []
+		self.limit_stack_size = limit_stack_size
+		self.warnings = set()
+
+	def step(self):
+		# print(self.stack)
+		generator, injector = self.stack[-1]
+		try:
+			new_thing = next(generator)
+			# print(new_thing)
+			if new_thing is not None:
+				if len(self.stack) >= self.limit_stack_size:
+					raise EvaluationError('Stack overflow: too much recursion')
+				self.stack.append(new_thing)
+		except StopIteration as e:
+			injector.append(e.value)
+			self.stack.pop()
+
+	def add_warning(self, warning):
+		self.warnings.add(warning)
+
+
+async def evaluate(p, scope, limits):
+	it = Interpereter(limits.get('stack_size', 200))
+	for i in check_parse_tree_warnings(p):
+		it.add_warning(i)
+	inject = []
+	it.stack.append((evaluate_step(p, scope, it), inject))
+	while it.stack:
+		work = 0
+		while it.stack and work < 1000:
+			it.step()
+			work += 1
+		await asyncio.sleep(0)
+	result = inject[0]
+	warnings = list(it.warnings)
+	del it
+	if limits.get('warnings', False):
+		return warnings, result
+	return result
+
+
+def ev(p, scope, it):
+	injector = []
+	yield (evaluate_step(p, scope, it), injector)
+	return injector[0]
+
+
+OPERATOR_DICT = {
+	'+': calculator.operators.operator_add,
+	'-': calculator.operators.operator_subtract,
+	'*': calculator.operators.operator_multiply,
+	'/': calculator.operators.operator_division,
+	'^': calculator.operators.operator_power,
+	'%': calculator.operators.operator_modulo,
+	'<': calculator.operators.operator_less,
+	'>': calculator.operators.operator_more,
+	'<=': calculator.operators.operator_less_equal,
+	'>=': calculator.operators.operator_more_equal,
+	'==': calculator.operators.operator_equal,
+	'!=': calculator.operators.operator_not_equal,
+	'd': rolldie,
+	'&': lambda a, b: 1 if a and b else 0,
+	'|': lambda a, b: 1 if a or b else 0
+}
+
+
+def convert_number(string):
+	if string[-1] == 'i':
+		return convert_number(string[:-1]) * 1j
+	try:
+		return int(string)
+	except ValueError:
+		pass
+	return float(string)
+
+
+def check_parse_tree_warnings(tree):
+	if isinstance(tree, dict):
+		for key, value in tree.items():
+			if key is 'warning':
+				yield value
+			else:
+				yield from check_parse_tree_warnings(value)
+
+
+def evaluate_step(p, scope, it):
+	# print(':', json.dumps(p, indent = 4))
+	while True:
+		node_type = p['#']
+		if node_type == 'number':
+			return convert_number(p['string'])
+		elif node_type == 'bin_op':
+			left = yield from evaluate_step(p['left'], scope, it)
+			right = yield from evaluate_step(p['right'], scope, it)
+			op = OPERATOR_DICT.get(p['operator'])
+			assert(op is not None)
+			return op(left, right)
+		elif node_type == 'not':
+			value = yield from evaluate_step(p['expression'], scope, it)
+			return 0 if value else 1
+		elif node_type == 'die':
+			times = (yield from evaluate_step(p['times'], scope, it)) if 'times' in p else 1
+			faces = (yield from evaluate_step(p['faces'], scope, it))
+			return rolldie(times, faces)
+		elif node_type == 'udie':
+			# THIS IS OLD
+			faces = yield from evaluate_step(p['faces'], scope, it)
+			return rolldie(1, faces)
+		elif node_type == 'uminus':
+			return - (yield from evaluate_step(p['value'], scope, it))
+		elif node_type == 'function_call':
+			function = yield from evaluate_step(p['function'], scope, it)
+			if not isinstance(function, BaseFunction) and not isinstance(function, Macro):
+				raise EvaluationError('{} is not a function'.format(format_value(function)))
+			# Get the list of AST objects
+			items = p.get('arguments', {'items': []})['items']
+			args = []
+			# print(items)
+			for i in items:
+				if isinstance(function, Macro):
+					args.append(wrap_ev(i, scope, it))
+				else:
+					value = yield from evaluate_step(i, scope, it)
+					if isinstance(value, Expanded):
+						args += list(value)
+					else:
+						args.append(value)
+			return (yield from function.call(args, it))
+		elif node_type == 'word':
+			name = p['string'].lower()
+			return scope[name]
+		elif node_type == 'factorial':
+			return calculator.operators.function_factorial((yield from evaluate_step(p['value'], scope, it)))
+		elif node_type == 'assignment':
+			name = p['variable']['string'].lower()
+			value = yield from evaluate_step(p['value'], scope, it)
+			# print('Assignment:', name, value)
+			scope[name] = value
+			return value
+		# elif node_type == 'program':
+		# 	result = None
+		# 	for i in p.get('statements', {'items': []})['items']:
+		# 		result = yield from ev(i, scope)
+		# 	if 'expression' in p:
+		# 		p = p['expression']
+		# 	else:
+		# 		return result
+		# 		# return (yield from evaluate_step(p['expression'], scope))
+		elif node_type == 'statement_list':
+			yield from ev(p['statement'], scope)
+			p = p['next']
+		elif node_type == 'program':
+			result = 0
+			for i in p['items']:
+				result = yield from ev(i, scope, it)
+			return result
+		elif node_type == 'function_definition':
+			parameters = [i['string'].lower() for i in p['parameters']['items']]
+			function = Function(parameters, p['expression'], scope, p['variadic'])
+			if p['kind'] == '~>':
+				function = Macro(function)
+			return function
+		elif node_type == 'comparison':
+			previous = yield from evaluate_step(p['first'], scope, it)
+			for i in p['rest']:
+				op = i['operator']
+				current = yield from evaluate_step(i['value'], scope, it)
+				if not OPERATOR_DICT[op](previous, current):
+					return 0
+				previous = current
+			return 1
+		elif node_type == 'output':
+			result = yield from evaluate_step(p['expression'], scope, it)
+			print(result)
+			return result
+		else:
+			return None
+
+
+def create_grammar():
+
+	balance_cache = {}
+
+	def balancer(contents):
+		# return contents
+		return EnsureBalanced(contents, '(', ')', balance_cache)
+
+	number = ReToken(r'\d*\.?\d+([eE]-?\d+)?i?')('#number')
+
+	# This seems more complicated that it needs to be, but we have to avoid clashing with the dice operator.
+	word = (
+		Token('π') |
+		ReToken(r'[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*')
+	) ('#word')
+
+	# NOTE: the 'x' symbol might make the grammar ambigous.
+	mul_op_x_decr = Attach(Token('x'), {
+		'warning': 'Using `x` for multiplication is deprecated. Use `*` or `×` instead.'
+	})
+	mul_op = Attach(Token('*', '×') | mul_op_x_decr, {'token': '*'}, override = True) \
+		   | Attach(Token('/', '÷'), {'token': '/'}, override = True)
+	mod_op = Token('%')
+	eq_op  = Token('>', '<', '>=', '<=', '==', '!=') # Thought: add '=' to this?
+	add_op = Token('+', '-')
+	or_op  = Token('|')
+	and_op = Token('&')
+	pow_op = Token('^')
+	die_op = Token('d')
+	lparen = Token('(')
+	rparen = Token(')')
+	comma  = Token(',')
+	bang   = Token('!')
+	equals = Token('=')
+	func_op = Token('->', '~>')
+	out_op = Token('<<')
+	semicolon = Token(';')
+
+	function_call = Defer()
+	function_definition = Defer()
+	factorial  = Defer()
+	dieroll    = Defer()
+	power      = Defer()
+	uminus     = Defer()
+	modulo     = Defer()
+	product    = Defer()
+	addition   = Defer()
+	equality   = Defer()
+	logic_not  = Defer()
+	logic_and  = Defer()
+	logic_or   = Defer()
+	expression = Defer()
+	statement  = Defer()
+	program    = Defer()
+	body       = Defer()
+
+	wrapped_expression = Supress(lparen) + body + Supress(rparen)
+	arg_list = Alternate(expression, comma)
+
+	atom = number | wrapped_expression | word
+
+	function_call << balancer(
+		atom |
+		(
+			function_call('function') + Supress(lparen) + ~(arg_list('arguments')) + Supress(rparen)
+		)('#function_call')
+	)
+
+	factorial << balancer(
+		function_call |
+		(factorial('value') + Supress(bang))('#factorial')
+	)
+
+	dieroll << balancer(
+		factorial
+		| (factorial('left') + die_op('operator') + factorial('right'))('#binop')
+		| (Supress(die_op) + factorial('faces'))('#udie')
+	)
+
+	uminus << balancer(
+		dieroll |
+		(Supress(Token('-')) + uminus('value'))('#uminus')
+	)
+
+	# power << balancer(
+	# 	uminus |
+	# 	(uminus('left') + pow_op('operator') + power('right'))('#binop')
+	# )
+
+	power << balancer(
+		DivideByToken(uminus('left'), pow_op('operator'), power('right'))('#binop')
+		| uminus
+	)
+
+	# modulo << balancer(
+	# 	power |
+	# 	(modulo('left') + mod_op('operator') + power('right'))('#binop')
+	# )
+
+	modulo << balancer(
+		DivideByToken(modulo('left'), mod_op('operator'), power('right'), direction = 'right')('#binop')
+		| power
+	)
+
+	# product << balancer(
+	# 	modulo |
+	# 	(product('left') + mul_op('operator') + modulo('right'))('#binop')
+	# )
+
+	product << balancer(
+		DivideByToken(product('left'), mul_op('operator'), modulo('right'), direction = 'right')('#binop')
+		| modulo
+	)
+
+	# addition << (
+	# 	product |
+	# 	(addition('left') + add_op('operator') + product('right'))('#binop')
+	# )
+
+	# addition << balancer(
+	# 	product |
+	# 	(addition('left') + add_op('operator') + product('right'))('#binop')
+	# )
+
+	addition << balancer(
+		DivideByToken(addition('left'), add_op('operator'), product('right'), direction = 'right')('#binop')
+		| product
+	)
+
+	equality << balancer(
+		addition |
+		Alternate(addition, eq_op, supress_delimiter = False, min_count = 3)('#comparison')
+	)
+
+	param_list = ~(
+		BailOnToken(
+			Alternate(word, comma)('parameters'),
+			forbidden = {'+', '-', '=', '->', '(', ')'}
+		)
+	)
+
+	# function_definition << balancer(
+	# 	equality |
+	# 	(
+	# 		Supress(lparen) + param_list + Supress(rparen) + func_op('operator') + equality('expression')
+	# 	)('#function_definition')
+	# )
+
+	logic_not << balancer(
+		equality |
+		(Supress(bang) + logic_not('expression'))('#not')
+	)
+
+	logic_and << balancer(
+		logic_not |
+		(logic_and('left') + and_op('operator') + logic_not('right'))('#binop')
+	)
+
+	logic_or << balancer(
+		logic_and |
+		(logic_or('left') + or_op('operator') + logic_and('right'))('#binop')
+	)
+
+	param_list = ~(Alternate(word, comma)('parameters'))
+
+	function_definition << balancer(
+		logic_or |
+		(
+			Supress(lparen) + param_list + Supress(rparen) + func_op('operator') + logic_or('expression')
+		)('#function_definition')
+	)
+
+	# expression << BailOnToken(balancer(function_definition), forbidden = {';'})
+	expression << balancer(function_definition)
+	# expression << EnsureBalanced(function_definition, '(', ')')
+
+	statement_assignment = DivideByToken(word('variable'), Supress(equals), expression('value'))('#assignment')
+	# statement_assignment = ((word('variable') + Supress(equals)) + expression('value'))('#assignment')
+	statement_output = (Supress(out_op) + expression('expression'))('#output')
+	statement << (statement_output | statement_assignment | expression)
+
+	statement_list = Defer()
+	statement_list << (
+		DivideByToken(statement('statement'), Supress(comma), statement_list('next'))('#statement_list')
+		| statement
+	)
+
+	program = statement_list
+	body << statement_list
+
+	# program = (
+	# 	expression('expression')
+	# 	| Alternate(statement, Supress(comma))('statements')
+	# 	|   Repeat(statement + Supress(comma))('statements') + expression('expression')
+	# )('#program')
+
+	# body << expression
+
+	# body << (
+	# 	expression('expression')
+	# 	| Alternate(statement_assignment, Supress(comma))('statements')
+	# 	|   Repeat(statement_assignment + Supress(comma))('statements') + expression('expression')
+	# )('#program')
+
+	# addition = product | (addition:left add_op:operator product:right, type:binop)
+
+	return Language(program)
+
+
+GRAMMAR = create_grammar()
+
+
+def calculate(equation, scope = None, stop_errors = False, limits = {}):
+	# to, result = parse(GRAMMAR, equation, check_ambiguity = False)
+	to, result = calculator.attempt6.parse(equation)
+	# print(result)
+	# print(json.dumps(result, indent = 4))
+	assert(result is not None)
+	assert(not is_ambiguous(result))
+	loop = asyncio.get_event_loop()
+	future = evaluate(result, scope or new_scope(), limits)
+	return loop.run_until_complete(future)
+
+
+def calculate_async(equation, scope = None, limits = {}, stop_errors = False):
+	# to, result = parse(GRAMMAR, equation, check_ambiguity = False)
+	to, result = calculator.attempt6.parse(equation)
+	# print(json.dumps(result, indent = 4))
+	if result is None:
+		raise ParseFailed(' '.join(to.tokens), to.rightmost)
+	return evaluate(result, scope or new_scope(), limits)
+
+
+if False:
+
+	word = ReToken(r'[a-zA-Z_][a-zA-Z0-9_]*')
+	pipe = Supress(Token('|'))
+	colon = Supress(Token(':'))
+	equals = Supress(Token('='))
+	lpar = Supress(Token('('))
+	rpar = Supress(Token(')'))
+	comma = Supress(Token(','))
+
+	attrib = word('key') + colon + word('value')
+	attributes = attrib('first') | attrib('first') + attributes('rest')
+	rule = word('name') + ~(colon + word)('')
+	atom = rule | (lpar + options + ~(comma + attributes)('attributes') + rpar)
+	sequence = Attach(atom('first') + ~sequence('rest'), {'type': sequence})
+	options = sequence | Attach(options('left') + pipe + sequence('right'), {'type': sequence})
+	statement = word('name') + equals + options('statement')
+	grammar = Repeat(statement)

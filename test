@@ -1,0 +1,2 @@
+# This script runs the unit tests
+python -m pytest tests
