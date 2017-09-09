@@ -19,9 +19,9 @@ The bot is currently developed for python `3.6.2`.
 ## Setup for use
 
 ```bash
-git clone THIS_REPO
+git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
-cp parameters_default.json parameters.json
+cp mathbot/parameters_default.json mathbot/parameters.json
 pip install -r requrements.txt
 ```
 
@@ -32,9 +32,9 @@ Run the bot with `python bot.py parameters.json`.
 ## Setup for development
 
 ```bash
-git clone THIS_REPO
+git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
-cp parameters_default.json parameters.json
+cp mathbot/parameters_default.json mathbot/parameters.json
 pip install -r requrements.txt
 ```
 
