@@ -1,0 +1,17 @@
+cffi
+discord.py==0.16.11
+requests==2.13.0
+Pillow
+pyparsing==2.2.0
+aioredis==0.3.0
+aiohttp==2.0.7
+xmltodict
+psutil
+pytest
+pytest-asyncio
+git+https://github.com/mailgun/expiringdict.git@2fa0e533c2737e89ccaf66e72b497f5a654d2607
+markdown
+asyncpg
+jinja2
+PyJWT
+aiohttp_jinja2

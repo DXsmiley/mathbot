@@ -122,12 +122,18 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 </ul>
 <p>The following functions are available:</p>
 <ul>
-<li><code>sin(x)</code> : sine of an angle</li>
-<li><code>cos(x)</code> : cosine of an angle</li>
-<li><code>tan(x)</code> : tan of an angle</li>
-<li><code>asin(x)</code> : inverse sine</li>
-<li><code>acos(x)</code> : inverse cosine</li>
-<li><code>atan(x)</code> : inverse tan</li>
+<li><code>sin(x)</code> : sine of an angle (radians)</li>
+<li><code>cos(x)</code> : cosine of an angle (radians)</li>
+<li><code>tan(x)</code> : tan of an angle (radians)</li>
+<li><code>sind(x)</code> : sine of an angle (degrees)</li>
+<li><code>cosd(x)</code> : cosine of an angle (degrees)</li>
+<li><code>tand(x)</code> : tan of an angle (degrees)</li>
+<li><code>asin(x)</code> : inverse sine (radians)</li>
+<li><code>acos(x)</code> : inverse cosine (radians)</li>
+<li><code>atan(x)</code> : inverse tan (radians)</li>
+<li><code>asind(x)</code> : inverse sine (degrees)</li>
+<li><code>acosd(x)</code> : inverse cosine (degrees)</li>
+<li><code>atand(x)</code> : inverse tan (degrees)</li>
 <li><code>sinh(x)</code> : hyperbolic sine function</li>
 <li><code>cosh(x)</code> : hyperbolic cosine function</li>
 <li><code>tanh(x)</code> : hyperbolic tan function</li>
@@ -143,8 +149,10 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li><code>round(x)</code> : rounds a number to the nearest integer</li>
 <li><code>int(x)</code> : rounds <em>down</em> to the nearest integer</li>
 <li><code>gamma(x)</code> : computes the gamma function</li>
+<li><code>gcd(a, b)</code> : computes the greatest common denominator or a and b</li>
+<li><code>lcm(a, b)</code> : computes the lowest common multiple of a and b</li>
+<li><code>choose(n, k)</code> : computes <code>n</code> choose <code>k</code></li>
 </ul>
-<p>All trig operations work in <em>radians</em>.</p>
 <p>You can use the following notation to roll dice:</p>
 <ul>
 <li><code>dX</code> : rolls an <code>X</code>-sided die. (e.g. <code>d20</code>)</li>
@@ -188,9 +196,23 @@ in increasing order. <code>R</code> may not be greater than 50.</p>
 <p>Functions are not given names, but they can be assigned to variables so that they may be used later.
 <code>sum = (x, y) -&gt; x + y
 sum(3, 5)</code></p>
+<h2>Macro Functions</h2>
+<p>Macros are similar to normal functions, with the difference that all arguments have to be evaluated on demand: Your function gets a series of functions, which take no arguments and return the original value.</p>
+<p>Macros are defined using the following syntax:
+<code>(arguments, ...) ~&gt; expression</code></p>
+<p>For example, the following snippet will evaluate to <code>8</code>
+<code>sum = (x, y) ~&gt; x() + y()
+sum(3, 5)</code></p>
 <h2>Combining the two</h2>
 <p>These tools are enough to create things such as the Fibonacci function:
 <code>fib = (n) -&gt; if (n &lt; 2, 1, fib(n - 2) + fib(n - 1))</code></p>
+<h2>Additional inbuilt functions</h2>
+<p>There are also a number of additional inbuilt functions designed to help with building more complicated systems. There are described as follows:</p>
+<ul>
+<li><code>is_real(x)</code> - Determines whether x is a real number (an integer or a float).</li>
+<li><code>is_complex(x)</code> - Determines whether x is a complex number.</li>
+<li><code>is_function(x)</code> - Determines whether x is function (or a macro).</li>
+</ul>
 
 <h1 id="h-theme">Themes</h1>
 
@@ -258,4 +280,3 @@ If you are still having problems you can ask <a href="https://discord.gg/JbJbRZS
 		</div>
 	</body>
 </html>
-

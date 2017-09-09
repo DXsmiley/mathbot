@@ -1,0 +1,39 @@
+map = (list, func) ->
+if (list == empty_list, empty_list,
+cons( func(car(list)), map(cdr(list), func))),
+
+fold = (list, init, func) ->
+if (list == empty_list, init,
+func(fold(cdr(list),init,func), car(list))),
+
+length = (list) ->
+fold(list, 0, (acc, s) -> 1 + acc) ,
+
+print_iter = (list, acc) ->
+if(list == empty_list, acc,
+print_iter(cdr(list),
+(acc * ( 10 ^ int(log(car(list)) + 2)) + car(list)))),
+
+print_list = (list) -> print_iter(cons(1,list), 0),
+
+take = (list, n) ->
+if((n == 0) + (list == empty_list), empty_list,
+cons(car(list), take(cdr(list), n - 1))),
+
+split = (number) ->
+if(number == 0, empty_list,
+cons(number % 10, split(int(number / 10)))),
+
+reverse_iter = (list, acc) ->
+if(list == empty_list, acc,
+reverse_iter(cdr(list), cons(car(list), acc))),
+
+reverse = (list) -> reverse_iter(list, empty_list),
+
+first_split_iter = (list, acc) ->
+if(list == empty_list, acc,
+if(length(list) == 1, acc + 1,
+if((car(list) == 0) * (cadr(list) != 0), acc,
+first_split_iter(cdr(list), acc + 1)))),
+
+first_split = (list) -> first_split_iter(list, 0)

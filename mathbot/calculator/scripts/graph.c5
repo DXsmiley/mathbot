@@ -1,0 +1,25 @@
+binary = (x) -> if(x == 0, 0, 2 * binary(int(x / 2)) + x % 10)
+
+max_nodes = 4
+
+bit_get = (num, index) -> int(num / 2 ^ index) % 2
+bit_set = (num, index) -> num + if(bit_get(num, index) == 0, 2 ^ index, 0)
+
+has_path = (graph, from, to) -> bit_get(graph, (from * max_nodes) + to)
+add_path = (graph, from, to) -> bit_set(graph, (from * max_nodes) + to)
+
+path_exists_2 = (graph, seen, current, next, goal) ->
+	if(next == max_nodes | bit_get(seen, current) == 1,
+		0,
+		(
+			res_next = path_exists_2(graph, seen, current, next + 1, goal),
+			res_go = if (has_path(graph, current, next) == 0, path_exists_2(graph, bit_set(seen, current), current, 0, goal), 0),
+			res_next | res_go
+		)
+	)
+
+path_exists = (graph, start, goal) -> path_exists_2(graph, 0, start, 0, goal)
+
+graph = binary(1111111111111111)
+
+<< path_exists(graph, 1, 1)

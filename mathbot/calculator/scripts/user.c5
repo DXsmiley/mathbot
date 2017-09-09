@@ -1,0 +1,3 @@
+abs = (a) -> if(a < 0, -a, a),
+gcd = (a, b) -> if (b == 0, a, gcd(b, a % b)),
+lcm = (a, b) -> if( (a == 0) * (b == 0), 0, abs(a * b) / gcd(a, b))
