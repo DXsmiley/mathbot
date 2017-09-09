@@ -7,6 +7,8 @@ MathBot is developed by DXsmiley. You can talk to him via the official MathBot s
 
 Support the bot via Patreon: <https://www.patreon.com/dxsmiley>
 
+Source code: https://github.com/DXsmiley/mathbot
+
 MathBot is written in Python using discord.py (<https://github.com/Rapptz/discord.py>).
 
 Thankyou to the following patrons for supporting the bot:
