@@ -4,3 +4,4 @@ __pycache__
 .cache
 *.zip
 ignore
+keystore.json

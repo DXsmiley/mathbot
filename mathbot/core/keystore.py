@@ -8,6 +8,7 @@ import asyncio
 import collections
 import json
 import aioredis
+import time
 
 
 class Interface:
@@ -86,10 +87,19 @@ class Disk(Interface):
 		self.load()
 
 	def load(self):
-		pass
+		if self.filename:
+			try:
+				with open(self.filename) as f:
+					stored = json.load(f)
+					self.data.update(stored)
+			except FileNotFoundError:
+				pass
 
 	def save(self):
-		pass
+		if self.filename:
+			with open(self.filename, 'w') as f:
+				blob = dict(self.data)
+				json.dump(blob, f, indent = 4)
 
 	def is_expired(self, key):
 		if self.data[key]['expires'] is not None:
@@ -106,14 +116,19 @@ class Disk(Interface):
 	async def set(self, key, value):
 		# If the key is expired, the new key has no expiery
 		if self.is_expired(key):
-			self.data[key]['expires'] = None
-		self.data[key] = value
+			self.data[key]['value'] = None
+		self.data[key] = {
+			'value': value,
+			'expires': None
+		}
+		self.save()
 
 	async def delete(self, key):
 		del self.data[key]
 
 	async def expire(self, key, seconds):
 		self.data[key]['expires'] = time.time() + seconds
+		self.save()
 
 
 KEY_DELIMITER = ':'
