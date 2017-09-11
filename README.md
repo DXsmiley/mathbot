@@ -22,12 +22,14 @@ The bot is currently developed for python `3.6.2`.
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requrements.txt
+pip install -r requirements.txt
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
 
-Run the bot with `python bot.py parameters.json`.
+Is is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
+
+Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
 
 ## Setup for development
 
@@ -35,12 +37,12 @@ Run the bot with `python bot.py parameters.json`.
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requrements.txt
+pip install -r requirements.txt
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `"production"`. Optionally change the other parameters.
 
-Run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
 
 ## Contributing guide
 
