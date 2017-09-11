@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
 
-Is is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
+It is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
 
 Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
 
