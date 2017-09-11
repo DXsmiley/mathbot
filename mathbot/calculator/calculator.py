@@ -404,10 +404,10 @@ BUILTIN_FUNCTIONS = {
 	'rad': except_math_error(math.radians),
 	'log': calculator.operators.function_logarithm,
 	'ln': except_math_error(math.log),
-	'round': round,
+	'round': except_math_error(round),
 	'int': except_math_error(int),
-	'sqrt': lambda x : x ** 0.5,
-	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
+	'sqrt': except_math_error(lambda x : x ** 0.5),
+	'gamma': except_math_error(lambda x: calculator.operators.function_factorial(x - 1)),
 	'gcd': calculator.operators.function_gcd,
 	'lcm': calculator.operators.function_lcm,
 	'choose': m_choose,
@@ -417,7 +417,9 @@ BUILTIN_FUNCTIONS = {
 	'length': array_length,
 	'join': array_join,
 	'splice': array_splice,
-	'expand': array_expand
+	'expand': array_expand,
+	'im': except_math_error(lambda x: x.imag),
+	're': except_math_error(lambda x: x.real)	
 }
 
 
