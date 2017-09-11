@@ -9,7 +9,7 @@
 			"url": "redis://user:@localhost:6379",
 			"number": 0
 		},
-		"mode": "keystore"
+		"mode": "disk"
 	},
 	"wolfram": {
 		"key": null
