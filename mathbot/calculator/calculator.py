@@ -297,7 +297,7 @@ def is_real(x):
 	return oneify(isinstance(x, int) or isinstance(x, float))
 
 
-def is_comlpex(x):
+def is_complex(x):
 	return oneify(isinstance(x, complex))
 
 
@@ -412,7 +412,7 @@ BUILTIN_FUNCTIONS = {
 	'lcm': calculator.operators.function_lcm,
 	'choose': m_choose,
 	'is_real': is_real,
-	'is_complex': is_comlpex,
+	'is_complex': is_complex,
 	'is_function': is_function,
 	'length': array_length,
 	'join': array_join,
