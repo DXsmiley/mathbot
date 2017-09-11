@@ -5,3 +5,4 @@ __pycache__
 *.zip
 ignore
 keystore.json
+parameters.json
