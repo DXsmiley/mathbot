@@ -2,7 +2,7 @@ class BuiltinFunction:
 
 	def __init__(self, func, name = None):
 		self.func = func
-		self.name = name or func.__name__
+		self.name = name or getattr(func, '__name__', '<unnamed>')
 		self.macro = False
 		
 	def __call__(self, *args):
@@ -39,3 +39,16 @@ class Array:
 
 	def __str__(self):
 		return 'array(' + ', '.join(map(str, self.items)) + ')'
+
+
+class Expanded:
+
+	def __init__(self, array):
+		assert(isinstance(array, Array))
+		self.array = array
+
+	def __len__(self):
+		return len(self.array)
+
+	def __str__(self):
+		return 'expanded({})'.format(', '.join(map(str, self.array.items)))

@@ -56,7 +56,7 @@ OPERATOR_DICT = {
 	'/': I.BIN_DIV,
 	'^': I.BIN_POW,
 	'%': I.BIN_MOD,
-	'&': I.BIN_ADD,
+	'&': I.BIN_AND,
 	'|': I.BIN_OR_,
 	'<': I.BIN_LESS,
 	'>': I.BIN_MORE,
@@ -145,13 +145,9 @@ class CodeSegment:
 			self.bytecodeify(p['expression'])
 			self.push(I.UNR_NOT)
 		elif node_type == 'die':
-			self.bytecodeify(p.get('times', {'#': number, 'string': '1'}))
 			self.bytecodeify(p['faces'])
+			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}))
 			self.push(I.BIN_DIE)
-		# elif node_type == 'udie':
-		# 	# THIS IS OLD
-		# 	faces = yield from evaluate_step(p['faces'], scope, it)
-		# 	return rolldie(1, faces)
 		elif node_type == 'uminus':
 			self.bytecodeify(p['value'])
 			self.push(I.UNR_MIN)
@@ -217,7 +213,7 @@ class CodeSegment:
 			contents.push(len(params))
 			for i in params:
 				contents.push(i['string'].lower())
-			contents.push('1' if p.get('variadic') else 0)
+			contents.push(p.get('variadic', 0))
 			contents.bytecodeify(p['expression'])
 			contents.push(I.RETURN)
 			# Create the bytecode for the current scope
@@ -252,9 +248,12 @@ class CodeSegment:
 
 def convert_number(x):
 	try:
-		return int(x)
+		try:
+			return int(x)
+		except Exception:
+			return float(x)
 	except Exception:
-		return float(x)
+		return complex(x.replace('i', 'j'))
 
 
 def build(ast, offset = 0):

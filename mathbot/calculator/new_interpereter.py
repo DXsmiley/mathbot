@@ -1,12 +1,14 @@
 import json
 import asyncio
 import math
+import random
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
 from calculator.errors import EvaluationError
 from calculator.attempt6 import parse
 from calculator.functions import *
+import calculator.operators as operators
 
 class Scope:
 
@@ -44,6 +46,27 @@ def DoNothing():
 	pass
 
 
+def rolldie(times, faces):
+	if isinstance(times, float):
+		times = int(times)
+	if isinstance(faces, float):
+		faces = int(faces)
+	if not isinstance(times, int) or not isinstance(faces, int):
+		raise EvaluationError('Cannot roll {} dice with {} faces'.format(
+			calculator.errors.format_value(times),
+			calculator.errors.format_value(faces)
+		))
+	if times < 1:
+		return 0
+	if times > 1000:
+		raise EvaluationError('Cannot roll more than 1000 dice')
+	if faces < 1:
+		raise EvaluationError('Cannot roll die with less than one face')
+	if isinstance(faces, float) and not faces.is_integer():
+		raise EvaluationError('Cannot roll die with fractional number of faces')
+	return sum(random.randint(1, faces) for i in range(times))
+
+
 class Interpereter:
 
 	def __init__(self, bytes):
@@ -62,6 +85,9 @@ class Interpereter:
 			b.BIN_DIV: self.inst_div,
 			b.BIN_MOD: self.inst_mod,
 			b.BIN_POW: self.inst_pow,
+			b.BIN_DIE: self.inst_bin_die,
+			b.BIN_AND: self.inst_and,
+			b.BIN_OR_: self.inst_or,
 			b.JUMP_IF_MACRO: self.inst_jump_if_macro,
 			b.ARG_LIST_END: self.inst_arg_list_end,
 			b.ASSIGNMENT: self.inst_assignment,
@@ -87,6 +113,7 @@ class Interpereter:
 			b.DISCARD: self.inst_discard,
 			b.UNR_MIN: self.inst_unr_min,
 			b.UNR_FAC: self.inst_unr_fac,
+			b.UNR_NOT: self.inst_unr_not,
 		}
 
 	def prepare_extra_code(self, ast):
@@ -127,6 +154,7 @@ class Interpereter:
 		inst = self.switch_dictionary.get(self.head)
 		if inst is None:
 			print('Tried to run unknown instruction:', self.head)
+			raise EvaluationError('Tried to run unknown instruction: ' + str(self.head))
 		else:
 			inst()
 		self.place += 1
@@ -135,49 +163,43 @@ class Interpereter:
 		self.place += 1
 		self.stack.append(self.head)
 
-	def inst_add(self):
-		self.stack.append(self.stack.pop() + self.stack.pop())
+	def binary_op(op):
+		def internal(self):
+			self.stack.append(op(self.stack.pop(), self.stack.pop()))
+		return internal
 
-	def inst_mul(self):
-		self.stack.append(self.stack.pop() * self.stack.pop())
+	inst_add = binary_op(operators.operator_add)
+	inst_mul = binary_op(operators.operator_multiply)
+	inst_sub = binary_op(operators.operator_subtract)
+	inst_div = binary_op(operators.operator_division)
+	inst_mod = binary_op(operators.operator_modulo)
+	inst_pow = binary_op(operators.operator_power)
+	inst_bin_less = binary_op(operators.operator_less)
+	inst_bin_more = binary_op(operators.operator_more)
+	inst_bin_l_eq = binary_op(operators.operator_less_equal)
+	inst_bin_m_eq = binary_op(operators.operator_more_equal)
+	inst_bin_equl = binary_op(operators.operator_equal)
+	inst_bin_n_eq = binary_op(operators.operator_not_equal)
+	inst_bin_die = binary_op(rolldie)
+	inst_and = binary_op(lambda a, b: int(a and b))
+	inst_or = binary_op(lambda a, b: int(a or b))
 
-	def inst_sub(self):
-		self.stack.append(self.stack.pop() - self.stack.pop())
-
-	def inst_div(self):
-		self.stack.append(self.stack.pop() / self.stack.pop())
-
-	def inst_mod(self):
-		self.stack.append(self.stack.pop() % self.stack.pop())
-
-	def inst_pow(self):
-		self.stack.append(self.stack.pop() ** self.stack.pop())
 
 	def inst_unr_min(self):
-		self.stack.append(-self.stack.pop())
+		self.stack.append(
+			operators.operator_subtract(
+				0,
+				self.stack.pop()
+			)
+		)
 
 	def inst_unr_fac(self):
-		self.stack.append(math.factorial(self.stack.pop()))
+		self.stack.append(operators.function_factorial(self.stack.pop()))
 
-	def inst_bin_less(self):
-		self.stack.append(int(self.stack.pop() < self.stack.pop()))
+	def inst_unr_not(self):
+		self.stack.append(int(not self.stack.pop()))
 
-	def inst_bin_more(self):
-		self.stack.append(int(self.stack.pop() > self.stack.pop()))
-
-	def inst_bin_l_eq(self):
-		self.stack.append(int(self.stack.pop() <= self.stack.pop()))
-
-	def inst_bin_m_eq(self):
-		self.stack.append(int(self.stack.pop() >= self.stack.pop()))
-
-	def inst_bin_equl(self):
-		self.stack.append(int(self.stack.pop() == self.stack.pop()))
-
-	def inst_bin_n_eq(self):
-		self.stack.append(int(self.stack.pop() != self.stack.pop()))
-
-	def inst_cmp_generic(comparator):
+	def inst_comparison(comparator):
 		def internal(self):
 			r = self.stack.pop()
 			l = self.stack.pop()
@@ -186,12 +208,12 @@ class Interpereter:
 			self.stack.append(r)
 		return internal
 
-	inst_cmp_less = inst_cmp_generic(lambda l, r: l < r)
-	inst_cmp_more = inst_cmp_generic(lambda l, r: l > r)
-	inst_cmp_l_eq = inst_cmp_generic(lambda l, r: l <= r)
-	inst_cmp_m_eq = inst_cmp_generic(lambda l, r: l >= r)
-	inst_cmp_equl = inst_cmp_generic(lambda l, r: l == r)
-	inst_cmp_n_eq = inst_cmp_generic(lambda l, r: l != r)
+	inst_cmp_less = inst_comparison(operators.operator_less)
+	inst_cmp_more = inst_comparison(operators.operator_more)
+	inst_cmp_l_eq = inst_comparison(operators.operator_less_equal)
+	inst_cmp_m_eq = inst_comparison(operators.operator_more_equal)
+	inst_cmp_equl = inst_comparison(operators.operator_equal)
+	inst_cmp_n_eq = inst_comparison(operators.operator_not_equal)
 
 	def inst_discard(self):
 		self.stack.pop()
@@ -204,10 +226,14 @@ class Interpereter:
 	def inst_arg_list_end(self):
 		# Look at the number of arguments
 		self.place += 1
-		num_arguments = self.head
+		stack_arg_count = self.head
 		arguments = []
-		for i in range(num_arguments):
-			arguments.append(self.stack.pop())
+		for i in range(stack_arg_count):
+			arg = self.stack.pop()
+			if isinstance(arg, Expanded):
+				arguments += arg.array.items
+			else:
+				arguments.append(arg)
 		function = self.stack.pop()
 		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
 			result = function(*arguments)
@@ -223,9 +249,9 @@ class Interpereter:
 				self.bytes[i] for i in
 				range(addr + 2, addr + 2 + num_parameters)
 			]
-			variadic = self.bytes[addr + 1 + num_parameters]
+			variadic = self.bytes[addr + 2 + num_parameters]
 			if variadic:
-				if num_arguments < num_parameters - 1:
+				if len(arguments) < num_parameters - 1:
 					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
 				main = arguments[:num_parameters - 1]
 				extra = arguments[num_parameters - 1:]
@@ -233,7 +259,7 @@ class Interpereter:
 				scope_dict[parameters[-1]] = Array(extra)
 				new_scope = Scope(function.scope, scope_dict)
 			else:
-				if num_parameters != num_arguments:
+				if num_parameters != len(arguments):
 					raise EvaluationError('Improper number of arguments for function {}'.format(function))
 				if num_parameters == 0:
 					new_scope = function.scope
