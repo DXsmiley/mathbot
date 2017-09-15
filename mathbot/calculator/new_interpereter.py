@@ -152,7 +152,7 @@ class Interpereter:
 		return self.stack[-1]
 
 	def tick(self):
-		print(self.place, self.head, self.stack)
+		# print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
 		if inst is None:
 			print('Tried to run unknown instruction:', self.head)
@@ -321,7 +321,7 @@ class Interpereter:
 			self.place = self.head - 1
 
 	def inst_store_in_cache(self):
-		print(self.stack)
+		# print(self.stack)
 		value = self.stack.pop()
 		cache_key = self.stack.pop()
 		function = self.stack.pop()
