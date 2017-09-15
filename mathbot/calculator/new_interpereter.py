@@ -1,10 +1,12 @@
 import json
 import asyncio
-import calculator.runtime as runtime
+import math
 
+import calculator.runtime as runtime
 import calculator.bytecode as bytecode
 from calculator.errors import EvaluationError
 from calculator.attempt6 import parse
+from calculator.functions import *
 
 class Scope:
 
@@ -36,17 +38,6 @@ class Scope:
 
 	# def __repr__(self):
 	# 	return '{} -> {}'.format(repr(self.values), repr(self.previous))
-
-
-class Function:
-
-	def __init__(self, address, scope, macro):
-		self.address = address
-		self.scope = scope
-		self.macro = macro
-
-	def __repr__(self):
-		return ('m' if self.macro else 'f') + '({})'.format(self.address)
 
 
 def DoNothing():
@@ -94,7 +85,8 @@ class Interpereter:
 			b.CMP_EQUL: self.inst_cmp_equl,
 			b.CMP_N_EQ: self.inst_cmp_n_eq,
 			b.DISCARD: self.inst_discard,
-			b.UNR_MIN: self.inst_unr_min
+			b.UNR_MIN: self.inst_unr_min,
+			b.UNR_FAC: self.inst_unr_fac,
 		}
 
 	def prepare_extra_code(self, ast):
@@ -164,6 +156,9 @@ class Interpereter:
 	def inst_unr_min(self):
 		self.stack.append(-self.stack.pop())
 
+	def inst_unr_fac(self):
+		self.stack.append(math.factorial(self.stack.pop()))
+
 	def inst_bin_less(self):
 		self.stack.append(int(self.stack.pop() < self.stack.pop()))
 
@@ -214,26 +209,42 @@ class Interpereter:
 		for i in range(num_arguments):
 			arguments.append(self.stack.pop())
 		function = self.stack.pop()
-		# Push the current location and scope so we can jump back to it
-		self.stack.append(self.place + 1)
-		self.stack.append(self.current_scope)
-		# Create the new scope in which to run the function
-		addr = function.address
-		num_parameters = self.bytes[addr + 1]
-		parameters = [
-			self.bytes[i] for i in
-			range(addr + 2, addr + 2 + num_parameters)
-		]
-		# TODO: Handle variadic functions
-		assert(num_parameters == num_arguments)
-		if num_parameters == 0:
-			new_scope = function.scope
+		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
+			result = function(*arguments)
+			self.stack.append(result)
+		elif isinstance(function, Function):
+			# Push the current location and scope so we can jump back to it
+			self.stack.append(self.place + 1)
+			self.stack.append(self.current_scope)
+			# Create the new scope in which to run the function
+			addr = function.address
+			num_parameters = self.bytes[addr + 1]
+			parameters = [
+				self.bytes[i] for i in
+				range(addr + 2, addr + 2 + num_parameters)
+			]
+			variadic = self.bytes[addr + 1 + num_parameters]
+			if variadic:
+				if num_arguments < num_parameters - 1:
+					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
+				main = arguments[:num_parameters - 1]
+				extra = arguments[num_parameters - 1:]
+				scope_dict = {key: value for key, value in zip(parameters, main)}
+				scope_dict[parameters[-1]] = Array(extra)
+				new_scope = Scope(function.scope, scope_dict)
+			else:
+				if num_parameters != num_arguments:
+					raise EvaluationError('Improper number of arguments for function {}'.format(function))
+				if num_parameters == 0:
+					new_scope = function.scope
+				else:
+					new_scope = Scope(function.scope, {
+						key: value for key, value in zip(parameters, arguments)
+					})
+			self.current_scope = new_scope
+			self.place = (addr + 3 + num_parameters) - 1
 		else:
-			new_scope = Scope(function.scope, {
-				key: value for key, value in zip(parameters, arguments)
-			})
-		self.current_scope = new_scope
-		self.place = (addr + 2 + num_parameters) - 1
+			raise EvaluationError('{} is not a function'.format(function))
 
 	def inst_word(self):
 		self.place += 1

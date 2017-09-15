@@ -4,20 +4,26 @@
 import math
 
 from calculator.bytecode import *
+from calculator.functions import *
 
 
 def wrap_with_runtime(builder, my_ast):
 	# ----- Declarations --------------------
 	s = builder.new_segment()
+	def assignment(name, value):
+		s.push(I.CONSTANT)
+		s.push(value)
+		s.push(I.ASSIGNMENT)
+		s.push(name)
 	# Mathematical constants
-	s.push(I.CONSTANT)
-	s.push(math.e)
-	s.push(I.ASSIGNMENT)
-	s.push('e')
-	s.push(I.CONSTANT)
-	s.push(math.pi)
-	s.push(I.ASSIGNMENT)
-	s.push('pi')
+	assignment('e', math.e)
+	assignment('pi', math.pi)
+	assignment('round', BuiltinFunction(round))
+	# Builtin functions
+	assignment('sin', BuiltinFunction(math.sin))
+	assignment('cos', BuiltinFunction(math.cos))
+	assignment('log', BuiltinFunction(math.log))
+	# assignment('')
 	# Declare if statement
 	if_statement = Destination()
 	s.push(I.FUNCTION_MACRO)

@@ -217,11 +217,10 @@ class CodeSegment:
 			contents.push(len(params))
 			for i in params:
 				contents.push(i['string'].lower())
+			contents.push('1' if p.get('variadic') else 0)
 			contents.bytecodeify(p['expression'])
 			contents.push(I.RETURN)
 			# Create the bytecode for the current scope
-			if p['kind'] == '~>':
-				print('WARNING: Macros not fully implemented yet')
 			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(Pointer(start_address))
 		elif node_type == 'comparison': # TODO: THIS
