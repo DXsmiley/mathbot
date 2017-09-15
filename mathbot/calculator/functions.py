@@ -1,3 +1,6 @@
+import weakref
+
+
 class BuiltinFunction:
 
 	def __init__(self, func, name = None):
@@ -18,6 +21,7 @@ class Function:
 		self.address = address
 		self.scope = scope
 		self.macro = macro
+		self.cache = {}
 		# self.variadic = variadic
 		# assert(not (macro and variadic))
 

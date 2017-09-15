@@ -114,6 +114,7 @@ class Interpereter:
 			b.UNR_MIN: self.inst_unr_min,
 			b.UNR_FAC: self.inst_unr_fac,
 			b.UNR_NOT: self.inst_unr_not,
+			b.STORE_IN_CACHE: self.inst_store_in_cache
 		}
 
 	def prepare_extra_code(self, ast):
@@ -151,6 +152,7 @@ class Interpereter:
 		return self.stack[-1]
 
 	def tick(self):
+		print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
 		if inst is None:
 			print('Tried to run unknown instruction:', self.head)
@@ -183,7 +185,6 @@ class Interpereter:
 	inst_bin_die = binary_op(rolldie)
 	inst_and = binary_op(lambda a, b: int(a and b))
 	inst_or = binary_op(lambda a, b: int(a or b))
-
 
 	def inst_unr_min(self):
 		self.stack.append(
@@ -238,10 +239,8 @@ class Interpereter:
 		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
 			result = function(*arguments)
 			self.stack.append(result)
+			self.place += 1 # Skip the 'store in cache' instruction
 		elif isinstance(function, Function):
-			# Push the current location and scope so we can jump back to it
-			self.stack.append(self.place + 1)
-			self.stack.append(self.current_scope)
 			# Create the new scope in which to run the function
 			addr = function.address
 			num_parameters = self.bytes[addr + 1]
@@ -267,8 +266,19 @@ class Interpereter:
 					new_scope = Scope(function.scope, {
 						key: value for key, value in zip(parameters, arguments)
 					})
-			self.current_scope = new_scope
-			self.place = (addr + 3 + num_parameters) - 1
+			cache_key = tuple(arguments)
+			if cache_key in function.cache:
+				self.stack.append(function.cache[cache_key])
+				self.place += 1 # Skip the 'store in cache' instruction
+			else:
+				# Push the current location and scope so we can jump back to it
+				if not function.macro:
+					self.stack.append(function)
+					self.stack.append(cache_key)
+				self.stack.append(self.place + 1)
+				self.stack.append(self.current_scope)
+				self.current_scope = new_scope
+				self.place = (addr + 3 + num_parameters) - 1
 		else:
 			raise EvaluationError('{} is not a function'.format(function))
 
@@ -309,6 +319,14 @@ class Interpereter:
 		self.place += 1
 		if not self.stack.pop():
 			self.place = self.head - 1
+
+	def inst_store_in_cache(self):
+		print(self.stack)
+		value = self.stack.pop()
+		cache_key = self.stack.pop()
+		function = self.stack.pop()
+		function.cache[cache_key] = value
+		self.stack.append(value)
 
 
 def test(string):

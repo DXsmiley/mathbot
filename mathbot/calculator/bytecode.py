@@ -48,6 +48,8 @@ class I(enum.Enum):
 	CMP_EQUL = 39
 	CMP_N_EQ = 40
 
+	STORE_IN_CACHE = 41
+
 
 OPERATOR_DICT = {
 	'+': I.BIN_ADD,
@@ -167,6 +169,7 @@ class CodeSegment:
 				self.bytecodeify(i)
 			self.push(I.ARG_LIST_END)
 			self.push(len(args))
+			self.push(I.STORE_IN_CACHE)
 			self.push(I.JUMP)
 			self.push(Pointer(jump_end))
 			# Handle macro function
@@ -180,6 +183,7 @@ class CodeSegment:
 				})
 			self.push(I.ARG_LIST_END)
 			self.push(len(args))
+			# self.push(I.STORE_IN_CACHE) # NOTE: Check if caching macro functions works or not...
 			# End of the function call
 			self.push(jump_end)
 			# self.push(I.CONSTANT)

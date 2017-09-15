@@ -82,6 +82,7 @@ def wrap_with_runtime(builder, my_ast):
 	s.push('_a')
 	s.push(I.ARG_LIST_END)
 	s.push(0)
+	s.push(I.STORE_IN_CACHE)
 	# If the result is false, jump to the end of the function.
 	s.push(I.JUMP_IF_FALSE)
 	false_landing = Destination()
@@ -91,6 +92,7 @@ def wrap_with_runtime(builder, my_ast):
 	s.push('_b')
 	s.push(I.ARG_LIST_END)
 	s.push(0)
+	s.push(I.STORE_IN_CACHE)
 	s.push(I.RETURN)
 	# Return the 'false' result
 	s.push(false_landing)
@@ -98,6 +100,7 @@ def wrap_with_runtime(builder, my_ast):
 	s.push('_c')
 	s.push(I.ARG_LIST_END)
 	s.push(0)
+	s.push(I.STORE_IN_CACHE)
 	s.push(I.RETURN)
 	# ----- Define reduce function --------
 	# s.push(reduce)
