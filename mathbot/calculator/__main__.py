@@ -1,14 +1,14 @@
 # Successfull burning attack: f = (x, h) -> if (h - 40, f(x * 2, h + 1) + f(x * 2 + 1, h + 1), 0)
 
-
-
 import json
 import asyncio
 import traceback
-import calculator.calculator as c
 import sys
-import calculator.attempt6
 
+import calculator.new_interpereter as calc
+import calculator.attempt6 as parser
+import calculator.bytecode as bytecode
+from calculator.runtime import wrap_with_runtime
 
 def run_with_timeout(future, timeout = None):
 	loop = asyncio.get_event_loop()
@@ -49,7 +49,8 @@ if __name__ == '__main__':
 
 		show_tree = False
 		show_parsepoint = False
-		user_scope = c.new_scope()
+		interpereter = calc.Interpereter(wrap_with_runtime(bytecode.CodeBuilder(), None))
+		interpereter.run()
 
 		while True:
 			line = input('> ')
@@ -60,40 +61,16 @@ if __name__ == '__main__':
 			elif line == ':parsepoint':
 				show_parsepoint = not show_parsepoint
 			else:
-				try:
-					# to, result = c.parse(c.GRAMMAR, line, check_ambiguity = True)
-					to, result = calculator.attempt6.parse(line)
-				except c.TokenizationFailed as e:
-					print('Failed to parse equation, unexpected symbol:')
-					print(e.string)
-					print(' ' * e.consumed + '^')
-				except c.ParseFailed as e:
-					print('Failed to parse equation, invalid syntax:')
-					print(e.string)
-					print(' ' * e.consumed + '^')
-				else:
-					if result is None:
-						print('Failed to parse the equation:')
-						print_token_parse_caret(to)
-					else:
-						if show_parsepoint:
-							print_token_parse_caret(to)
-						if show_tree:
-							print(json.dumps(result, indent = 4))
-						if result and c.is_ambiguous(result):
-							print('Parse tree was ambiguous!')
-						try:
-							future = c.evaluate(result, user_scope, limits = {'warnings': True})
-							warnings, result = run_with_timeout(future, 5)
-							for i in warnings:
-								print(i)
-							print(result)
-						except asyncio.TimeoutError:
-							print('Function took too long to compute.')
-						except Exception as e:
-							print('Error:', e)
-							traceback.print_exc()
-						user_scope.clear_cache()
+				tokens, ast = parser.parse(line)
+				# print(json.dumps(ast, indent = 4))
+				interpereter.prepare_extra_code({
+					'#': 'program',
+					'items': [ast]
+				})
+				# for index, byte in enumerate(bytes):
+				# 	print('{:3d} - {}'.format(index, byte))
+				print(run_with_timeout(interpereter.run_async(), 5))
+
 
 	elif len(sys.argv) == 2:
 

@@ -5,20 +5,20 @@ import math
 class Ignore: pass
 
 def doit(equation, result):
-	r = calculator.calculate(equation, stop_errors = False)
+	r = calculator.calculate(equation)
 	assert result is Ignore or r == result
 
 def repeat(equation, start, end):
 	for i in range(100):
-		r = calculator.calculate(equation, stop_errors = False)
+		r = calculator.calculate(equation)
 		assert start <= r <= end
 
 def unknown(equation):
-	calculator.calculate(equation, stop_errors = False)
+	calculator.calculate(equation)
 
 def throws(equation):
 	with pytest.raises(calculator.EvaluationError):
-		calculator.calculate(equation, stop_errors = False)
+		calculator.calculate(equation)
 
 def test_negation():
 	doit("9", 9)
@@ -123,8 +123,8 @@ def test_equality():
 	doit('1 < 2 < 3 < 4 <= 4 >= 2 == 2 < 5', True)
 
 def test_assignment():
-	doit('x = 2', 2)
-	doit('x = 2, y = 3', 3)
+	doit('x = 2', None)
+	doit('x = 2, y = 3', None)
 	doit('a = 2, a', 2)
 	doit('A = 2, a', 2)
 	doit('a = 2, A', 2)
