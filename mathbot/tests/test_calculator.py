@@ -216,3 +216,10 @@ def test_superscript():
 	doit('2² ²', 16)
 	doit('3³ ⁴', (3 ** 3) ** 4)
 	doit('(3³)⁴', (3 ** 3) ** 4)
+
+def test_errors():
+	throws('e^900')
+	throws('sqrt(() -> 0)')
+	throws('10*2^6643')
+	throws('if (true, 8)')
+	throws('low(1, 1)')

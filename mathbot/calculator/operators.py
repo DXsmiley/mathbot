@@ -65,11 +65,14 @@ operator_multiply = Overloadable('Cannot multiply {0} and {1}')
 
 @operator_multiply.overload(int, int)
 def multiply_ints(a, b):
-	if a != 0 and b != 0:
-		result_length = math.log10(abs(a)) + math.log10(abs(b))
-		if result_length > DIGITS_LIMIT:
-			return float(a) * float(b)
-	return cap_integer_size(a * b)
+	try:
+		if a != 0 and b != 0:
+			result_length = math.log10(abs(a)) + math.log10(abs(b))
+			if result_length > DIGITS_LIMIT:
+				return float(a) * float(b)
+		return cap_integer_size(a * b)
+	except OverflowError:
+		raise calculator.errors.EvaluationError('Cannot multiply {} and {}. Result too large.'.format(a, b))
 operator_multiply.overload(COMPLEX, COMPLEX)(operator.mul)
 
 operator_modulo = Overloadable('Cannot perform modulo on {0} and {1}')
@@ -125,20 +128,20 @@ def power_int(base, exponent):
 
 @operator_power.overload(NUMBER, NUMBER)
 def power_float(base, exponent):
-	if base == 0 and exponent == 0:
-		raise calculator.errors.EvaluationError('Cannot raise 0 to the power of 0')
-	if base == 0:
-		return 0
-	result_length = abs(exponent * math.log10(abs(base)))
-	if result_length > DIGITS_LIMIT:
-		try:
+	try:
+		if base == 0 and exponent == 0:
+			raise calculator.errors.EvaluationError('Cannot raise 0 to the power of 0')
+		if base == 0:
+			return 0
+		result_length = abs(exponent * math.log10(abs(base)))
+		if result_length > DIGITS_LIMIT:
 			return base ** exponent
-		except OverflowError:
-			raise calculator.errors.EvaluationError('Overflow while calculating exponential')
-	if base < 0 and exponent == 0.5:
-		return (-base) ** exponent * 1j
-	result = base ** exponent
-	return cap_integer_size(result)
+		if base < 0 and exponent == 0.5:
+			return (-base) ** exponent * 1j
+		result = base ** exponent
+		return cap_integer_size(result)
+	except OverflowError:
+		raise calculator.errors.EvaluationError('Overflow while calculating exponential')
 
 operator_less = Overloadable('Cannot compare {0} and {1}.')
 operator_less.overload(NUMBER, NUMBER)(operator.lt)
@@ -184,7 +187,7 @@ def log_func_internal(number, base = 10):
 		if base == 10:
 			return math.log10(number)
 		return math.log(number, base)
-	except (ValueError, TypeError):
+	except (ValueError, TypeError, ZeroDivisionError):
 		raise calculator.errors.EvaluationError('Cannot calculate logarithm of {} with base {}'.format(number, base))
 
 function_logarithm = Overloadable('Cannot perform the logarithm on {0} with base {1}', [10])
