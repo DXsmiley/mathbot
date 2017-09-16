@@ -9,7 +9,7 @@ import core.help
 import core.module
 import core.handles
 import calculator
-import calculator.texify
+# import calculator.texify
 import calculator.attempt6
 import collections
 import traceback
