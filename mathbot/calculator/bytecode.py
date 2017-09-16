@@ -4,7 +4,7 @@ import json
 
 
 @enum.unique
-class I(enum.Enum):
+class I(enum.IntEnum):
 	NOTHING = 0
 	CONSTANT = 1
 	BIN_ADD = 2
@@ -264,6 +264,32 @@ def build(ast, offset = 0):
 	builder = CodeBuilder(offset = offset)
 	builder.bytecodeify(ast)
 	return builder.dump()
+
+
+def stringify(bytecode):
+	result = []
+	for i in bytecode:
+		if i is None:
+			result.append('nothing')
+		elif isinstance(i, I):
+			result.append('_')
+			result.append(int(i))
+		elif isinstance(i, str):
+			result.append('s')
+			result.append(i)
+		elif isinstance(i, int):
+			result.append('i')
+			result.append(i)
+		elif isinstance(i, float):
+			result.append('f')
+			result.append(i)
+		elif isinstance(i, complex):
+			result.append('c')
+			result.append(i.real)
+			result.append(i.imag)
+		else:
+			raise Exception('Unknown bytecode item: {}'.format(str(i)))
+	return ' '.join(map(str, result))
 
 
 if __name__ == '__main__':

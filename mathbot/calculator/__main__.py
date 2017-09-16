@@ -8,6 +8,7 @@ import sys
 import calculator.new_interpereter as calc
 import calculator.attempt6 as parser
 import calculator.bytecode as bytecode
+import calculator.runtime as runtime
 from calculator.runtime import wrap_with_runtime
 
 def run_with_timeout(future, timeout = None):
@@ -43,6 +44,12 @@ def format_parse_error(message, string, position):
 	)
 
 
+def proc_filename(filename):
+	if filename[0] == '+':
+		return './calculator/scripts/' + filename[1:] + '.c5'
+	return filename
+
+
 if __name__ == '__main__':
 
 	if len(sys.argv) == 1:
@@ -71,18 +78,24 @@ if __name__ == '__main__':
 				# 	print('{:3d} - {}'.format(index, byte))
 				print(run_with_timeout(interpereter.run_async(), 5))
 
-
 	elif len(sys.argv) == 2:
 
-		filename = sys.argv[1]
-		if filename[0] == '+':
-			filename = './calculator/scripts/' + filename[1:] + '.c5'
+		filename = proc_filename(sys.argv[1])
 		code = open(filename).read()
 		try:
 			print(c.calculate(code))
 		except calculator.attempt6.ParseFailed as e:
 			print(format_parse_error('error', code, e.position))
 
-	else:
+	elif len(sys.argv) == 3:
 
-		print('???')
+		command = sys.argv[1]
+
+		if command == '-c':
+			filename = proc_filename(sys.argv[2])
+			code = open(filename).read()
+			tokens, ast = parser.parse(code)
+			btc = runtime.wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = True)
+			print(bytecode.stringify(btc))
+		else:
+			print('Unknown command: ', command)

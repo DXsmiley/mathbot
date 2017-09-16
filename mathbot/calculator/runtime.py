@@ -20,7 +20,7 @@ def is_complex(x):
 	return int(isinstance(x, complex))
 
 
-def wrap_with_runtime(builder, my_ast):
+def wrap_with_runtime(builder, my_ast, exportable = False):
 	# ----- Declarations --------------------
 	s = builder.new_segment()
 	def assignment(name, value):
@@ -35,20 +35,21 @@ def wrap_with_runtime(builder, my_ast):
 	assignment('true', 1)
 	assignment('false', 0)
 	# Builtin functions
-	assignment('round', BuiltinFunction(round))
-	assignment('sin', BuiltinFunction(math.sin))
-	assignment('cos', BuiltinFunction(math.cos))
-	assignment('log', BuiltinFunction(math.log))
-	assignment('length', BuiltinFunction(len))
-	assignment('expand', BuiltinFunction(Expanded))
-	assignment('is_function', BuiltinFunction(is_function))
-	assignment('is_real', BuiltinFunction(is_real))
-	assignment('is_complex', BuiltinFunction(is_complex))
-	assignment('gcd', BuiltinFunction(operators.function_gcd))
-	assignment('lcm', BuiltinFunction(operators.function_lcm))
-	assignment('log', BuiltinFunction(operators.function_logarithm))
-	assignment('ln', BuiltinFunction(math.log))
-	assignment('gamma', BuiltinFunction(lambda x: operators.function_factorial(x - 1)))
+	if not exportable:
+		assignment('round', BuiltinFunction(round))
+		assignment('sin', BuiltinFunction(math.sin))
+		assignment('cos', BuiltinFunction(math.cos))
+		assignment('log', BuiltinFunction(math.log))
+		assignment('length', BuiltinFunction(len))
+		assignment('expand', BuiltinFunction(Expanded))
+		assignment('is_function', BuiltinFunction(is_function))
+		assignment('is_real', BuiltinFunction(is_real))
+		assignment('is_complex', BuiltinFunction(is_complex))
+		assignment('gcd', BuiltinFunction(operators.function_gcd))
+		assignment('lcm', BuiltinFunction(operators.function_lcm))
+		assignment('log', BuiltinFunction(operators.function_logarithm))
+		assignment('ln', BuiltinFunction(math.log))
+		assignment('gamma', BuiltinFunction(lambda x: operators.function_factorial(x - 1)))
 	# assignment('')
 	# Declare if statement : if (condition, true_case, false_case)
 	if_statement = Destination()
