@@ -42,3 +42,41 @@ pop and store in L
 push L (compare) R
 logical and with top item on stack
 push R to stack
+
+
+# Functions
+
+## Function call bytecode
+
+(function is placed on the stack)
+JUMP_IF_MACRO
+address of :macro
+(arguments are placed on stack)
+ARG_LIST_END
+number of arguments
+STORE_IN_CACHE
+JUMP
+address of :end
+:macro (be aware that the landing space takes up a byte)
+(arguments are placed on the stack)
+ARG_LIST_END
+number of arguments
+:end
+
+Note: macro functions do not have their results cached because the functions that get passed into them are newly created every time, making it uncacheable.
+
+## Function definition
+
+### Creating a function object
+
+FUNCTION_MACRO or FUNCTION_NORMAL
+start_address
+
+### Function definiton in the byte code
+
+:start_address (be aware that this takes up a byte)
+number of parameters
+(parameter names here)
+1 if variadic, 0 otherwise
+(expression)
+RETURN
