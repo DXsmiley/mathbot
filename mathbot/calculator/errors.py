@@ -1,3 +1,5 @@
+import re
+
 
 def wrap_if_plus(s):
 	if '+' in s or '-' in s:
