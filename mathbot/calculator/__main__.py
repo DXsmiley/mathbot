@@ -87,7 +87,7 @@ if __name__ == '__main__':
 			btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = True)
 			# for i, v in enumerate(btc):
 			# 	print('{:3d} {:20}'.format(i, repr(v)))
-			interpereter = calc.Interpereter(btc)
+			interpereter = calc.Interpereter(btc, trace = True)
 			result = interpereter.run()
 			print(result)
 		except parser.ParseFailed as e:

@@ -53,6 +53,10 @@ class I(enum.IntEnum):
 	DEMACROIFY = 42
 	STORE_DEMACROD = 43
 
+	ACCESS_GLOBAL = 44
+	ACCESS_LOCAL = 45
+	ACCESS_SEMI = 46
+
 
 OPERATOR_DICT = {
 	'+': I.BIN_ADD,
@@ -94,11 +98,27 @@ class Destination:
 		self.location = None
 
 
+class Scope:
+
+	def __init__(self, names, superscope = None):
+		self.superscope = superscope
+		self.name_mapping = {n: i for i, n in enumerate(names)}
+
+	def find_value(self, name, depth = 0):
+		if name in self.name_mapping:
+			return self, depth, self.name_mapping[name]
+		if self.superscope is None:
+			self.name_mapping[name] = len(self.name_mapping)
+			return self, depth, self.name_mapping[name]
+		return self.superscope.find_value(name, depth + 1)
+
+
 class CodeBuilder:
 
 	def __init__(self, offset = 0):
 		self.segments = []
 		self.offset = offset
+		self.globalscope = Scope([])
 
 	def new_segment(self):
 		seg = CodeSegment(self)
@@ -106,7 +126,7 @@ class CodeBuilder:
 		return seg
 
 	def bytecodeify(self, ast):
-		self.new_segment().bytecodeify(ast)
+		self.new_segment().bytecodeify(ast, self.globalscope)
 
 	def dump(self):
 		bytecode = []
@@ -115,7 +135,7 @@ class CodeBuilder:
 		# Determine the location of the destinations
 		for address, item in enumerate(bytecode):
 			if isinstance(item, Destination):
-				assert(item.location is not None)
+				assert(item.location is None)
 				item.location = address + self.offset
 				bytecode[address] = I.NOTHING
 		# Link the pointers up to their destinations
@@ -139,24 +159,24 @@ class CodeSegment:
 	def push(self, item):
 		self.items.append(item)
 
-	def bytecodeify(self, p):
+	def bytecodeify(self, p, s):
 		node_type = p['#']
 		if node_type == 'number':
 			self.push(I.CONSTANT)
 			self.push(convert_number(p['string']))
 		elif node_type == 'bin_op':
-			self.bytecodeify(p['right'])
-			self.bytecodeify(p['left'])
+			self.bytecodeify(p['right'], s)
+			self.bytecodeify(p['left'], s)
 			self.push(OPERATOR_DICT[p['operator']])
 		elif node_type == 'not':
-			self.bytecodeify(p['expression'])
+			self.bytecodeify(p['expression'], s)
 			self.push(I.UNR_NOT)
 		elif node_type == 'die':
-			self.bytecodeify(p['faces'])
-			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}))
+			self.bytecodeify(p['faces'], s)
+			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s)
 			self.push(I.BIN_DIE)
 		elif node_type == 'uminus':
-			self.bytecodeify(p['value'])
+			self.bytecodeify(p['value'], s)
 			self.push(I.UNR_MIN)
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
@@ -166,24 +186,24 @@ class CodeSegment:
 					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
 				p_end = Destination()
 				p_false = Destination()
-				self.bytecodeify(args[0])
+				self.bytecodeify(args[0], s)
 				self.push(I.JUMP_IF_FALSE)
 				self.push(Pointer(p_false))
-				self.bytecodeify(args[1])
+				self.bytecodeify(args[1], s)
 				self.push(I.JUMP)
 				self.push(Pointer(p_end))
 				self.push(p_false)
-				self.bytecodeify(args[2])
+				self.bytecodeify(args[2], s)
 				self.push(p_end)
 			else:
-				self.bytecodeify(p['function'])
+				self.bytecodeify(p['function'], s)
 				for i in args[::-1]:
 					self.bytecodeify({
 						'#': 'function_definition',
 						'parameters': {'items': []},
 						'kind': '->',
 						'expression': i
-					})
+					}, s)
 				self.push(I.CONSTANT)
 				self.push(0)
 				self.push(I.DEMACROIFY)
@@ -193,34 +213,54 @@ class CodeSegment:
 				self.push(len(args))
 				self.push(I.STORE_IN_CACHE)
 		elif node_type == 'word':
-			self.push(I.WORD)
-			self.push(p['string'].lower())
+			# self.push(I.WORD)
+			# self.push(p['string'].lower())
+			scope, depth, index = s.find_value(p['string'].lower())
+			if scope == self.builder.globalscope:
+				self.push(I.ACCESS_GLOBAL)
+				self.push(index)
+			elif depth == 0:
+				self.push(I.ACCESS_LOCAL)
+				self.push(index)
+			else:
+				self.push(I.ACCESS_SEMI)
+				self.push(depth)
+				self.push(index)
 		elif node_type == 'factorial':
-			self.bytecodeify(p['value'])
+			self.bytecodeify(p['value'], s)
 			self.push(I.UNR_FAC)
 		elif node_type == 'assignment':
-			self.bytecodeify(p['value'])
+			self.bytecodeify(p['value'], s)
+			scope, depth, index = s.find_value(p['variable']['string'].lower())
+			assert(scope == self.builder.globalscope)
+			# print(scope, depth, index)
 			self.push(I.ASSIGNMENT)
-			self.push(p['variable']['string'].lower())
+			self.push(index)
+			# self.push(I.ASSIGNMENT)
+			# self.push(p['variable']['string'].lower())
 		elif node_type == 'statement_list':
-			self.bytecodeify(p['statement'])
+			self.bytecodeify(p['statement'], s)
 			if p['next'] is not None:
-				self.bytecodeify(p['next'])
+				self.bytecodeify(p['next'], s)
 		elif node_type == 'program':
 			for i in p['items']:
-				self.bytecodeify(i)
+				self.bytecodeify(i, s)
 			self.push(I.END)
 		elif node_type == 'function_definition':
 			# Create the function itself
 			contents = self.new_segment()
 			start_address = Destination()
 			contents.push(start_address)
-			params = p['parameters']['items']
+			params = [i['string'].lower() for i in p['parameters']['items']]
 			contents.push(len(params))
 			for i in params:
-				contents.push(i['string'].lower())
+				contents.push(i)
 			contents.push(p.get('variadic', 0))
-			contents.bytecodeify(p['expression'])
+			if len(params) == 0:
+				contents.bytecodeify(p['expression'], s)
+			else:
+				subscope = Scope(params, superscope = s)
+				contents.bytecodeify(p['expression'], subscope)
 			contents.push(I.RETURN)
 			# Create the bytecode for the current scope
 			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
@@ -228,16 +268,16 @@ class CodeSegment:
 		elif node_type == 'comparison': # TODO: THIS
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
-				self.bytecodeify(p['rest'][0]['value'])
-				self.bytecodeify(p['first'])
+				self.bytecodeify(p['rest'][0]['value'], s)
+				self.bytecodeify(p['first'], s)
 				op = p['rest'][0]['operator']
 				self.push(OPERATOR_DICT[op])
 			else:
 				self.push(I.CONSTANT)
 				self.push(1)
-				self.bytecodeify(p['first'])
+				self.bytecodeify(p['first'], s)
 				for i in p['rest']:
-					self.bytecodeify(i['value'])
+					self.bytecodeify(i['value'], s)
 					self.push(COMPARATOR_DICT[i['operator']])
 				self.push(I.DISCARD)
 			# previous = yield from evaluate_step(p['first'], scope, it)

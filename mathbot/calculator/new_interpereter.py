@@ -10,6 +10,7 @@ from calculator.attempt6 import parse
 from calculator.functions import *
 import calculator.operators as operators
 
+
 class Scope:
 
 	def __init__(self, previous, values, protected_names = None):
@@ -42,6 +43,33 @@ class Scope:
 	# 	return '{} -> {}'.format(repr(self.values), repr(self.previous))
 
 
+class IndexedScope:
+
+	def __init__(self, superscope, size, values):
+		self.superscope = superscope
+		assert(len(values) == size)
+		self.values = values
+
+	def get(scope, index, depth):
+		while depth > 0:
+			scope = scope.superscope
+			depth -= 1
+		assert(scope.values[index] != None)
+		return scope.values[index]
+
+	def set(scope, index, depth, value):
+		while depth > 0:
+			scope = scope.superscope
+			depth -= 1
+		while len(scope.values) <= index:
+			scope.values.append(None)
+		scope.values[index] = value
+
+	def __repr__(self):
+		return 'indexed-scope'
+
+
+
 def DoNothing():
 	pass
 
@@ -69,11 +97,12 @@ def rolldie(times, faces):
 
 class Interpereter:
 
-	def __init__(self, bytes):
+	def __init__(self, bytes, trace = False):
+		self.trace = trace
 		self.bytes = bytes
 		self.place = 0
 		self.stack = [None]
-		self.root_scope = Scope(None, {})
+		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
 		b = bytecode.I
 		self.switch_dictionary = {
@@ -94,6 +123,9 @@ class Interpereter:
 			b.ARG_LIST_END: self.inst_arg_list_end,
 			b.ASSIGNMENT: self.inst_assignment,
 			b.WORD: self.inst_word,
+			b.ACCESS_LOCAL: self.inst_access_local,
+			b.ACCESS_GLOBAL: self.inst_access_gobal,
+			b.ACCESS_SEMI: self.inst_access_semi,
 			b.FUNCTION_NORMAL: self.inst_function_normal,
 			b.FUNCTION_MACRO: self.inst_function_macro,
 			b.RETURN: self.inst_return,
@@ -168,7 +200,8 @@ class Interpereter:
 		return self.stack[-1]
 
 	def tick(self):
-		# print(self.place, self.head, self.stack)
+		if self.trace:
+			print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
 		if inst is None:
 			print('Tried to run unknown instruction:', self.head)
@@ -298,18 +331,21 @@ class Interpereter:
 					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
 				main = arguments[:num_parameters - 1]
 				extra = arguments[num_parameters - 1:]
-				scope_dict = {key: value for key, value in zip(parameters, main)}
-				scope_dict[parameters[-1]] = Array(extra)
-				new_scope = Scope(function.scope, scope_dict)
+				# scope_dict = {key: value for key, value in zip(parameters, main)}
+				# scope_dict[parameters[-1]] = Array(extra)
+				scope_array = main
+				scope_array.append(Array(extra))
+				new_scope = IndexedScope(function.scope, num_parameters, scope_array)
 			else:
 				if num_parameters != len(arguments):
 					raise EvaluationError('Improper number of arguments for function {}'.format(function))
 				if num_parameters == 0:
 					new_scope = function.scope
 				else:
-					new_scope = Scope(function.scope, {
-						key: value for key, value in zip(parameters, arguments)
-					})
+					# new_scope = Scope(function.scope, {
+					# 	key: value for key, value in zip(parameters, arguments)
+					# })
+					new_scope = IndexedScope(function.scope, num_parameters, arguments)
 			cache_key = tuple(arguments)
 			if cache_key in function.cache:
 				self.stack.append(function.cache[cache_key])
@@ -332,14 +368,32 @@ class Interpereter:
 			raise EvaluationError('{} is not a function'.format(function))
 
 	def inst_word(self):
+		assert(False)
 		self.place += 1
 		self.stack.append(self.current_scope[self.head])
+
+	def inst_access_gobal(self):
+		self.place += 1
+		self.stack.append(self.root_scope.get(self.head, 0))
+
+	def inst_access_local(self):
+		self.place += 1
+		self.stack.append(self.current_scope.get(self.head, 0))
+
+	def inst_access_semi(self):
+		self.stack.append(
+			self.current_scope.get(
+				self.bytes[self.place + 2],
+				self.bytes[self.place + 1]
+			)
+		)
+		self.place += 2
 
 	def inst_assignment(self):
 		value = self.stack.pop()
 		self.place += 1
 		name = self.head
-		self.current_scope[name] = value
+		self.root_scope.set(name, 0, value)
 
 	def inst_function_normal(self):
 		self.place += 1

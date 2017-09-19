@@ -26,15 +26,18 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	def assignment(name, value):
 		s.push(I.CONSTANT)
 		s.push(value)
+		scope, depth, index = builder.globalscope.find_value(name)
+		assert(scope == builder.globalscope)
+		assert(depth == 0)
 		s.push(I.ASSIGNMENT)
-		s.push(name)
+		s.push(index)
 	# Mathematical constants
+	# Builtin functions
 	assignment('e', math.e)
 	assignment('pi', math.pi)
 	assignment('π', math.pi)
 	assignment('true', 1)
 	assignment('false', 0)
-	# Builtin functions
 	if not exportable:
 		assignment('round', BuiltinFunction(round))
 		assignment('sin', BuiltinFunction(math.sin))
@@ -51,12 +54,16 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		assignment('ln', BuiltinFunction(math.log))
 		assignment('gamma', BuiltinFunction(lambda x: operators.function_factorial(x - 1)))
 	# assignment('')
+
 	# Declare if statement : if (condition, true_case, false_case)
+	# NOTE: This is currently disabled because of the upgrade to variable access going on
+	# As such, the 'if' function object is currently inaccessible. This falls back on the optimised versions
 	if_statement = Destination()
-	s.push(I.FUNCTION_MACRO)
-	s.push(Pointer(if_statement))
-	s.push(I.ASSIGNMENT)
-	s.push('if')
+	# s.push(I.FUNCTION_MACRO)
+	# s.push(Pointer(if_statement))
+	# s.push(I.ASSIGNMENT)
+	# s.push('if')
+
 	# Declare reduce function : reduce (function, array)
 	# reduce = Destination()
 	# s.push(I.FUNCTION_NORMAL)
