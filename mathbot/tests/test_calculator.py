@@ -1,6 +1,7 @@
 import calculator
 import pytest
 import math
+import cmath
 
 class Ignore: pass
 
@@ -223,3 +224,11 @@ def test_errors():
 	throws('10*2^6643')
 	throws('if (true, 8)')
 	throws('low(1, 1)')
+
+def test_trig():
+	doit('sin(0)', 0)
+	doit('cos(pi)', -1)
+	doit('sin(8)', math.sin(8))
+	doit('sin(8i+3)', cmath.sin(3+8j))
+	doit('atan(0.1)', math.atan(0.1))
+

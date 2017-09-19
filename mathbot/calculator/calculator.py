@@ -2,6 +2,7 @@ from calculator.errors import *
 import calculator.operators
 import asyncio
 import math
+import cmath
 import weakref
 import random
 import calculator.attempt6
@@ -380,30 +381,38 @@ def m_choose(n, k):
 	)
 
 
+def maybe_complex(f_real, f_complex):
+	def internal(x):
+		if isinstance(x, complex):
+			return f_complex(x)
+		return f_real(x)
+	return except_math_error(internal)
+
+
 BUILTIN_FUNCTIONS = {
 	# 'interval': lambda a, b: List(range(a, b)),
-	'sin': except_math_error(math.sin),
-	'cos': except_math_error(math.cos),
-	'tan': except_math_error(math.tan),
+	'sin': maybe_complex(math.sin, cmath.sin),
+	'cos': maybe_complex(math.cos, cmath.cos),
+	'tan': maybe_complex(math.tan, cmath.tan),
 	'sind': except_math_error(fdeg(math.sin)),
 	'cosd': except_math_error(fdeg(math.cos)),
 	'tand': except_math_error(fdeg(math.tan)),
-	'asin': except_math_error(math.asin),
-	'acos': except_math_error(math.acos),
-	'atan': except_math_error(math.atan),
+	'asin': maybe_complex(math.asin, cmath.asin),
+	'acos': maybe_complex(math.acos, cmath.acos),
+	'atan': maybe_complex(math.atan, cmath.atan),
 	'asind': except_math_error(adeg(math.asin)),
 	'acosd': except_math_error(adeg(math.acos)),
 	'atand': except_math_error(adeg(math.atan)),
-	'sinh': except_math_error(math.sinh),
-	'cosh': except_math_error(math.cosh),
-	'tanh': except_math_error(math.tanh),
-	'asinh': except_math_error(math.asinh),
-	'acosh': except_math_error(math.acosh),
-	'atanh': except_math_error(math.atanh),
+	'sinh': maybe_complex(math.sinh, cmath.sinh),
+	'cosh': maybe_complex(math.cosh, cmath.cosh),
+	'tanh': maybe_complex(math.tanh, cmath.tanh),
+	'asinh': maybe_complex(math.asinh, cmath.asinh),
+	'acosh': maybe_complex(math.acosh, cmath.acosh),
+	'atanh': maybe_complex(math.atanh, cmath.atanh),
 	'deg': except_math_error(math.degrees),
 	'rad': except_math_error(math.radians),
 	'log': calculator.operators.function_logarithm,
-	'ln': except_math_error(math.log),
+	'ln': maybe_complex(math.log, cmath.log),
 	'round': except_math_error(round),
 	'int': except_math_error(int),
 	'sqrt': except_math_error(lambda x : x ** 0.5),

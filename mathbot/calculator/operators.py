@@ -1,6 +1,7 @@
 import itertools
 import operator
 import math
+import cmath
 
 import calculator.errors
 
@@ -182,7 +183,7 @@ def protected_factorial(x):
 	except TypeError:
 		raise calculator.errors.EvaluationError('Cannot perform factorial on {}'.format(x))
 
-def log_func_internal(number, base = 10):
+def log_func_real(number, base = 10):
 	try:
 		if base == 10:
 			return math.log10(number)
@@ -190,9 +191,19 @@ def log_func_internal(number, base = 10):
 	except (ValueError, TypeError, ZeroDivisionError):
 		raise calculator.errors.EvaluationError('Cannot calculate logarithm of {} with base {}'.format(number, base))
 
+def log_func_complex(number, base = 10):
+	try:
+		if base == 10:
+			return cmath.log10(number)
+		return cmath.log(number, base)
+	except (ValueError, TypeError, ZeroDivisionError):
+		raise calculator.errors.EvaluationError('Cannot calculate logarithm of {} with base {}', number, base)
+
 function_logarithm = Overloadable('Cannot perform the logarithm on {0} with base {1}', [10])
-function_logarithm.overload(NUMBER, NUMBER)(log_func_internal)
-function_logarithm.overload(NUMBER)(lambda x : log_func_internal(x))
+function_logarithm.overload(NUMBER, NUMBER)(log_func_real)
+function_logarithm.overload(NUMBER)(lambda x : log_func_real(x))
+function_logarithm.overload(complex, complex)(log_func_complex)
+function_logarithm.overload(complex)(lambda x : log_func_complex(x))
 
 function_gcd = Overloadable('Cannot get the greatest common divisor of {0} and {1}. Both arguments must be integers.')
 function_gcd.overload(int, int)(math.gcd)
