@@ -3,11 +3,6 @@ import calculator.attempt6 as parser
 import json
 
 
-# There's a known issues with the way macros are handled.
-# This is a flag to turn them on or off for testing.
-DISABLE_MACROS = False
-
-
 @enum.unique
 class I(enum.IntEnum):
 	NOTHING = 0
@@ -161,70 +156,23 @@ class CodeSegment:
 			self.bytecodeify(p['value'])
 			self.push(I.UNR_MIN)
 		elif node_type == 'function_call':
-			if True:
-				self.bytecodeify(p['function'])
-				args = p.get('arguments', {'items': []})['items']
-				for i in args[::-1]:
-					self.bytecodeify({
-						'#': 'function_definition',
-						'parameters': {'items': []},
-						'kind': '->',
-						'expression': i
-					})
-				self.push(I.CONSTANT)
-				self.push(0)
-				self.push(I.DEMACROIFY)
-				self.push(len(args))
-				self.push(I.STORE_DEMACROD)
-				self.push(I.ARG_LIST_END)
-				self.push(len(args))
-				self.push(I.STORE_IN_CACHE)
-			elif DISABLE_MACROS:
-				# This handles normal functions only. If we also handle macros there's
-				# an issue where the bytecode gets absurdly large.
-				self.bytecodeify(p['function'])
-				args = p.get('arguments', {'items': []})['items']
-				# Handle normal function
-				for i in args[::-1]:
-					self.bytecodeify(i)
-				self.push(I.ARG_LIST_END)
-				self.push(len(args))
-				self.push(I.STORE_IN_CACHE)
-			else:
-				# Need to determine the function first, because if it's a macro
-				# we handle the arguments differently.
-				self.bytecodeify(p['function'])
-				args = p.get('arguments', {'items': []})['items']
-				jump_end = Destination()
-				jump_macro = Destination()
-				self.push(I.JUMP_IF_MACRO)
-				self.push(Pointer(jump_macro))
-				# Handle normal function
-				for i in args[::-1]:
-					self.bytecodeify(i)
-				self.push(I.ARG_LIST_END)
-				self.push(len(args))
-				self.push(I.STORE_IN_CACHE)
-				self.push(I.JUMP)
-				self.push(Pointer(jump_end))
-				# Handle macro function
-				self.push(jump_macro)
-				for i in args[::-1]:
-					self.bytecodeify({
-						'#': 'function_definition',
-						'parameters': {'items': []},
-						'kind': '->',
-						'expression': i
-					})
-				self.push(I.ARG_LIST_END)
-				self.push(len(args))
-				# self.push(I.STORE_IN_CACHE) # NOTE: Check if caching macro functions works or not...
-				# End of the function call
-				self.push(jump_end)
-				# self.push(I.CONSTANT)
-				# return_location = Destination()
-				# self.push(Pointer(return_location))
-				# self.push(return_location)
+			self.bytecodeify(p['function'])
+			args = p.get('arguments', {'items': []})['items']
+			for i in args[::-1]:
+				self.bytecodeify({
+					'#': 'function_definition',
+					'parameters': {'items': []},
+					'kind': '->',
+					'expression': i
+				})
+			self.push(I.CONSTANT)
+			self.push(0)
+			self.push(I.DEMACROIFY)
+			self.push(len(args))
+			self.push(I.STORE_DEMACROD)
+			self.push(I.ARG_LIST_END)
+			self.push(len(args))
+			self.push(I.STORE_IN_CACHE)
 		elif node_type == 'word':
 			self.push(I.WORD)
 			self.push(p['string'].lower())
@@ -256,8 +204,6 @@ class CodeSegment:
 			contents.bytecodeify(p['expression'])
 			contents.push(I.RETURN)
 			# Create the bytecode for the current scope
-			if DISABLE_MACROS and p['kind'] == '~>':
-				raise Exception('Macros are disabled')
 			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(Pointer(start_address))
 		elif node_type == 'comparison': # TODO: THIS
