@@ -43,7 +43,7 @@ def load_parameter_file(filename):
 		with open(filename) as f:
 			result = json.loads(f.read())
 		return result
-	except (FileNotFoundError, PermissionError):
+	except (FileNotFoundError, PermissionError, IsADirectoryError):
 		print('Could not load parameters from file:', filename)
 		return {}
 

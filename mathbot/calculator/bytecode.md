@@ -32,6 +32,10 @@
 - 28 to 34 - Binary comparators
 - 25 to 40 - Comparators used for chains
 
+- 41 - Store in cache
+- 42 - Demacroify
+- 43 - Store-demacrod - Demacro'd function
+
 
 ## Chain comparators
 
@@ -49,21 +53,27 @@ push R to stack
 ## Function call bytecode
 
 (function is placed on the stack)
-JUMP_IF_MACRO
-address of :macro
-(arguments are placed on stack)
+(functions to access arguments are placed on stack)
+(integer zero is placed on the stack)
+DEMACROIFY
+: number of arguments
+STORE_DEMACROD
 ARG_LIST_END
-number of arguments
+: number of arguments
 STORE_IN_CACHE
-JUMP
-address of :end
-:macro (be aware that the landing space takes up a byte)
-(arguments are placed on the stack)
-ARG_LIST_END
-number of arguments
-:end
 
 Note: macro functions do not have their results cached because the functions that get passed into them are newly created every time, making it uncacheable.
+
+## Entering a function
+
+if results are going to be cached:
+	push function object
+	push cache key
+push return address
+push return scope
+goto function bytecode
+
+After the `RETURN` function is executed, the stack will no longer have the address and scope. Instead it will have the result of the function. The `STORE_IN_CACHE` instruction then has to be called in order to remember the result.
 
 ## Function definition
 

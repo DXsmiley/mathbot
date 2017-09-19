@@ -83,8 +83,14 @@ if __name__ == '__main__':
 		filename = proc_filename(sys.argv[1])
 		code = open(filename).read()
 		try:
-			print(c.calculate(code))
-		except calculator.attempt6.ParseFailed as e:
+			tokens, ast = parser.parse(code)
+			btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = True)
+			# for i, v in enumerate(btc):
+			# 	print('{:3d} {:20}'.format(i, repr(v)))
+			interpereter = calc.Interpereter(btc)
+			result = interpereter.run()
+			print(result)
+		except parser.ParseFailed as e:
 			print(format_parse_error('error', code, e.position))
 
 	elif len(sys.argv) == 3:

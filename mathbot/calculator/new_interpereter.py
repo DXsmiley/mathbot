@@ -89,6 +89,8 @@ class Interpereter:
 			b.BIN_AND: self.inst_and,
 			b.BIN_OR_: self.inst_or,
 			b.JUMP_IF_MACRO: self.inst_jump_if_macro,
+			b.DEMACROIFY: self.inst_demacroify,
+			b.STORE_DEMACROD: self.inst_store_demacrod,
 			b.ARG_LIST_END: self.inst_arg_list_end,
 			b.ASSIGNMENT: self.inst_assignment,
 			b.WORD: self.inst_word,
@@ -125,7 +127,21 @@ class Interpereter:
 
 	@property
 	def head(self):
+		'''Return the instruction under the playhead'''
 		return self.bytes[self.place]
+
+	@property
+	def top(self):
+		'''Return the item on the top of the stack'''
+		return self.stack[-1]
+
+	def pop(self):
+		'''Remove the item from the top of the stack and return it'''
+		return self.stack.pop()
+
+	def push(self, item):
+		'''Push an item to the stop of the stack'''
+		self.stack.append(item)
 
 	def run(self, tick_limit = None, error_if_exhausted = False):
 		try:
@@ -156,7 +172,7 @@ class Interpereter:
 		inst = self.switch_dictionary.get(self.head)
 		if inst is None:
 			print('Tried to run unknown instruction:', self.head)
-			raise EvaluationError('Tried to run unknown instruction: ' + str(self.head))
+			raise EvaluationError('Tried to run unknown instruction: ' + repr(self.head))
 		else:
 			inst()
 		self.place += 1
@@ -224,6 +240,34 @@ class Interpereter:
 		if self.stack[-1].macro:
 			self.place = self.head # Not -1 because it jumps to nothing
 
+	def inst_demacroify(self):
+		self.place += 1
+		num_args = self.head
+		processed = self.stack.pop()
+		function = self.stack[- 1 - num_args]
+		# print(self.place, self.stack, ':', function, processed, '/', num_args)
+		# stack contains: function, arguments
+		if processed < num_args and not function.macro:
+			callme = self.stack[-1 - processed]
+			# print(callme)
+			self.stack.append(processed + 1)
+			# Return here afterwards, next instruction is STORE_DEMACROD
+			self.stack.append(self.place + 1)
+			self.stack.append(self.current_scope)
+			# print(self.stack)
+			self.place = (callme.address + 3) - 1
+		else:
+			# print('DONE', self.stack)
+			# Skip over the STORE_DEMACROD instruction
+			self.place += 1
+
+	def inst_store_demacrod(self):
+		result = self.pop()
+		processed = self.top
+		self.stack[-1 - processed] = result
+		# Jump back to the DEMACROIFY instruction
+		self.place -= 3
+
 	def inst_arg_list_end(self):
 		# Look at the number of arguments
 		self.place += 1
@@ -271,11 +315,16 @@ class Interpereter:
 				self.stack.append(function.cache[cache_key])
 				self.place += 1 # Skip the 'store in cache' instruction
 			else:
-				# Push the current location and scope so we can jump back to it
-				if not function.macro:
-					self.stack.append(function)
-					self.stack.append(cache_key)
-				self.stack.append(self.place + 1)
+				if function.macro:
+					# Return here after the function is done but skip the STORE_IN_CACHE instruction
+					self.stack.append(self.place + 2)
+				else:
+					# Required for storing the result in the result cache
+					self.push(function)
+					self.push(cache_key)
+					# Return here after the function is done
+					self.stack.append(self.place + 1)
+				# Remember the current scope
 				self.stack.append(self.current_scope)
 				self.current_scope = new_scope
 				self.place = (addr + 3 + num_parameters) - 1

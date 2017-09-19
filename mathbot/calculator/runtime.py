@@ -65,7 +65,10 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	# s.push('reduce')
 	# ----- User Code -----------------------
 	if my_ast is not None:
-		builder.bytecodeify(my_ast)
+		builder.bytecodeify({
+			'#': 'program',
+			'items': [my_ast]
+		})
 	else:
 		s.push(I.END)
 	# ----- Definitions ---------------------
