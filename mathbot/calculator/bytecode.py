@@ -115,11 +115,13 @@ class CodeBuilder:
 		# Determine the location of the destinations
 		for address, item in enumerate(bytecode):
 			if isinstance(item, Destination):
+				assert(item.location is not None)
 				item.location = address + self.offset
 				bytecode[address] = I.NOTHING
 		# Link the pointers up to their destinations
 		for address, item in enumerate(bytecode):
 			if isinstance(item, Pointer):
+				assert(bytecode[address].destination.location is not None)
 				bytecode[address] = bytecode[address].destination.location
 		return bytecode
 

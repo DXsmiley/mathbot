@@ -30,6 +30,7 @@ def format_value(x):
 
 
 class EvaluationError(Exception):
+	''' Things that go wrong at runtime '''
 
 	def __init__(self, description):
 		self.description = description
@@ -39,6 +40,17 @@ class EvaluationError(Exception):
 
 
 class CompilationError(Exception):
+	''' Problem in the code found during compilation '''
+
+	def __init__(self, description):
+		self.description = description
+
+	def __str__(self):
+		return self.description
+
+
+class SystemError(Exception):
+	''' Problem due to a bug in the system, not the user's code '''
 
 	def __init__(self, description):
 		self.description = description
