@@ -33,8 +33,12 @@ def format_value(x):
 
 class EvaluationError(Exception):
 
-	def __init__(self, description):
-		self.description = description
+	def __init__(self, description, *values):
+		if len(values) == 0:
+			self.description = description
+		else:
+			formatted = list(map(format_value, values))
+			self.description = description.format(*formatted)
 
 	def __str__(self):
 		return self.description
