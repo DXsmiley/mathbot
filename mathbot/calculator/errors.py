@@ -38,6 +38,15 @@ class EvaluationError(Exception):
 		return self.description
 
 
+class CompilationError(Exception):
+
+	def __init__(self, description):
+		self.description = description
+
+	def __str__(self):
+		return self.description
+
+
 class DomainError(EvaluationError):
 
 	def __init__(self, function_name, value):

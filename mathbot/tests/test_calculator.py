@@ -20,6 +20,10 @@ def throws(equation):
 	with pytest.raises(calculator.EvaluationError):
 		calculator.calculate(equation)
 
+def compile_fail(equation):
+	with pytest.raises(calculator.errors.CompilationError):
+		calculator.calculate(equation)
+
 def test_negation():
 	doit("9", 9)
 	doit("-9", -9)
@@ -136,9 +140,9 @@ def test_functions():
 	doit('product = (x, y) -> x * y, product(4, 5)', 20)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(5)', 8)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(50)', 20365011074)
-	throws('if(0, 0)')
-	doit(  'if(0, 0, 0)', 0)
-	throws('if(0, 0, 0, 0)')
+	doit('if(0, 0, 0)', 0)
+	compile_fail('if(0, 0)')
+	compile_fail('if(0, 0, 0, 0)')
 
 def test_macros():
 	doit('((x) ~> x())(5)', 5)

@@ -1,5 +1,6 @@
 import enum
 import calculator.attempt6 as parser
+import calculator.errors
 import json
 
 
@@ -156,23 +157,39 @@ class CodeSegment:
 			self.bytecodeify(p['value'])
 			self.push(I.UNR_MIN)
 		elif node_type == 'function_call':
-			self.bytecodeify(p['function'])
 			args = p.get('arguments', {'items': []})['items']
-			for i in args[::-1]:
-				self.bytecodeify({
-					'#': 'function_definition',
-					'parameters': {'items': []},
-					'kind': '->',
-					'expression': i
-				})
-			self.push(I.CONSTANT)
-			self.push(0)
-			self.push(I.DEMACROIFY)
-			self.push(len(args))
-			self.push(I.STORE_DEMACROD)
-			self.push(I.ARG_LIST_END)
-			self.push(len(args))
-			self.push(I.STORE_IN_CACHE)
+			if p['function']['#'] == 'word' and p['function']['string'].lower() == 'if':
+				# Optimisation for the 'if' function.
+				if len(args) != 3:
+					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
+				p_end = Destination()
+				p_false = Destination()
+				self.bytecodeify(args[0])
+				self.push(I.JUMP_IF_FALSE)
+				self.push(Pointer(p_false))
+				self.bytecodeify(args[1])
+				self.push(I.JUMP)
+				self.push(Pointer(p_end))
+				self.push(p_false)
+				self.bytecodeify(args[2])
+				self.push(p_end)
+			else:
+				self.bytecodeify(p['function'])
+				for i in args[::-1]:
+					self.bytecodeify({
+						'#': 'function_definition',
+						'parameters': {'items': []},
+						'kind': '->',
+						'expression': i
+					})
+				self.push(I.CONSTANT)
+				self.push(0)
+				self.push(I.DEMACROIFY)
+				self.push(len(args))
+				self.push(I.STORE_DEMACROD)
+				self.push(I.ARG_LIST_END)
+				self.push(len(args))
+				self.push(I.STORE_IN_CACHE)
 		elif node_type == 'word':
 			self.push(I.WORD)
 			self.push(p['string'].lower())
