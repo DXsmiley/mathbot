@@ -43,6 +43,7 @@ The following constants exist:
     - `e`   : 2.178281...
     - `true`  : 1
     - `false` : 0
+    - `i` : The imaginary unit
 
 :::page-break
 
@@ -100,5 +101,7 @@ in increasing order. `R` may not be greater than 50.
 `{{prefix}}calc round(10 / 3)`
 
 `{{prefix}}calc sin(pi / 2)`
+
+`{{prefix}}calc (4 + 3i) ^ 3`
 
 `{{prefix}}calc 8d6 : 10`
