@@ -119,6 +119,7 @@ class CodeBuilder:
 		self.segments = []
 		self.offset = offset
 		self.globalscope = Scope([])
+		self.bytecode = []
 
 	def new_segment(self):
 		seg = CodeSegment(self)
@@ -129,21 +130,23 @@ class CodeBuilder:
 		self.new_segment().bytecodeify(ast, self.globalscope)
 
 	def dump(self):
-		bytecode = []
+		newcode = []
 		for i in self.segments:
-			bytecode += i.items
+			newcode += i.items
+		self.segments = []
 		# Determine the location of the destinations
-		for address, item in enumerate(bytecode):
+		for address, item in enumerate(newcode, len(self.bytecode)):
 			if isinstance(item, Destination):
-				assert(item.location is None)
+				assert item.location is None
 				item.location = address + self.offset
-				bytecode[address] = I.NOTHING
+				newcode[address] = I.NOTHING
 		# Link the pointers up to their destinations
-		for address, item in enumerate(bytecode):
+		for address, item in enumerate(newcode, len(self.bytecode)):
 			if isinstance(item, Pointer):
-				assert(bytecode[address].destination.location is not None)
-				bytecode[address] = bytecode[address].destination.location
-		return bytecode
+				assert newcode[address].destination.location is not None
+				newcode[address] = newcode[address].destination.location
+		self.bytecode += newcode
+		return self.bytecode
 
 
 class CodeSegment:

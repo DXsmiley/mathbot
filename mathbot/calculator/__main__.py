@@ -56,7 +56,9 @@ if __name__ == '__main__':
 
 		show_tree = False
 		show_parsepoint = False
-		interpereter = calc.Interpereter(wrap_with_runtime(bytecode.CodeBuilder(), None))
+		builder = bytecode.CodeBuilder()
+		runtime = wrap_with_runtime(builder, None)
+		interpereter = calc.Interpereter(runtime, builder = builder)
 		interpereter.run()
 
 		while True:

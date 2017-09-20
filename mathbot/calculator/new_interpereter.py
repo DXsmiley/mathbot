@@ -97,7 +97,8 @@ def rolldie(times, faces):
 
 class Interpereter:
 
-	def __init__(self, bytes, trace = False):
+	def __init__(self, bytes, trace = False, builder = None):
+		self.builder = builder
 		self.trace = trace
 		self.bytes = bytes
 		self.place = 0
@@ -151,11 +152,16 @@ class Interpereter:
 			b.STORE_IN_CACHE: self.inst_store_in_cache
 		}
 
-	def prepare_extra_code(self, ast):
-		self.place = len(self.bytes)
-		new_code = bytecode.build(ast, self.place)
-		self.bytes += new_code
-		self.stack = [None]
+	def prepare_extra_code(self, ast, ready_to_run = True):
+		if self.builder is None:
+			if len(self.bytes) == 0:
+				raise Exception('Attempted to add additional code to an environment without a builder specified.')
+			self.builder = bytecode.CodeBuilder()
+		if ready_to_run:
+			self.place = len(self.bytes)
+			self.stack = [None]
+		self.builder.bytecodeify(ast)
+		self.bytes = self.builder.dump()
 
 	@property
 	def head(self):
