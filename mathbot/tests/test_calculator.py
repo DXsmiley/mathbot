@@ -134,6 +134,7 @@ def test_assignment():
 	doit('a = 2, A', 2)
 	doit('A = 2, A', 2)
 	doit('x = 2, y = 3, x * y', 6)
+	doit('f = (() -> f)', None)
 
 def test_functions():
 	doit('double = (x) -> x * 2, double(3)', 6)
@@ -220,3 +221,11 @@ def test_superscript():
 	doit('2² ²', 16)
 	doit('3³ ⁴', (3 ** 3) ** 4)
 	doit('(3³)⁴', (3 ** 3) ** 4)
+
+def test_if_statement():
+	doit('if (0, 3, 4)', 4)
+	doit('if (1, 3, 4)', 3)
+	doit('if (2, 3, 4)', 3)
+	doit('x = if, x(0, 3, 4)', 4)
+	doit('x = if, x(1, 3, 4)', 3)
+	doit('x = if, x(2, 3, 4)', 3)

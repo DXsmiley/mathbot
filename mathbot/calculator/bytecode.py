@@ -134,14 +134,15 @@ class CodeBuilder:
 		for i in self.segments:
 			newcode += i.items
 		self.segments = []
+		offset = self.offset + len(self.bytecode)
 		# Determine the location of the destinations
-		for address, item in enumerate(newcode, len(self.bytecode)):
+		for address, item in enumerate(newcode):
 			if isinstance(item, Destination):
 				assert item.location is None
-				item.location = address + self.offset
+				item.location = address + offset
 				newcode[address] = I.NOTHING
 		# Link the pointers up to their destinations
-		for address, item in enumerate(newcode, len(self.bytecode)):
+		for address, item in enumerate(newcode):
 			if isinstance(item, Pointer):
 				assert newcode[address].destination.location is not None
 				newcode[address] = newcode[address].destination.location

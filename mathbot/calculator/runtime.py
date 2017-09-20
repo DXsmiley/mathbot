@@ -31,6 +31,14 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		assert(depth == 0)
 		s.push(I.ASSIGNMENT)
 		s.push(index)
+	def function(name, address, macro = False):
+		s.push(I.FUNCTION_MACRO if macro else I.FUNCTION_NORMAL)
+		s.push(Pointer(address))
+		scope, depth, index = builder.globalscope.find_value(name)
+		assert(scope == builder.globalscope)
+		assert(depth == 0)
+		s.push(I.ASSIGNMENT)
+		s.push(index)
 	# Mathematical constants
 	# Builtin functions
 	assignment('e', math.e)
@@ -59,6 +67,7 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	# NOTE: This is currently disabled because of the upgrade to variable access going on
 	# As such, the 'if' function object is currently inaccessible. This falls back on the optimised versions
 	if_statement = Destination()
+	function('if', if_statement, True)
 	# s.push(I.FUNCTION_MACRO)
 	# s.push(Pointer(if_statement))
 	# s.push(I.ASSIGNMENT)
@@ -89,8 +98,8 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	s.push('_c')
 	s.push(0) # Not variadic
 	# Determine the value of the condition
-	s.push(I.WORD)
-	s.push('_a')
+	s.push(I.ACCESS_LOCAL)
+	s.push(0)
 	s.push(I.ARG_LIST_END)
 	s.push(0)
 	s.push(I.STORE_IN_CACHE)
@@ -99,16 +108,16 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	false_landing = Destination()
 	s.push(Pointer(false_landing))
 	# Return the 'true' result
-	s.push(I.WORD)
-	s.push('_b')
+	s.push(I.ACCESS_LOCAL)
+	s.push(1)
 	s.push(I.ARG_LIST_END)
 	s.push(0)
 	s.push(I.STORE_IN_CACHE)
 	s.push(I.RETURN)
 	# Return the 'false' result
 	s.push(false_landing)
-	s.push(I.WORD)
-	s.push('_c')
+	s.push(I.ACCESS_LOCAL)
+	s.push(2)
 	s.push(I.ARG_LIST_END)
 	s.push(0)
 	s.push(I.STORE_IN_CACHE)
