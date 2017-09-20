@@ -268,7 +268,7 @@ class CodeSegment:
 			# Create the bytecode for the current scope
 			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(Pointer(start_address))
-		elif node_type == 'comparison': # TODO: THIS
+		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
 				self.bytecodeify(p['rest'][0]['value'], s)
@@ -283,14 +283,6 @@ class CodeSegment:
 					self.bytecodeify(i['value'], s)
 					self.push(COMPARATOR_DICT[i['operator']])
 				self.push(I.DISCARD)
-			# previous = yield from evaluate_step(p['first'], scope, it)
-			# for i in p['rest']:
-			# 	op = i['operator']
-			# 	current = yield from evaluate_step(i['value'], scope, it)
-			# 	if not OPERATOR_DICT[op](previous, current):
-			# 		return 0
-			# 	previous = current
-			# return 1
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
 

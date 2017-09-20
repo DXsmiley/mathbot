@@ -11,38 +11,6 @@ from calculator.functions import *
 import calculator.operators as operators
 
 
-class Scope:
-
-	def __init__(self, previous, values, protected_names = None):
-		self.values = values
-		self.previous = previous
-		self.protected_names = protected_names
-		if self.protected_names is None and self.previous is not None:
-			self.protected_names = self.previous.protected_names
-
-	def __getitem__(self, key):
-		try:
-			return self.values[key]
-		except KeyError:
-			try:
-				return self.previous[key]
-			except TypeError:
-				raise EvaluationError('Unknown name: {}'.format(key))
-
-	def __setitem__(self, key, value):
-		if self.protected_names is not None and key in self.protected_names:
-			raise EvaluationError('\'{}\' is a protected constant and cannot be overridden'.format(key))
-		# if key in self.values:
-		# 	raise EvaluationError('{} has already been assigned in this scope'.format(key))
-		self.values[key] = value
-
-	def __repr__(self):
-		return 'scope'
-
-	# def __repr__(self):
-	# 	return '{} -> {}'.format(repr(self.values), repr(self.previous))
-
-
 class IndexedScope:
 
 	def __init__(self, superscope, size, values):
@@ -69,8 +37,7 @@ class IndexedScope:
 		return 'indexed-scope'
 
 
-
-def DoNothing():
+def do_nothing():
 	pass
 
 
@@ -107,7 +74,7 @@ class Interpereter:
 		self.current_scope = self.root_scope
 		b = bytecode.I
 		self.switch_dictionary = {
-			b.NOTHING: DoNothing,
+			b.NOTHING: do_nothing,
 			b.CONSTANT: self.inst_constant,
 			b.BIN_ADD: self.inst_add,
 			b.BIN_SUB: self.inst_sub,
@@ -197,13 +164,13 @@ class Interpereter:
 		# print(self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
-		return self.stack[-1]
+		return self.top
 
 	async def run_async(self):
 		while self.head != bytecode.I.END:
 			self.run(100)
 			await asyncio.sleep(0)
-		return self.stack[-1]
+		return self.top
 
 	def tick(self):
 		if self.trace:
@@ -218,11 +185,11 @@ class Interpereter:
 
 	def inst_constant(self):
 		self.place += 1
-		self.stack.append(self.head)
+		self.push(self.head)
 
 	def binary_op(op):
 		def internal(self):
-			self.stack.append(op(self.stack.pop(), self.stack.pop()))
+			self.push(op(self.pop(), self.pop()))
 		return internal
 
 	inst_add = binary_op(operators.operator_add)
@@ -242,26 +209,26 @@ class Interpereter:
 	inst_or = binary_op(lambda a, b: int(a or b))
 
 	def inst_unr_min(self):
-		self.stack.append(
+		self.push(
 			operators.operator_subtract(
 				0,
-				self.stack.pop()
+				self.pop()
 			)
 		)
 
 	def inst_unr_fac(self):
-		self.stack.append(operators.function_factorial(self.stack.pop()))
+		self.push(operators.function_factorial(self.pop()))
 
 	def inst_unr_not(self):
-		self.stack.append(int(not self.stack.pop()))
+		self.push(int(not self.pop()))
 
 	def inst_comparison(comparator):
 		def internal(self):
-			r = self.stack.pop()
-			l = self.stack.pop()
+			r = self.pop()
+			l = self.pop()
 			x = int(comparator(l, r))
 			self.stack[-1] &= x
-			self.stack.append(r)
+			self.push(r)
 		return internal
 
 	inst_cmp_less = inst_comparison(operators.operator_less)
@@ -272,27 +239,27 @@ class Interpereter:
 	inst_cmp_n_eq = inst_comparison(operators.operator_not_equal)
 
 	def inst_discard(self):
-		self.stack.pop()
+		self.pop()
 
 	def inst_jump_if_macro(self):
 		self.place += 1
-		if self.stack[-1].macro:
+		if self.top.macro:
 			self.place = self.head # Not -1 because it jumps to nothing
 
 	def inst_demacroify(self):
 		self.place += 1
 		num_args = self.head
-		processed = self.stack.pop()
+		processed = self.pop()
 		function = self.stack[- 1 - num_args]
 		# print(self.place, self.stack, ':', function, processed, '/', num_args)
 		# stack contains: function, arguments
 		if processed < num_args and not function.macro:
 			callme = self.stack[-1 - processed]
 			# print(callme)
-			self.stack.append(processed + 1)
+			self.push(processed + 1)
 			# Return here afterwards, next instruction is STORE_DEMACROD
-			self.stack.append(self.place + 1)
-			self.stack.append(self.current_scope)
+			self.push(self.place + 1)
+			self.push(self.current_scope)
 			# print(self.stack)
 			self.place = (callme.address + 3) - 1
 		else:
@@ -313,15 +280,15 @@ class Interpereter:
 		stack_arg_count = self.head
 		arguments = []
 		for i in range(stack_arg_count):
-			arg = self.stack.pop()
+			arg = self.pop()
 			if isinstance(arg, Expanded):
 				arguments += arg.array.items
 			else:
 				arguments.append(arg)
-		function = self.stack.pop()
+		function = self.pop()
 		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
 			result = function(*arguments)
-			self.stack.append(result)
+			self.push(result)
 			self.place += 1 # Skip the 'store in cache' instruction
 		elif isinstance(function, Function):
 			# Create the new scope in which to run the function
@@ -354,20 +321,20 @@ class Interpereter:
 					new_scope = IndexedScope(function.scope, num_parameters, arguments)
 			cache_key = tuple(arguments)
 			if cache_key in function.cache:
-				self.stack.append(function.cache[cache_key])
+				self.push(function.cache[cache_key])
 				self.place += 1 # Skip the 'store in cache' instruction
 			else:
 				if function.macro:
 					# Return here after the function is done but skip the STORE_IN_CACHE instruction
-					self.stack.append(self.place + 2)
+					self.push(self.place + 2)
 				else:
 					# Required for storing the result in the result cache
 					self.push(function)
 					self.push(cache_key)
 					# Return here after the function is done
-					self.stack.append(self.place + 1)
+					self.push(self.place + 1)
 				# Remember the current scope
-				self.stack.append(self.current_scope)
+				self.push(self.current_scope)
 				self.current_scope = new_scope
 				self.place = (addr + 3 + num_parameters) - 1
 		else:
@@ -376,18 +343,18 @@ class Interpereter:
 	def inst_word(self):
 		assert(False)
 		self.place += 1
-		self.stack.append(self.current_scope[self.head])
+		self.push(self.current_scope[self.head])
 
 	def inst_access_gobal(self):
 		self.place += 1
-		self.stack.append(self.root_scope.get(self.head, 0))
+		self.push(self.root_scope.get(self.head, 0))
 
 	def inst_access_local(self):
 		self.place += 1
-		self.stack.append(self.current_scope.get(self.head, 0))
+		self.push(self.current_scope.get(self.head, 0))
 
 	def inst_access_semi(self):
-		self.stack.append(
+		self.push(
 			self.current_scope.get(
 				self.bytes[self.place + 2],
 				self.bytes[self.place + 1]
@@ -396,24 +363,24 @@ class Interpereter:
 		self.place += 2
 
 	def inst_assignment(self):
-		value = self.stack.pop()
+		value = self.pop()
 		self.place += 1
 		name = self.head
 		self.root_scope.set(name, 0, value)
 
 	def inst_function_normal(self):
 		self.place += 1
-		self.stack.append(Function(self.head, self.current_scope, False))
+		self.push(Function(self.head, self.current_scope, False))
 
 	def inst_function_macro(self):
 		self.place += 1
-		self.stack.append(Function(self.head, self.current_scope, True))
+		self.push(Function(self.head, self.current_scope, True))
 
 	def inst_return(self):
-		result = self.stack.pop()
-		self.current_scope = self.stack.pop()
-		self.place = self.stack.pop() - 1
-		self.stack.append(result)
+		result = self.pop()
+		self.current_scope = self.pop()
+		self.place = self.pop() - 1
+		self.push(result)
 
 	def inst_jump(self):
 		self.place += 1
@@ -421,21 +388,21 @@ class Interpereter:
 
 	def inst_jump_if_true(self):
 		self.place += 1
-		if self.stack.pop():
+		if self.pop():
 			self.place = self.head - 1
 
 	def inst_jump_if_false(self):
 		self.place += 1
-		if not self.stack.pop():
+		if not self.pop():
 			self.place = self.head - 1
 
 	def inst_store_in_cache(self):
 		# print(self.stack)
-		value = self.stack.pop()
-		cache_key = self.stack.pop()
-		function = self.stack.pop()
+		value = self.pop()
+		cache_key = self.pop()
+		function = self.pop()
 		function.cache[cache_key] = value
-		self.stack.append(value)
+		self.push(value)
 
 
 def test(string):
