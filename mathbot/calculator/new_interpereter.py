@@ -94,6 +94,7 @@ class Interpereter:
 			b.ACCESS_LOCAL: self.inst_access_local,
 			b.ACCESS_GLOBAL: self.inst_access_gobal,
 			b.ACCESS_SEMI: self.inst_access_semi,
+			b.ACCESS_ARRAY_ELEMENT: self.inst_access_array_element,
 			b.FUNCTION_NORMAL: self.inst_function_normal,
 			b.FUNCTION_MACRO: self.inst_function_macro,
 			b.RETURN: self.inst_return,
@@ -116,7 +117,13 @@ class Interpereter:
 			b.UNR_MIN: self.inst_unr_min,
 			b.UNR_FAC: self.inst_unr_fac,
 			b.UNR_NOT: self.inst_unr_not,
-			b.STORE_IN_CACHE: self.inst_store_in_cache
+			b.STORE_IN_CACHE: self.inst_store_in_cache,
+			b.SPECIAL_MAP: self.inst_special_map,
+			b.SPECIAL_MAP_STORE: self.inst_special_map_store,
+			b.CONSTANT_EMPTY_ARRAY: self.inst_constant_empty_array,
+			b.SPECIAL_REDUCE: self.inst_special_reduce,
+			b.SPECIAL_REDUCE_STORE: self.inst_special_reduce_store,
+			b.DUPLICATE: self.inst_duplicate
 		}
 
 	def prepare_extra_code(self, ast, ready_to_run = True):
@@ -186,6 +193,12 @@ class Interpereter:
 	def inst_constant(self):
 		self.place += 1
 		self.push(self.head)
+
+	def inst_constant_empty_array(self):
+		self.push(Array([]))
+
+	def inst_duplicate(self):
+		self.push(self.top)
 
 	def binary_op(op):
 		def internal(self):
@@ -286,59 +299,7 @@ class Interpereter:
 			else:
 				arguments.append(arg)
 		function = self.pop()
-		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
-			result = function(*arguments)
-			self.push(result)
-			self.place += 1 # Skip the 'store in cache' instruction
-		elif isinstance(function, Function):
-			# Create the new scope in which to run the function
-			addr = function.address
-			num_parameters = self.bytes[addr + 1]
-			parameters = [
-				self.bytes[i] for i in
-				range(addr + 2, addr + 2 + num_parameters)
-			]
-			variadic = self.bytes[addr + 2 + num_parameters]
-			if variadic:
-				if len(arguments) < num_parameters - 1:
-					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
-				main = arguments[:num_parameters - 1]
-				extra = arguments[num_parameters - 1:]
-				# scope_dict = {key: value for key, value in zip(parameters, main)}
-				# scope_dict[parameters[-1]] = Array(extra)
-				scope_array = main
-				scope_array.append(Array(extra))
-				new_scope = IndexedScope(function.scope, num_parameters, scope_array)
-			else:
-				if num_parameters != len(arguments):
-					raise EvaluationError('Improper number of arguments for function {}'.format(function))
-				if num_parameters == 0:
-					new_scope = function.scope
-				else:
-					# new_scope = Scope(function.scope, {
-					# 	key: value for key, value in zip(parameters, arguments)
-					# })
-					new_scope = IndexedScope(function.scope, num_parameters, arguments)
-			cache_key = tuple(arguments)
-			if cache_key in function.cache:
-				self.push(function.cache[cache_key])
-				self.place += 1 # Skip the 'store in cache' instruction
-			else:
-				if function.macro:
-					# Return here after the function is done but skip the STORE_IN_CACHE instruction
-					self.push(self.place + 2)
-				else:
-					# Required for storing the result in the result cache
-					self.push(function)
-					self.push(cache_key)
-					# Return here after the function is done
-					self.push(self.place + 1)
-				# Remember the current scope
-				self.push(self.current_scope)
-				self.current_scope = new_scope
-				self.place = (addr + 3 + num_parameters) - 1
-		else:
-			raise EvaluationError('{} is not a function'.format(function))
+		self.call_function(function, arguments, self.place + 1)
 
 	def inst_word(self):
 		assert(False)
@@ -361,6 +322,11 @@ class Interpereter:
 			)
 		)
 		self.place += 2
+
+	def inst_access_array_element(self):
+		index = self.pop()
+		array = self.pop()
+		self.push(array.items[index])
 
 	def inst_assignment(self):
 		value = self.pop()
@@ -404,6 +370,113 @@ class Interpereter:
 		function.cache[cache_key] = value
 		self.push(value)
 
+	def inst_special_map(self):
+		function = self.stack[-3]
+		source = self.stack[-2]
+		dest = self.stack[-1]
+		if len(dest) < len(source):
+			value = source.items[len(dest)]
+			self.push(self.place + 1)
+			self.push(self.current_scope)
+			self.current_scope = IndexedScope(function.scope, 1, [value])
+			num_parameters = self.bytes[function.address + 1]
+			# TODO:
+			#  - Friendlier error message
+			#  - Enable caching on the function
+			#  - Handle variatic functions
+			#  - Just make a method for handing calling functions like this?
+			assert(num_parameters == 1)
+			self.place = (function.address + num_parameters + 3) - 1
+		else:
+			# Skip the store function
+			self.place += 1
+
+	def inst_special_map_store(self):
+		result = self.pop()
+		self.top.items.append(result)
+		self.place -= 2
+
+	def inst_special_reduce(self):
+		function = self.stack[-4]
+		array = self.stack[-3]
+		value = self.stack[-2]
+		index = self.stack[-1]
+		# Assumes datatypes are correct. Might want to add friendly errors later.
+		if index < len(array):
+			next_item = array.items[index]
+			self.call_function(function, [value, next_item], self.place + 1)
+		else:
+			self.pop()
+			self.pop()
+			self.pop()
+			self.pop()
+			self.push(value)
+			# Skip the store instruction and the second reduce instruction
+			self.place += 2
+
+	def inst_special_reduce_store(self):
+		result = self.pop()
+		self.stack[-2] = result
+		self.stack[-1] += 1
+		self.place -= 3
+
+	def call_function(self, function, arguments, return_to):
+		assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
+		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
+			result = function(*arguments)
+			self.push(result)
+			self.place = return_to + 1 # Skip the 'store in cache' instruction
+		elif isinstance(function, Function):
+			# Create the new scope in which to run the function
+			addr = function.address
+			num_parameters = self.bytes[addr + 1]
+			parameters = [
+				self.bytes[i] for i in
+				range(addr + 2, addr + 2 + num_parameters)
+			]
+			variadic = self.bytes[addr + 2 + num_parameters]
+			if variadic:
+				if len(arguments) < num_parameters - 1:
+					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
+				main = arguments[:num_parameters - 1]
+				extra = arguments[num_parameters - 1:]
+				# scope_dict = {key: value for key, value in zip(parameters, main)}
+				# scope_dict[parameters[-1]] = Array(extra)
+				scope_array = main
+				scope_array.append(Array(extra))
+				new_scope = IndexedScope(function.scope, num_parameters, scope_array)
+			else:
+				if num_parameters != len(arguments):
+					raise EvaluationError('Improper number of arguments for function {}'.format(function))
+				if num_parameters == 0:
+					new_scope = function.scope
+				else:
+					# new_scope = Scope(function.scope, {
+					# 	key: value for key, value in zip(parameters, arguments)
+					# })
+					new_scope = IndexedScope(function.scope, num_parameters, arguments)
+			cache_key = tuple(arguments)
+			if cache_key in function.cache:
+				self.push(function.cache[cache_key])
+				self.place = return_to + 1
+			else:
+				if function.macro:
+					# Return here after the function is done but skip the STORE_IN_CACHE instruction
+					self.push(return_to + 1)
+				else:
+					# Required for storing the result in the result cache
+					self.push(function)
+					self.push(cache_key)
+					# Return here after the function is done
+					self.push(return_to)
+				# Remember the current scope
+				self.push(self.current_scope)
+				self.current_scope = new_scope
+				self.place = addr + 3 + num_parameters
+		else:
+			raise EvaluationError('{} is not a function'.format(function))
+		self.place -= 1 # Negate the +1 after this
+
 
 def test(string):
 	# print('=========================================')
@@ -411,14 +484,12 @@ def test(string):
 	# print('=========================================')
 	tokens, ast = parse(string)
 	# print(json.dumps(ast, indent = 4))
-	bytes = bytecode.build({'#': 'program', 'items': [ast]})
-	bytes = runtime.wrap_with_runtime(
-		bytecode.CodeBuilder(),
-		{'#': 'program', 'items': [ast]}
-	)
+	# bytes = bytecode.build({'#': 'program', 'items': [ast]})
+	builder = bytecode.CodeBuilder()
+	bytes = runtime.wrap_with_runtime(builder, ast)
 	# for index, byte in enumerate(bytes):
 	# 	print('{:3d} - {}'.format(index, byte))
-	vm = Interpereter(bytes)
+	vm = Interpereter(bytes, builder = builder, trace = True)
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
 
 

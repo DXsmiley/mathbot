@@ -69,8 +69,11 @@ if __name__ == '__main__':
 				show_tree = not show_tree
 			elif line == ':parsepoint':
 				show_parsepoint = not show_parsepoint
+			elif line == ':trace':
+				interpereter.trace = not interpereter.trace
 			else:
 				tokens, ast = parser.parse(line)
+				ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
 				# print(json.dumps(ast, indent = 4))
 				interpereter.prepare_extra_code({
 					'#': 'program',

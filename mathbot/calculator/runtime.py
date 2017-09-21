@@ -6,6 +6,17 @@ import math
 from calculator.bytecode import *
 from calculator.functions import *
 import calculator.operators as operators
+import calculator.attempt6 as parser
+
+
+# This looks weird but it works because the functions on the inside
+# get optimised out
+BOILER_CODE = parser.parse('''
+array = (a.) -> a,
+if = (c, t, f) ~> if(c(), t(), f()),
+map = (f, a) -> map(f, a),
+reduce = (f, a) -> reduce(f, a)
+''')[1]
 
 
 def is_function(x):
@@ -62,71 +73,10 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		assignment('ln', BuiltinFunction(math.log))
 		assignment('gamma', BuiltinFunction(lambda x: operators.function_factorial(x - 1)))
 	# assignment('')
-
-	# Declare if statement : if (condition, true_case, false_case)
-	# NOTE: This is currently disabled because of the upgrade to variable access going on
-	# As such, the 'if' function object is currently inaccessible. This falls back on the optimised versions
-	if_statement = Destination()
-	function('if', if_statement, True)
-	# s.push(I.FUNCTION_MACRO)
-	# s.push(Pointer(if_statement))
-	# s.push(I.ASSIGNMENT)
-	# s.push('if')
-
-	# Declare reduce function : reduce (function, array)
-	# reduce = Destination()
-	# s.push(I.FUNCTION_NORMAL)
-	# s.push(Pointer(reduce))
-	# s.push(I.ASSIGNMENT)
-	# s.push('reduce')
+	builder.bytecodeify(BOILER_CODE)
 	# ----- User Code -----------------------
 	if my_ast is not None:
-		builder.bytecodeify({
-			'#': 'program',
-			'items': [my_ast]
-		})
-	else:
-		s.push(I.END)
-	# ----- Definitions ---------------------
-	s = builder.new_segment()
-	# ----- Define if statement -------------
-	s.push(if_statement)
-	# Number of arguments and their names
-	s.push(3)
-	s.push('_a')
-	s.push('_b')
-	s.push('_c')
-	s.push(0) # Not variadic
-	# Determine the value of the condition
-	s.push(I.ACCESS_LOCAL)
-	s.push(0)
-	s.push(I.ARG_LIST_END)
-	s.push(0)
-	s.push(I.STORE_IN_CACHE)
-	# If the result is false, jump to the end of the function.
-	s.push(I.JUMP_IF_FALSE)
-	false_landing = Destination()
-	s.push(Pointer(false_landing))
-	# Return the 'true' result
-	s.push(I.ACCESS_LOCAL)
-	s.push(1)
-	s.push(I.ARG_LIST_END)
-	s.push(0)
-	s.push(I.STORE_IN_CACHE)
-	s.push(I.RETURN)
-	# Return the 'false' result
-	s.push(false_landing)
-	s.push(I.ACCESS_LOCAL)
-	s.push(2)
-	s.push(I.ARG_LIST_END)
-	s.push(0)
-	s.push(I.STORE_IN_CACHE)
-	s.push(I.RETURN)
-	# ----- Define reduce function --------
-	# s.push(reduce)
-	# s.push(2)
-	# s.push('_f')
-	# s.push('_a')
-
+		builder.bytecodeify(my_ast)
+	builder.new_segment().push(I.END)
 	# ----- Return the resulting bytecode -
 	return builder.dump()

@@ -90,3 +90,25 @@ number of parameters
 1 if variadic, 0 otherwise
 (expression)
 RETURN
+
+
+# Specials
+
+## Map
+
+:push function to stack
+:push array to stack
+:push empty array to stack
+Run map instruction repeatedly
+
+## Reduce
+
+:push function to stack
+:push array to stack
+:push first element of array to stack
+:push number one to stack
+Run reduce instruction repeatedly
+
+SPECIAL_REDUCE
+STORE_IN_CACHE
+SPECIAL_REDUCE_STORE

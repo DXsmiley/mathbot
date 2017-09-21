@@ -1,6 +1,7 @@
 import enum
 import calculator.attempt6 as parser
 import calculator.errors
+import itertools
 import json
 
 
@@ -56,6 +57,15 @@ class I(enum.IntEnum):
 	ACCESS_GLOBAL = 44
 	ACCESS_LOCAL = 45
 	ACCESS_SEMI = 46
+	ACCESS_ARRAY_ELEMENT = 53
+
+	SPECIAL_MAP = 48
+	SPECIAL_MAP_STORE = 51
+	SPECIAL_REDUCE = 49
+	SPECIAL_REDUCE_STORE = 52
+	CONSTANT_EMPTY_ARRAY = 50
+
+	# Next to use: 54
 
 
 OPERATOR_DICT = {
@@ -117,23 +127,28 @@ class CodeBuilder:
 
 	def __init__(self, offset = 0):
 		self.segments = []
+		self.segments_backend = []
 		self.offset = offset
 		self.globalscope = Scope([])
 		self.bytecode = []
 
-	def new_segment(self):
+	def new_segment(self, late = False):
 		seg = CodeSegment(self)
-		self.segments.append(seg)
+		if late:
+			self.segments_backend.append(seg)
+		else:
+			self.segments.append(seg)
 		return seg
 
-	def bytecodeify(self, ast):
+	def bytecodeify(self, ast, late = False):
 		self.new_segment().bytecodeify(ast, self.globalscope)
 
 	def dump(self):
 		newcode = []
-		for i in self.segments:
+		for i in itertools.chain(self.segments, self.segments_backend):
 			newcode += i.items
 		self.segments = []
+		self.segments_backend = []
 		offset = self.offset + len(self.bytecode)
 		# Determine the location of the destinations
 		for address, item in enumerate(newcode):
@@ -157,8 +172,8 @@ class CodeSegment:
 		self.start_address = None
 		self.items = []
 
-	def new_segment(self):
-		return self.builder.new_segment()
+	def new_segment(self, late = False):
+		return self.builder.new_segment(late = late)
 
 	def push(self, item):
 		self.items.append(item)
@@ -184,7 +199,8 @@ class CodeSegment:
 			self.push(I.UNR_MIN)
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
-			if p['function']['#'] == 'word' and p['function']['string'].lower() == 'if':
+			function_name = p['function']['string'].lower() if p['function']['#'] == 'word' else None
+			if function_name == 'if':
 				# Optimisation for the 'if' function.
 				if len(args) != 3:
 					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
@@ -199,6 +215,27 @@ class CodeSegment:
 				self.push(p_false)
 				self.bytecodeify(args[2], s)
 				self.push(p_end)
+			elif function_name == 'map':
+				self.bytecodeify(args[0], s)
+				self.bytecodeify(args[1], s)
+				self.push(I.CONSTANT_EMPTY_ARRAY)
+				self.push(I.SPECIAL_MAP)
+				self.push(I.SPECIAL_MAP_STORE)
+			elif function_name == 'reduce':
+				self.bytecodeify(args[0], s)
+				self.bytecodeify(args[1], s)
+				# Get the first element of the array
+				self.push(I.DUPLICATE)
+				self.push(I.CONSTANT)
+				self.push(0)
+				self.push(I.ACCESS_ARRAY_ELEMENT)
+				# Iterator
+				self.push(I.CONSTANT)
+				self.push(1)
+				# Stack now contains [function, array, result, index]
+				self.push(I.SPECIAL_REDUCE)
+				self.push(I.STORE_IN_CACHE)
+				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
 				self.bytecodeify(p['function'], s)
 				for i in args[::-1]:
@@ -249,10 +286,12 @@ class CodeSegment:
 		elif node_type == 'program':
 			for i in p['items']:
 				self.bytecodeify(i, s)
+			# self.push(I.END)
+		elif node_type == 'end':
 			self.push(I.END)
 		elif node_type == 'function_definition':
 			# Create the function itself
-			contents = self.new_segment()
+			contents = self.new_segment(late = True)
 			start_address = Destination()
 			contents.push(start_address)
 			params = [i['string'].lower() for i in p['parameters']['items']]

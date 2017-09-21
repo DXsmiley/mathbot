@@ -229,3 +229,11 @@ def test_if_statement():
 	doit('x = if, x(0, 3, 4)', 4)
 	doit('x = if, x(1, 3, 4)', 3)
 	doit('x = if, x(2, 3, 4)', 3)
+
+def test_map():
+	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
+	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(4)', 8)
+	throws('map((a, b) -> a + b, array(0, 1, 2, 3, 4, 5))(4)')
+
+def test_reduce():
+	doit('reduce((a, b) -> a + b, array(0, 1, 2, 3, 4))', 10)

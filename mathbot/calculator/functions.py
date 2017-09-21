@@ -44,6 +44,9 @@ class Array:
 	def __str__(self):
 		return 'array(' + ', '.join(map(str, self.items)) + ')'
 
+	def __repr__(self):
+		return str(self)
+
 
 class Expanded:
 
