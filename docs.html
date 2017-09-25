@@ -68,7 +68,7 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <p>The <code>=tex</code> command is used render <em>LaTeX</em> equations.</p>
 <p>The <em>LaTeX</em> rendering is done by <a href="http://quicklatex.com/">http://quicklatex.com/</a></p>
 <p>You can use the <code>=theme</code> command to change the colour of the results.</p>
-<h2>Example</h2>
+<h2>Examples</h2>
 <p><code>=tex x = 7</code></p>
 <p><code>=tex \sqrt{a^2 + b^2} = c</code></p>
 <p><code>=tex \int_0^{2\pi} \sin{(4\theta)} \mathrm{d}\theta</code></p>
@@ -80,6 +80,12 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li>Macros such as <code>\@ifpackageloaded</code>.</li>
 <li>Loading of external images, and other resources.</li>
 </ul>
+<h2>Inline LaTeX</h2>
+<p><em>This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command <code>=set server f-inline-tex enable</code>.</em></p>
+<p>You can insert LaTeX into the middle of a message by wrapping it in <code>$$</code> signs.</p>
+<p>Examples</p>
+<p><code>The answer is $$x^{2 + y}$$.</code></p>
+<p><code>$$1 + 2$$ equals $$3$$.</code></p>
 
 <h1 id="h-calculator">Calculator</h1>
 
@@ -119,6 +125,7 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li><code>e</code>   : 2.178281...</li>
 <li><code>true</code>  : 1</li>
 <li><code>false</code> : 0</li>
+<li><code>i</code> : The imaginary unit</li>
 </ul>
 <p>The following functions are available:</p>
 <ul>
@@ -167,6 +174,7 @@ in increasing order. <code>R</code> may not be greater than 50.</p>
 <p><code>=calc 2 ^ (1 + 3) * 5</code></p>
 <p><code>=calc round(10 / 3)</code></p>
 <p><code>=calc sin(pi / 2)</code></p>
+<p><code>=calc (4 + 3i) ^ 3</code></p>
 <p><code>=calc 8d6 : 10</code></p>
 
 <h1 id="h-turing">Turing Completeness</h1>
@@ -247,6 +255,7 @@ Use <code>=theme light</code> to apply the light theme.</p>
 <li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
 <li><code>f-calc-shortcut</code> : Enable or disable the <code>==</code> shortcut for the <code>=calc</code> command. Disabling this <strong>will not</strong> produce an error message if a user attempts to use this command. This is intended to be used <em>only</em> if this command conflicts with other bots on your server. Default: Enabled</li>
 <li><code>f-wolf-filter</code>: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.</li>
+<li><code>f-inline-tex</code>: Enable or disable the ability to add inline tex to messages. See <code>=help tex</code> for details. Default: <strong>Disabled</strong>.</li>
 </ul>
 <h2>Examples</h2>
 <p>Disable the <code>=wolf</code> command on a server:
