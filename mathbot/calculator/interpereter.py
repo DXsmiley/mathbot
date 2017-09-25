@@ -5,8 +5,9 @@ import random
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
+import calculator.errors
 from calculator.errors import EvaluationError
-from calculator.attempt6 import parse
+from calculator.parser import parse
 from calculator.functions import *
 import calculator.operators as operators
 

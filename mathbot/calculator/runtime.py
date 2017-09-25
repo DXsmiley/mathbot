@@ -6,7 +6,7 @@ import math
 from calculator.bytecode import *
 from calculator.functions import *
 import calculator.operators as operators
-import calculator.attempt6 as parser
+import calculator.parser as parser
 
 
 # This looks weird but it works because the functions on the inside
@@ -80,3 +80,7 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 	builder.new_segment().push(I.END)
 	# ----- Return the resulting bytecode -
 	return builder.dump()
+
+def wrap_simple(ast):
+	builder = CodeBuilder()
+	return wrap_with_runtime(builder, ast)

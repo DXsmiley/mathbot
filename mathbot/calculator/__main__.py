@@ -5,8 +5,8 @@ import asyncio
 import traceback
 import sys
 
-import calculator.new_interpereter as calc
-import calculator.attempt6 as parser
+import calculator.interpereter as interpereter
+import calculator.parser as parser
 import calculator.bytecode as bytecode
 import calculator.runtime as runtime
 from calculator.runtime import wrap_with_runtime
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 		show_parsepoint = False
 		builder = bytecode.CodeBuilder()
 		runtime = wrap_with_runtime(builder, None)
-		interpereter = calc.Interpereter(runtime, builder = builder)
+		interpereter = interpereter.Interpereter(runtime, builder = builder)
 		interpereter.run()
 
 		while True:
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 			btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = True)
 			# for i, v in enumerate(btc):
 			# 	print('{:3d} {:20}'.format(i, repr(v)))
-			interpereter = calc.Interpereter(btc, trace = True)
+			interpereter = interpereter.Interpereter(btc, trace = True)
 			result = interpereter.run()
 			print(result)
 		except parser.ParseFailed as e:

@@ -17,7 +17,7 @@ def unknown(equation):
 	calculator.calculate(equation)
 
 def throws(equation):
-	with pytest.raises(calculator.EvaluationError):
+	with pytest.raises(calculator.errors.EvaluationError):
 		calculator.calculate(equation)
 
 def compile_fail(equation):

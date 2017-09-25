@@ -1,5 +1,5 @@
 import enum
-import calculator.attempt6 as parser
+import calculator.parser as parser
 import calculator.errors
 import itertools
 import json

@@ -10,7 +10,7 @@ import core.module
 import core.handles
 import calculator
 import calculator.texify
-import calculator.attempt6
+import calculator.parser
 import collections
 import traceback
 import patrons
@@ -175,11 +175,11 @@ class CalculatorModule(core.module.Module):
 				except calculator.EvaluationError as e:
 					traceback.print_exc()
 					result = 'Error: ' + str(e)
-				except calculator.attempt6.ImbalancedBraces as e:
+				except calculator.parser.ImbalancedBraces as e:
 					result = 'Invalid syntax: Imbalanced braces'
-				except calculator.attempt6.TokenizationFailed as e:
+				except calculator.parser.TokenizationFailed as e:
 					result = format_parse_error('Invalid token', arg, e.position)
-				except calculator.attempt6.ParseFailed as e:
+				except calculator.parser.ParseFailed as e:
 					result = format_parse_error('Invalid syntax', arg, e.position)
 				else:
 					if should_sort:
