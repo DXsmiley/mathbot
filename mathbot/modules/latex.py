@@ -65,13 +65,11 @@ TEMPLATE_INLINE = r'''
 \begin{document}
 \definecolor{my_colour}{HTML}{#COLOUR}
 \color{my_colour}
-
 \begin{flushleft}
 
 #CONTENT
 
 \end{flushleft}
-
 \end{document}
 '''
 
@@ -98,7 +96,7 @@ def semiquote(s):
 	return s
 
 # Old shade of grey #737f8d
-TEX_PAYLOAD = 'formula={latex}&fsize=26px&fcolor=000000&mode=0&out=1&remhost=quicklatex.com&preamble={preamble}'
+TEX_PAYLOAD = 'formula={latex}&fsize=26px&fcolor={colour}&mode=0&out=1&remhost=quicklatex.com&preamble={preamble}'
 
 
 class RenderingError(Exception):
@@ -110,11 +108,12 @@ class EmptyImageError(Exception):
 	pass
 
 
-async def generate_image_online(latex, colour_back = None):
+async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
 	latex = latex.strip()
 	payload = TEX_PAYLOAD.format(
 		latex = semiquote(latex),
-		preamble = semiquote(PREAMBLE)
+		preamble = semiquote(PREAMBLE),
+		colour = colour_text
 	)
 	# Query the server, it will return the url to get the actual image from.
 	# url = 'http://quicklatex.com/latex3.f' + payload
@@ -293,16 +292,16 @@ class LatexModule(core.module.Module):
 			'#CONTENT', process_latex(latex)
 		)
 
-		sent_message = await self.render_and_reply(message, latex, colour_back)
+		sent_message = await self.render_and_reply(message, latex, colour_back, colour_text)
 		if sent_message != None:
 			self.connections[message.id] = {
 				'message': sent_message,
 				'template': template
 			}
 
-	async def render_and_reply(self, message, latex, colour_back):
+	async def render_and_reply(self, message, latex, colour_back, colour_text):
 		try:
-			render_result = await generate_image_online(latex, colour_back = colour_back)
+			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
 		except asyncio.TimeoutError:
 			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
 		except RenderingError as e:
