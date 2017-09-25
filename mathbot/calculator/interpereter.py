@@ -12,18 +12,25 @@ from calculator.functions import *
 import calculator.operators as operators
 
 
+class ScopeMissedError(Exception):
+	pass
+
+
 class IndexedScope:
 
+	# NOTE: Not really sure why I have both size and values here. 
 	def __init__(self, superscope, size, values):
 		self.superscope = superscope
-		assert(len(values) == size)
+		if size != len(values):
+			raise calculator.errors.SystemError('Attempted to create a scope with number of values unequal to the size')
 		self.values = values
 
 	def get(scope, index, depth):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		assert(scope.values[index] != None)
+		if index >= len(scope.values) or scope.values[index] == None:
+			raise ScopeMissedError
 		return scope.values[index]
 
 	def set(scope, index, depth, value):
@@ -309,7 +316,12 @@ class Interpereter:
 
 	def inst_access_gobal(self):
 		self.place += 1
-		self.push(self.root_scope.get(self.head, 0))
+		index = self.head
+		self.place += 1
+		try:
+			self.push(self.root_scope.get(index, 0))
+		except ScopeMissedError:
+			raise EvaluationError('Failed to access variable "{}"'.format(self.head))
 
 	def inst_access_local(self):
 		self.place += 1

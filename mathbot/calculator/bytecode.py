@@ -258,8 +258,11 @@ class CodeSegment:
 			# self.push(p['string'].lower())
 			scope, depth, index = s.find_value(p['string'].lower())
 			if scope == self.builder.globalscope:
+				# NOTE: Only global variables can fail to be found,
+				# so we only need the name for this one.
 				self.push(I.ACCESS_GLOBAL)
 				self.push(index)
+				self.push(p['string'])
 			elif depth == 0:
 				self.push(I.ACCESS_LOCAL)
 				self.push(index)

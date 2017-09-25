@@ -9,6 +9,7 @@ from calculator.interpereter import Interpereter
 import calculator.parser as parser
 import calculator.bytecode as bytecode
 import calculator.runtime as runtime
+import calculator.errors as errors
 from calculator.runtime import wrap_with_runtime
 
 
@@ -102,16 +103,19 @@ def interactive_terminal():
 		elif line == ':trace':
 			interpereter.trace = not interpereter.trace
 		else:
-			tokens, ast = parser.parse(line)
-			ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
-			# print(json.dumps(ast, indent = 4))
-			interpereter.prepare_extra_code({
-				'#': 'program',
-				'items': [ast]
-			})
-			# for index, byte in enumerate(bytes):
-			# 	print('{:3d} - {}'.format(index, byte))
-			print(run_with_timeout(interpereter.run_async(), 5))
+			try:
+				tokens, ast = parser.parse(line)
+				ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
+				# print(json.dumps(ast, indent = 4))
+				interpereter.prepare_extra_code({
+					'#': 'program',
+					'items': [ast]
+				})
+				# for index, byte in enumerate(bytes):
+				# 	print('{:3d} - {}'.format(index, byte))
+				print(run_with_timeout(interpereter.run_async(), 5))
+			except errors.EvaluationError as e:
+				print(str(e))
 
 
 main()
