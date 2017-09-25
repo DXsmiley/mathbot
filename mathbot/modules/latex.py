@@ -28,6 +28,7 @@ PREAMBLE = r'''
 \usepackage{tikz}
 \usepackage{color}
 \usepackage{xcolor}
+\usepackage[a5paper]{geometry}
 
 \newfam\hebfam
 \font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
@@ -60,6 +61,18 @@ TEMPLATE = r'''
 \end{document}
 '''
 
+TEMPLATE_INLINE = r'''
+\begin{document}
+\definecolor{my_colour}{HTML}{#COLOUR}
+\color{my_colour}
+\begin{flushleft}
+
+#CONTENT
+
+\end{flushleft}
+\end{document}
+'''
+
 RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)';
 
 RENDER_ERROR = '''\
@@ -83,7 +96,7 @@ def semiquote(s):
 	return s
 
 # Old shade of grey #737f8d
-TEX_PAYLOAD = 'formula={latex}&fsize=26px&fcolor=000000&mode=0&out=1&remhost=quicklatex.com&preamble={preamble}'
+TEX_PAYLOAD = 'formula={latex}&fsize=26px&fcolor={colour}&mode=0&out=1&remhost=quicklatex.com&preamble={preamble}'
 
 
 class RenderingError(Exception):
@@ -95,7 +108,7 @@ class EmptyImageError(Exception):
 	pass
 
 
-async def generate_image_online(latex, colour_text = 'ffffff', colour_back = None):
+async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
 	latex = latex.strip()
 	payload = TEX_PAYLOAD.format(
 		latex = semiquote(latex),
@@ -112,7 +125,7 @@ async def generate_image_online(latex, colour_text = 'ffffff', colour_back = Non
 			# img_url = text.split('\n')[1].split(' ')[0]
 			# for i in blobs.groups():
 			# 	print('GROUP:', i)
-			blobs = re.match(RESPONSE_PARSING_REGEX, text);
+			blobs = re.match(RESPONSE_PARSING_REGEX, text)
 			status, img_url, valign, imgw, imgh, errmsg = blobs.groups()
 			if status != '0':
 				raise RenderingError(errmsg)
@@ -228,93 +241,109 @@ class LatexModule(core.module.Module):
 
 	@core.handles.command('tex latex rtex', '*', perm_setting = 'c-tex')
 	async def command_latex(self, message, latex):
-		await self.handle(message, latex)
-
-	@command_latex.edit(require_before = False, require_after = True)
-	async def handle_edit(self, before, after, latex):
-		try:
-			await self.client.delete_message(self.connections[before.id])
-		except Exception as e:
-			pass
-		await self.handle(after, latex)
-
-	async def handle(self, message, latex):
 		if latex == '':
 			await self.send_message(message.channel, 'Type `=help tex` for information on how to use this command.', blame = message.author)
 		elif not has_required_perms(message.channel):
 			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
 		else:
-			safe.sprint('Latex :', message.author.name, ':', latex)
-			await self.client.send_typing(message.channel)
+			await self.handle(message, latex, 'normal')
 
-			colour_setting = await core.settings.get_setting(message, 'p-tex-colour')
-			if colour_setting == 'transparent':
-				colour_text = '737f8d'
-				colour_back = None
-			elif colour_setting == 'light':
-				colour_text = '202020'
-				colour_back = 'ffffff'
-			elif colour_setting == 'dark':
-				colour_text = 'f0f0f0'
-				colour_back = '36393E'
-
-			latex = TEMPLATE.replace(
-				'#COLOUR', colour_text
-			).replace(
-				'#CONTENT', process_latex(latex)
-			)
-
-			sent_message = None
-
+	@command_latex.edit(require_before = False, require_after = True)
+	async def handle_edit(self, before, after, latex):
+		if latex != '':
+			blob = self.connections.get(before.id, {'template': 'normal'})
 			try:
-				render_result = await generate_image_online(latex, colour_text = colour_text, colour_back = colour_back)
-			except asyncio.TimeoutError:
-				await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
-			except RenderingError as e:
-				print('Rendering error')
-				msg = RENDER_ERROR.format(e.errmsg)
-				sent_message = await self.send_message(message.channel, msg, blame = message.author)
-			except EmptyImageError as e:
-				print('Empty image')
-				sent_message = await self.send_message(message.channel, EMPTY_IMAGE_ERROR, blame = message.author)
-			else:
-				print('Success!')
-				content = None
-				if await advertising.should_advertise_to(message.author, message.channel):
-					content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-				sent_message = await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
-			if sent_message != None:
-				self.connections[message.id] = sent_message
+				await self.client.delete_message(blob['message'])
+			except Exception:
+				pass
+			await self.handle(after, latex, blob.get('template'))
 
-# async def handle_edit(latex, before, after, raw = False):
-# 	try:
-# 		await latex_module.client.delete_message(connections[before.id])
-# 	except Exception as e:
-# 		traceback.print_exc()
-# 		print(repr(e))
-# 		pass
-# 	await handle_message(latex, after, raw = raw)
+	@core.handles.on_message()
+	async def inline_latex(self, message):
+		if not message.author.bot and not message.content.startswith('=') and message.content.count('$$') >= 2:
+			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
+				latex = extract_inline_tex(message.content)
+				if latex != '':
+					await self.handle(message, latex, 'inline')
 
-# @latex_module.event
-# @limit.command('rtex')
-# @settings.check_channel('c-tex')
-# async def on_message(arg, message):
-# 	await handle_message(arg.strip(), message, raw = True)
-#
-# @latex_module.event
-# @limit.command('tex')
-# @settings.check_channel('c-tex')
-# async def on_message(arg, message):
-# 	await handle_message(arg.strip(), message)
-#
-# @latex_module.event
-# @limit.command('rtex')
-# @settings.check_channel('c-tex')
-# async def on_message_edit(arg, before, after):
-# 	await handle_edit(arg.strip(), before, after, raw = True)
-#
-# @latex_module.event
-# @limit.command('tex')
-# @settings.check_channel('c-tex')
-# async def on_message_edit(arg, before, after):
-# 	await handle_edit(arg.strip(), before, after)
+	@core.handles.on_edit()
+	async def inline_edit(self, before, after):
+		if not after.content.startswith('=') and after.content.count('$$') >= 2:
+			blob = self.connections.get(before.id, {'template': 'inline'})
+			try:
+				await self.client.delete_message(blob['message'])
+			except Exception:
+				pass
+			latex = extract_inline_tex(after.content)
+			if latex != '':
+				await self.handle(after, latex, blob.get('template'))
+
+	async def handle(self, message, latex, template):
+		safe.sprint('Latex ({}, {}) : {}'.format(message.author.name, template, latex))
+		await self.client.send_typing(message.channel)
+
+		colour_back, colour_text = await get_colours(message)
+
+		tpl = ({'normal': TEMPLATE, 'inline': TEMPLATE_INLINE})[template]
+
+		latex = tpl.replace(
+			'#COLOUR', colour_text
+		).replace(
+			'#CONTENT', process_latex(latex)
+		)
+
+		sent_message = await self.render_and_reply(message, latex, colour_back, colour_text)
+		if sent_message != None:
+			self.connections[message.id] = {
+				'message': sent_message,
+				'template': template
+			}
+
+	async def render_and_reply(self, message, latex, colour_back, colour_text):
+		try:
+			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
+		except asyncio.TimeoutError:
+			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
+		except RenderingError as e:
+			print('Rendering error')
+			msg = RENDER_ERROR.format(e.errmsg)
+			return await self.send_message(message.channel, msg, blame = message.author)
+		except EmptyImageError as e:
+			print('Empty image')
+			return await self.send_message(message.channel, EMPTY_IMAGE_ERROR, blame = message.author)
+		else:
+			print('Success!')
+			content = None
+			if await advertising.should_advertise_to(message.author, message.channel):
+				content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
+			return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
+
+
+async def get_colours(message):
+	colour_setting = await core.settings.get_setting(message, 'p-tex-colour')
+	if colour_setting == 'transparent':
+		colour_text = '737f8d'
+		colour_back = None
+	elif colour_setting == 'light':
+		colour_text = '202020'
+		colour_back = 'ffffff'
+	elif colour_setting == 'dark':
+		colour_text = 'f0f0f0'
+		colour_back = '36393E'
+	return colour_back, colour_text
+
+
+def extract_inline_tex(content):
+	parts = iter(content.split('$$'))
+	latex = ''
+	try:
+		while True:
+			word = next(parts)
+			if word != '':
+				latex += '{} '.format(word)
+			word = next(parts)
+			if word != '':
+				latex += '$\displaystyle {}$ '.format(word.strip('`'))
+	except StopIteration:
+		pass
+	return latex.rstrip()

@@ -80,8 +80,6 @@ if __name__ == '__main__':
 							print_token_parse_caret(to)
 						if show_tree:
 							print(json.dumps(result, indent = 4))
-						if result and c.is_ambiguous(result):
-							print('Parse tree was ambiguous!')
 						try:
 							future = c.evaluate(result, user_scope, limits = {'warnings': True})
 							warnings, result = run_with_timeout(future, 5)

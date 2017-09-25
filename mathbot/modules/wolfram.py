@@ -94,7 +94,7 @@ Questions and requests should be directed to <@133804143721578505> on the offici
 '''
 
 NO_API_ERROR = '''
-No key was supplied for the Wolfram|Alpha API. This is an error with how the bot as been set up.
+No key was supplied for the Wolfram|Alpha API.
 
 If you're trying to set the bot up for development, see README.md for information on how to do this.
 '''
@@ -232,7 +232,7 @@ class WolframModule(core.module.Module):
 	@core.handles.command('wolf', '*', perm_setting = 'c-wolf')
 	async def command_wolf(self, message, query):
 		if api is None:
-			self.send_message(message.channel, NO_API_ERROR, blame = message.author)
+			await self.send_message(message.channel, NO_API_ERROR, blame = message.author)
 		elif query in ['', 'help']:
 			return core.handles.Redirect('help wolfram')
 		elif not message.channel.is_private and not has_required_perms(message.channel, message.server.me):

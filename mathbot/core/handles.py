@@ -58,6 +58,12 @@ class OnMessage:
 		self.func = func
 
 
+class OnEdit:
+
+	def __init__(self, func):
+		self.func = func
+
+
 def command(name, format, perm_setting = None, perm_default = None):
 	assert(isinstance(format, str))
 	def applier(func):
@@ -93,6 +99,12 @@ def event(name):
 def on_message():
 	def applier(func):
 		return OnMessage(func)
+	return applier
+
+
+def on_edit():
+	def applier(func):
+		return OnEdit(func)
 	return applier
 
 

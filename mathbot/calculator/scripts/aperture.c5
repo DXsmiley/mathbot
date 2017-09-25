@@ -1,0 +1,7 @@
+arccos = (s) -> if(
+	is_complex(s) > 0,
+	acos(sqrt((-(re(s)^2)-(im(s)^2)-1+sqrt((re(s)^2+1+im(s)^2)^2+4*re(s)^2)/2)))+iacosh(sqrt((re(s)^2+im(s)^2+1+sqrt((re(s)^2+1+im(s)^2)^2+4*re(s)^2))/2)),
+	if(is_real(s) > 0, acos(s), acosh(s))
+),
+
+arccos(3 + 4i)

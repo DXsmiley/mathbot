@@ -21,21 +21,21 @@ class Module:
 
 	# Functions used by the system
 
+	def collect_by_type(self, type):
+		items = []
+		for name, item in self.__class__.__dict__.items():
+			if isinstance(item, type):
+				items.append(item)
+		return items
+
+
 	def collect_background_tasks(self):
 		''' Returns a list of the module's background tasks. '''
-		tasks = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.BackgroundTask):
-				tasks.append(item)
-		return tasks
+		return self.collect_by_type(core.handles.BackgroundTask)
 
 	def collect_startup_tasks(self):
 		''' Returns a list of the module's startup tasks. '''
-		tasks = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.StartupTask):
-				tasks.append(item)
-		return tasks
+		return self.collect_by_type(core.handles.StartupTask)
 
 	def collect_command_handlers(self):
 		''' Returns a list of the module's command handlers. '''
@@ -52,18 +52,15 @@ class Module:
 
 	def collect_message_handlers(self):
 		''' Returns a list of the module's message handlers. '''
-		handlers = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.OnMessage):
-				handlers.append(item)
-		return handlers
+		return self.collect_by_type(core.handles.OnMessage)
+
+	def collection_edit_handlers(self):
+		''' Returns a list of the module's edit handlers. '''
+		return self.collect_by_type(core.handles.OnEdit)
 
 	def collection_reaction_handlers(self):
 		''' Returns a list of the module's reaction handlers. '''
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.ReactionHandler):
-				# print('Reaction handler', item.emoji.encode('utf-8'))
-				yield item
+		return self.collect_by_type(core.handles.ReactionHandler)
 
 	# Functions used by the end user
 

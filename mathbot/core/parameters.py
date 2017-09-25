@@ -9,6 +9,9 @@ import json
 import sys
 
 
+PREVENT_ARG_PARSING = False
+
+
 def _dictionary_overwrite(old, new):
 	if not isinstance(new, dict):
 		return new
@@ -43,7 +46,7 @@ def load_parameter_file(filename):
 		with open(filename) as f:
 			result = json.loads(f.read())
 		return result
-	except (FileNotFoundError, PermissionError):
+	except (FileNotFoundError, PermissionError, IsADirectoryError):
 		print('Could not load parameters from file:', filename)
 		return {}
 
@@ -75,7 +78,10 @@ parameters = None
 def get(path):
 	global parameters
 	if parameters is None:
-		parameters = load_parameters(sys.argv[1:])
+		if PREVENT_ARG_PARSING:
+			parameters = load_parameters([])
+		else:
+			parameters = load_parameters(sys.argv[1:])
 	# Break the string down into its components
 	path = path.replace('.', ' ').split(' ')
 	# Reverse it because popping from the back is much faster

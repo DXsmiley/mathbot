@@ -37,6 +37,7 @@ class Manager:
 		self.reaction_handlers = collections.defaultdict(lambda : [])
 		self.modules = []
 		self.raw_handlers_message = []
+		self.raw_handlers_edit = []
 		self.shard_id = shard_id
 		self.shard_count = shard_count
 		self.client = create_client(self, shard_id, shard_count)
@@ -70,8 +71,11 @@ class Manager:
 				command.module = module
 			# Get the message handlers
 			for handler in module.collect_message_handlers():
-				print('Raw message handler on', module)
 				self.raw_handlers_message.append(handler)
+				handler.module = module
+			# Get the edit handlers
+			for handler in module.collection_edit_handlers():
+				self.raw_handlers_edit.append(handler)
 				handler.module = module
 			# Get the reaction handlers
 			for handler in module.collection_reaction_handlers():
@@ -122,6 +126,8 @@ class Manager:
 	# Handle an incoming meddage edit event
 	async def handle_edit(self, before, after):
 		try:
+			for handler in self.raw_handlers_edit:
+				await handler.func(handler.module, before, after)
 			cmd_before = await self.check_prefixes(before)
 			cmd_after = await self.check_prefixes(after)
 			if cmd_after:

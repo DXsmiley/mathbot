@@ -152,7 +152,7 @@ def atom(tokens):
 
 def wrapped_expression(tokens):
 	if isinstance(tokens[0], TokenBlock):
-		return expression(tokens.eat())
+		return ensure_completed(expression, tokens.eat())
 	return atom(tokens)
 
 

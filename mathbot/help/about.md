@@ -18,6 +18,7 @@ Thankyou to the following patrons for supporting the bot:
  - Paradoxica
  - Joshua "GodsAperture" Champion
  - Raghav "Raggy" Mishra
+ - June Summers
 :::endblock
 :::webpage
 Add MathBot to your [server using this link]({{add_link}}).

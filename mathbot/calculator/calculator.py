@@ -1,9 +1,10 @@
-from calculator.myparser import *
 from calculator.errors import *
 import calculator.operators
 import asyncio
 import math
+import cmath
 import weakref
+import random
 import calculator.attempt6
 
 
@@ -380,34 +381,42 @@ def m_choose(n, k):
 	)
 
 
+def maybe_complex(f_real, f_complex):
+	def internal(x):
+		if isinstance(x, complex):
+			return f_complex(x)
+		return f_real(x)
+	return except_math_error(internal)
+
+
 BUILTIN_FUNCTIONS = {
 	# 'interval': lambda a, b: List(range(a, b)),
-	'sin': except_math_error(math.sin),
-	'cos': except_math_error(math.cos),
-	'tan': except_math_error(math.tan),
+	'sin': maybe_complex(math.sin, cmath.sin),
+	'cos': maybe_complex(math.cos, cmath.cos),
+	'tan': maybe_complex(math.tan, cmath.tan),
 	'sind': except_math_error(fdeg(math.sin)),
 	'cosd': except_math_error(fdeg(math.cos)),
 	'tand': except_math_error(fdeg(math.tan)),
-	'asin': except_math_error(math.asin),
-	'acos': except_math_error(math.acos),
-	'atan': except_math_error(math.atan),
+	'asin': maybe_complex(math.asin, cmath.asin),
+	'acos': maybe_complex(math.acos, cmath.acos),
+	'atan': maybe_complex(math.atan, cmath.atan),
 	'asind': except_math_error(adeg(math.asin)),
 	'acosd': except_math_error(adeg(math.acos)),
 	'atand': except_math_error(adeg(math.atan)),
-	'sinh': except_math_error(math.sinh),
-	'cosh': except_math_error(math.cosh),
-	'tanh': except_math_error(math.tanh),
-	'asinh': except_math_error(math.asinh),
-	'acosh': except_math_error(math.acosh),
-	'atanh': except_math_error(math.atanh),
+	'sinh': maybe_complex(math.sinh, cmath.sinh),
+	'cosh': maybe_complex(math.cosh, cmath.cosh),
+	'tanh': maybe_complex(math.tanh, cmath.tanh),
+	'asinh': maybe_complex(math.asinh, cmath.asinh),
+	'acosh': maybe_complex(math.acosh, cmath.acosh),
+	'atanh': maybe_complex(math.atanh, cmath.atanh),
 	'deg': except_math_error(math.degrees),
 	'rad': except_math_error(math.radians),
 	'log': calculator.operators.function_logarithm,
-	'ln': except_math_error(math.log),
-	'round': round,
+	'ln': maybe_complex(math.log, cmath.log),
+	'round': except_math_error(round),
 	'int': except_math_error(int),
-	'sqrt': lambda x : x ** 0.5,
-	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
+	'sqrt': except_math_error(lambda x : x ** 0.5),
+	'gamma': except_math_error(lambda x: calculator.operators.function_factorial(x - 1)),
 	'gcd': calculator.operators.function_gcd,
 	'lcm': calculator.operators.function_lcm,
 	'choose': m_choose,
@@ -417,7 +426,9 @@ BUILTIN_FUNCTIONS = {
 	'length': array_length,
 	'join': array_join,
 	'splice': array_splice,
-	'expand': array_expand
+	'expand': array_expand,
+	'im': except_math_error(lambda x: x.imag),
+	're': except_math_error(lambda x: x.real)	
 }
 
 
@@ -669,225 +680,12 @@ def evaluate_step(p, scope, it):
 			return None
 
 
-def create_grammar():
-
-	balance_cache = {}
-
-	def balancer(contents):
-		# return contents
-		return EnsureBalanced(contents, '(', ')', balance_cache)
-
-	number = ReToken(r'\d*\.?\d+([eE]-?\d+)?i?')('#number')
-
-	# This seems more complicated that it needs to be, but we have to avoid clashing with the dice operator.
-	word = (
-		Token('π') |
-		ReToken(r'[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*')
-	) ('#word')
-
-	# NOTE: the 'x' symbol might make the grammar ambigous.
-	mul_op_x_decr = Attach(Token('x'), {
-		'warning': 'Using `x` for multiplication is deprecated. Use `*` or `×` instead.'
-	})
-	mul_op = Attach(Token('*', '×') | mul_op_x_decr, {'token': '*'}, override = True) \
-		   | Attach(Token('/', '÷'), {'token': '/'}, override = True)
-	mod_op = Token('%')
-	eq_op  = Token('>', '<', '>=', '<=', '==', '!=') # Thought: add '=' to this?
-	add_op = Token('+', '-')
-	or_op  = Token('|')
-	and_op = Token('&')
-	pow_op = Token('^')
-	die_op = Token('d')
-	lparen = Token('(')
-	rparen = Token(')')
-	comma  = Token(',')
-	bang   = Token('!')
-	equals = Token('=')
-	func_op = Token('->', '~>')
-	out_op = Token('<<')
-	semicolon = Token(';')
-
-	function_call = Defer()
-	function_definition = Defer()
-	factorial  = Defer()
-	dieroll    = Defer()
-	power      = Defer()
-	uminus     = Defer()
-	modulo     = Defer()
-	product    = Defer()
-	addition   = Defer()
-	equality   = Defer()
-	logic_not  = Defer()
-	logic_and  = Defer()
-	logic_or   = Defer()
-	expression = Defer()
-	statement  = Defer()
-	program    = Defer()
-	body       = Defer()
-
-	wrapped_expression = Supress(lparen) + body + Supress(rparen)
-	arg_list = Alternate(expression, comma)
-
-	atom = number | wrapped_expression | word
-
-	function_call << balancer(
-		atom |
-		(
-			function_call('function') + Supress(lparen) + ~(arg_list('arguments')) + Supress(rparen)
-		)('#function_call')
-	)
-
-	factorial << balancer(
-		function_call |
-		(factorial('value') + Supress(bang))('#factorial')
-	)
-
-	dieroll << balancer(
-		factorial
-		| (factorial('left') + die_op('operator') + factorial('right'))('#binop')
-		| (Supress(die_op) + factorial('faces'))('#udie')
-	)
-
-	uminus << balancer(
-		dieroll |
-		(Supress(Token('-')) + uminus('value'))('#uminus')
-	)
-
-	# power << balancer(
-	# 	uminus |
-	# 	(uminus('left') + pow_op('operator') + power('right'))('#binop')
-	# )
-
-	power << balancer(
-		DivideByToken(uminus('left'), pow_op('operator'), power('right'))('#binop')
-		| uminus
-	)
-
-	# modulo << balancer(
-	# 	power |
-	# 	(modulo('left') + mod_op('operator') + power('right'))('#binop')
-	# )
-
-	modulo << balancer(
-		DivideByToken(modulo('left'), mod_op('operator'), power('right'), direction = 'right')('#binop')
-		| power
-	)
-
-	# product << balancer(
-	# 	modulo |
-	# 	(product('left') + mul_op('operator') + modulo('right'))('#binop')
-	# )
-
-	product << balancer(
-		DivideByToken(product('left'), mul_op('operator'), modulo('right'), direction = 'right')('#binop')
-		| modulo
-	)
-
-	# addition << (
-	# 	product |
-	# 	(addition('left') + add_op('operator') + product('right'))('#binop')
-	# )
-
-	# addition << balancer(
-	# 	product |
-	# 	(addition('left') + add_op('operator') + product('right'))('#binop')
-	# )
-
-	addition << balancer(
-		DivideByToken(addition('left'), add_op('operator'), product('right'), direction = 'right')('#binop')
-		| product
-	)
-
-	equality << balancer(
-		addition |
-		Alternate(addition, eq_op, supress_delimiter = False, min_count = 3)('#comparison')
-	)
-
-	param_list = ~(
-		BailOnToken(
-			Alternate(word, comma)('parameters'),
-			forbidden = {'+', '-', '=', '->', '(', ')'}
-		)
-	)
-
-	# function_definition << balancer(
-	# 	equality |
-	# 	(
-	# 		Supress(lparen) + param_list + Supress(rparen) + func_op('operator') + equality('expression')
-	# 	)('#function_definition')
-	# )
-
-	logic_not << balancer(
-		equality |
-		(Supress(bang) + logic_not('expression'))('#not')
-	)
-
-	logic_and << balancer(
-		logic_not |
-		(logic_and('left') + and_op('operator') + logic_not('right'))('#binop')
-	)
-
-	logic_or << balancer(
-		logic_and |
-		(logic_or('left') + or_op('operator') + logic_and('right'))('#binop')
-	)
-
-	param_list = ~(Alternate(word, comma)('parameters'))
-
-	function_definition << balancer(
-		logic_or |
-		(
-			Supress(lparen) + param_list + Supress(rparen) + func_op('operator') + logic_or('expression')
-		)('#function_definition')
-	)
-
-	# expression << BailOnToken(balancer(function_definition), forbidden = {';'})
-	expression << balancer(function_definition)
-	# expression << EnsureBalanced(function_definition, '(', ')')
-
-	statement_assignment = DivideByToken(word('variable'), Supress(equals), expression('value'))('#assignment')
-	# statement_assignment = ((word('variable') + Supress(equals)) + expression('value'))('#assignment')
-	statement_output = (Supress(out_op) + expression('expression'))('#output')
-	statement << (statement_output | statement_assignment | expression)
-
-	statement_list = Defer()
-	statement_list << (
-		DivideByToken(statement('statement'), Supress(comma), statement_list('next'))('#statement_list')
-		| statement
-	)
-
-	program = statement_list
-	body << statement_list
-
-	# program = (
-	# 	expression('expression')
-	# 	| Alternate(statement, Supress(comma))('statements')
-	# 	|   Repeat(statement + Supress(comma))('statements') + expression('expression')
-	# )('#program')
-
-	# body << expression
-
-	# body << (
-	# 	expression('expression')
-	# 	| Alternate(statement_assignment, Supress(comma))('statements')
-	# 	|   Repeat(statement_assignment + Supress(comma))('statements') + expression('expression')
-	# )('#program')
-
-	# addition = product | (addition:left add_op:operator product:right, type:binop)
-
-	return Language(program)
-
-
-GRAMMAR = create_grammar()
-
-
 def calculate(equation, scope = None, stop_errors = False, limits = {}):
 	# to, result = parse(GRAMMAR, equation, check_ambiguity = False)
 	to, result = calculator.attempt6.parse(equation)
 	# print(result)
 	# print(json.dumps(result, indent = 4))
 	assert(result is not None)
-	assert(not is_ambiguous(result))
 	loop = asyncio.get_event_loop()
 	future = evaluate(result, scope or new_scope(), limits)
 	return loop.run_until_complete(future)

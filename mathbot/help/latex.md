@@ -8,7 +8,7 @@ The *LaTeX* rendering is done by <http://quicklatex.com/>
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
 
-## Example
+## Examples
 
 `{{prefix}}tex x = 7`
 
@@ -24,3 +24,15 @@ The bot currently uses an external rendering service. The following features are
  - `\usepackage`, for any reason.
  - Macros such as `\@ifpackageloaded`.
  - Loading of external images, and other resources.
+
+## Inline LaTeX
+
+*This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command `=set server f-inline-tex enable`.*
+
+You can insert LaTeX into the middle of a message by wrapping it in `$$` signs.
+
+Examples
+
+`The answer is $$x^{2 + y}$$.`
+
+`$$1 + 2$$ equals $$3$$.`
