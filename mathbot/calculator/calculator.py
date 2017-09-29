@@ -433,9 +433,10 @@ FIXED_VALUES = {
 	'e': math.e,
 	'pi': math.pi,
 	'π': math.pi,
+	'tau': math.pi * 2,
+	'τ': math.pi * 2,
 	'i': 1j,
 	'euler_gamma': 0.577215664901,
-	'tau': math.pi * 2,
 	'true': 1,
 	'false': 0
 }
