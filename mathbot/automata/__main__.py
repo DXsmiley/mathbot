@@ -54,9 +54,11 @@ async def permissions(interface):
 
 @auto.test()
 async def latex(interface):
-	await interface.send_message('=tex Hello')
-	response = await interface.wait_for_message()
-	assert len(response.attachments) == 1
+	CODES = ['=tex Hello', '=tex\nHello', '=tex `Hello`']
+	for message in CODES:
+		await interface.send_message(message)
+		response = await interface.wait_for_message()
+		assert len(response.attachments) == 1
 
 
 @auto.test(needs_human = True)

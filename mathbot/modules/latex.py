@@ -211,7 +211,7 @@ TEX_REPLACEMENTS = {
 
 
 def process_latex(latex):
-	latex = latex.strip('`').strip(' ').strip('\n')
+	latex = latex.strip(' `\n')
 	if latex.startswith('tex'):
 		latex = latex[3:]
 	for key, value in TEX_REPLACEMENTS.items():
@@ -246,16 +246,18 @@ class LatexModule(core.module.Module):
 		elif not has_required_perms(message.channel):
 			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
 		else:
+			# print('Handling command:', latex)
 			await self.handle(message, latex, 'normal')
 
 	@command_latex.edit(require_before = False, require_after = True)
 	async def handle_edit(self, before, after, latex):
-		if latex != '':
+		if latex != '' and before.content != after.conent:
 			blob = self.connections.get(before.id, {'template': 'normal'})
 			try:
 				await self.client.delete_message(blob['message'])
 			except Exception:
 				pass
+			# print('Handling edit:', latex)
 			await self.handle(after, latex, blob.get('template'))
 
 	@core.handles.on_message()
@@ -268,7 +270,7 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2:
+		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.conent:
 			blob = self.connections.get(before.id, {'template': 'inline'})
 			try:
 				await self.client.delete_message(blob['message'])
