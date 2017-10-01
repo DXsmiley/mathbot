@@ -73,7 +73,7 @@ TEMPLATE_INLINE = r'''
 \end{document}
 '''
 
-RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)';
+RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)'
 
 RENDER_ERROR = '''\
 The server sent back the following error:
