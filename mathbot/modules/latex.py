@@ -251,7 +251,7 @@ class LatexModule(core.module.Module):
 
 	@command_latex.edit(require_before = False, require_after = True)
 	async def handle_edit(self, before, after, latex):
-		if latex != '' and before.content != after.conent:
+		if latex != '' and before.content != after.content:
 			blob = self.connections.get(before.id, {'template': 'normal'})
 			try:
 				await self.client.delete_message(blob['message'])
@@ -270,7 +270,7 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.conent:
+		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
 			blob = self.connections.get(before.id, {'template': 'inline'})
 			try:
 				await self.client.delete_message(blob['message'])
