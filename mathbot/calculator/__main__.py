@@ -116,6 +116,8 @@ def interactive_terminal():
 				print(run_with_timeout(interpereter.run_async(), 5))
 			except errors.EvaluationError as e:
 				print(str(e))
+			except Exception as e:
+				traceback.print_exc()
 
 
 main()

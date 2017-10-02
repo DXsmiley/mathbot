@@ -174,8 +174,10 @@ class Interpereter:
 					tick_limit -= 1
 					self.tick()
 					# print(self.place, self.stack)
+		except EvaluationError as e:
+			raise e
 		except Exception as e:
-			raise EvaluationError(str(e))
+			raise e
 		# print(self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
@@ -226,8 +228,8 @@ class Interpereter:
 	inst_bin_equl = binary_op(operators.operator_equal)
 	inst_bin_n_eq = binary_op(operators.operator_not_equal)
 	inst_bin_die = binary_op(rolldie)
-	inst_and = binary_op(lambda a, b: int(a and b))
-	inst_or = binary_op(lambda a, b: int(a or b))
+	inst_and = binary_op(lambda a, b: int(bool(a) and bool(b)))
+	inst_or = binary_op(lambda a, b: int(bool(a) or bool(b)))
 
 	def inst_unr_min(self):
 		self.push(
@@ -241,7 +243,7 @@ class Interpereter:
 		self.push(operators.function_factorial(self.pop()))
 
 	def inst_unr_not(self):
-		self.push(int(not self.pop()))
+		self.push(int(not bool(self.pop())))
 
 	def inst_comparison(comparator):
 		def internal(self):
