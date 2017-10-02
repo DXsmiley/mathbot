@@ -1,0 +1,13 @@
+array = (a.) -> a,
+max = (a, b) -> if(a > b, a, b),
+min = (a, b) -> if(a < b, a, b),
+zipmap = (f, a, b) -> map(
+	(i) -> f(a(i), b(i)),
+	range(0, max(length(u), length(v)))
+),
+sum = (a, b) -> a + b,
+product = (a, b) -> a * b,
+difference = (a, b) -> a - b,
+vadd = (u, v) -> zipmap(sum, u, v),
+vsub = (u, v) -> zipmap(difference, u, v),
+vdot = (u, v) -> reduce(sum, zipmap(product, u, v))

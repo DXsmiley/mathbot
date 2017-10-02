@@ -4,6 +4,7 @@
 import math
 import cmath
 import itertools
+import os
 
 from calculator.bytecode import *
 from calculator.functions import *
@@ -172,11 +173,15 @@ FIXED_VALUES = {
 
 # This looks weird but it works because the functions on the inside get optimised out
 BOILER_CODE = '''
-array = (a.) -> a,
 if = (c, t, f) ~> if(c(), t(), f()),
 map = (f, a) -> map(f, a),
 reduce = (f, a) -> reduce(f, a)
 '''
+
+
+# Code that is really useful to it's included by default
+with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
+	LIBRARY_CODE = f.read()
 
 
 def wrap_with_runtime(builder, my_ast, exportable = False):
@@ -209,8 +214,9 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		for name, func in BUILTIN_FUNCTIONS.items():
 			assignment(name, BuiltinFunction(func, name))
 	# The essential things
-	_, boiler = parser.parse(BOILER_CODE)
-	builder.bytecodeify(boiler)
+	for code in [BOILER_CODE, LIBRARY_CODE]:
+		_, ast = parser.parse(code)
+		builder.bytecodeify(ast)
 	# ----- User Code -----------------------
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)
