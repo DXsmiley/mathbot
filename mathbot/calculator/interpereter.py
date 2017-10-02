@@ -384,13 +384,13 @@ class Interpereter:
 	def inst_access_array_element(self):
 		index = self.pop()
 		array = self.pop()
-		if not isinstance(array, Array):
+		if not isinstance(array, (Array, Interval)):
 			raise EvaluationError('Cannot access element of non-array object')
 		if not isinstance(index, int):
 			raise EvaluationError('Cannot access non-integer element of an array')
 		if index < 0 or index >= len(array):
 			raise EvaluationError('Attempted to access out-of-bounds element of an array')
-		self.push(array.items[index])
+		self.push(array(index))
 
 	def inst_assignment(self):
 		value = self.pop()
@@ -465,8 +465,12 @@ class Interpereter:
 		value = self.stack[-2]
 		index = self.stack[-1]
 		# Assumes datatypes are correct. Might want to add friendly errors later.
+		if not isinstance(function, (Function, BuiltinFunction)):
+			raise EvaluationError('reduce function expects a function as its first argument')
+		if not isinstance(array, (Array, Interval)):
+			raise EvaluationError('reduce function expects an array as its second argument')
 		if index < len(array):
-			next_item = array.items[index]
+			next_item = array(index)
 			self.call_function(function, [value, next_item], self.place + 1)
 		else:
 			self.pop_n(4)

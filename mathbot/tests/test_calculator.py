@@ -242,6 +242,7 @@ def test_map():
 
 def test_reduce():
 	doit('reduce((a, b) -> a + b, array(0, 1, 2, 3, 4))', 10)
+	doit('reduce(sum, range(0, 5))', 10)
 	throws('reduce((a, b) -> a + b, array())')
 	throws('reduce(3, 4)')
 	throws('reduce(() -> f, array(1, 2))')

@@ -45,7 +45,10 @@ class Array:
 		return len(self.items)
 
 	def __str__(self):
-		return 'array(' + ', '.join(map(str, self.items)) + ')'
+		if len(self.items) < 5:
+			return 'array(' + ', '.join(map(str, self.items)) + ')'
+		else:
+			return 'array(' + ', '.join(map(str, self.items[:4])) + ', ...)'
 
 	def __repr__(self):
 		return str(self)
