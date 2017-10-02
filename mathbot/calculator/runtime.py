@@ -2,21 +2,66 @@
 # This contains a number of builtin functions and things.
 
 import math
+import cmath
 
 from calculator.bytecode import *
 from calculator.functions import *
+from calculator.errors import EvaluationError
 import calculator.operators as operators
 import calculator.parser as parser
 
 
-# This looks weird but it works because the functions on the inside
-# get optimised out
-BOILER_CODE = parser.parse('''
-array = (a.) -> a,
-if = (c, t, f) ~> if(c(), t(), f()),
-map = (f, a) -> map(f, a),
-reduce = (f, a) -> reduce(f, a)
-''')[1]
+def except_math_error(f, name = None):
+	name = name or f.__name__
+	def internal(*x):
+		try:
+			return f(*x)
+		except EvaluationError as e:
+			raise e
+		except Exception:
+			if len(x) == 0:
+				raise EvaluationError('Can\'t run {} function with no arguments.'.format(name))
+			elif len(x) == 1:
+				formatted = calculator.errors.format_value(x[0])
+				raise EvaluationError('Can\'t run {} function on value {}'.format(name, formatted))
+			else:
+				formatted = ', '.join(map(calculator.errors.format_value, x))
+				raise EvaluationError('Can\'t run {} function on values ({})'.format(name, formatted))
+	internal.__name__ = name
+	return internal
+
+
+def maybe_complex(f_real, f_complex):
+	def internal(x):
+		if isinstance(x, complex):
+			return f_complex(x)
+		return f_real(x)
+	return except_math_error(internal)
+
+
+# Changes a trig function to take degrees as its arguments
+def fdeg(func):
+	return lambda x : func(math.radians(x))
+
+
+# Changes a trig function to produce degrees as its output
+def adeg(func):
+	return lambda x : math.degrees(func(x))
+
+
+def m_choose(n, k):
+	return calculator.operators.operator_division(
+		calculator.operators.function_factorial(n),
+		calculator.operators.operator_multiply(
+			calculator.operators.function_factorial(k),
+			calculator.operators.function_factorial(
+				calculator.operators.operator_subtract(
+					n,
+					k
+				)
+			)
+		)
+	)
 
 
 def is_function(x):
@@ -29,6 +74,70 @@ def is_real(x):
 
 def is_complex(x):
 	return int(isinstance(x, complex))
+
+
+BUILTIN_FUNCTIONS = {
+	# 'interval': lambda a, b: List(range(a, b)),
+	'sin': maybe_complex(math.sin, cmath.sin),
+	'cos': maybe_complex(math.cos, cmath.cos),
+	'tan': maybe_complex(math.tan, cmath.tan),
+	'sind': fdeg(math.sin),
+	'cosd': fdeg(math.cos),
+	'tand': fdeg(math.tan),
+	'asin': maybe_complex(math.asin, cmath.asin),
+	'acos': maybe_complex(math.acos, cmath.acos),
+	'atan': maybe_complex(math.atan, cmath.atan),
+	'asind': adeg(math.asin),
+	'acosd': adeg(math.acos),
+	'atand': adeg(math.atan),
+	'sinh': maybe_complex(math.sinh, cmath.sinh),
+	'cosh': maybe_complex(math.cosh, cmath.cosh),
+	'tanh': maybe_complex(math.tanh, cmath.tanh),
+	'asinh': maybe_complex(math.asinh, cmath.asinh),
+	'acosh': maybe_complex(math.acosh, cmath.acosh),
+	'atanh': maybe_complex(math.atanh, cmath.atanh),
+	'deg': math.degrees,
+	'rad': math.radians,
+	'log': calculator.operators.function_logarithm,
+	'ln': maybe_complex(math.log, cmath.log),
+	'round': round,
+	'int': int,
+	'sqrt': lambda x : x ** 0.5,
+	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
+	'gcd': calculator.operators.function_gcd,
+	'lcm': calculator.operators.function_lcm,
+	'choose': m_choose,
+	'is_real': is_real,
+	'is_complex': is_complex,
+	'is_function': is_function,
+	# 'length': array_length,
+	# 'join': array_join,
+	# 'splice': array_splice,
+	# 'expand': array_expand,
+	'im': lambda x: x.imag,
+	're': lambda x: x.real	
+}
+
+
+FIXED_VALUES = {
+	'e': math.e,
+	'pi': math.pi,
+	'π': math.pi,
+	'i': 1j,
+	'euler_gamma': 0.577215664901,
+	'tau': math.pi * 2,
+	'true': 1,
+	'false': 0
+}
+
+
+# This looks weird but it works because the functions on the inside get optimised out
+BOILER_CODE = '''
+array = (a.) -> a,
+if = (c, t, f) ~> if(c(), t(), f()),
+map = (f, a) -> map(f, a),
+reduce = (f, a) -> reduce(f, a)
+'''
 
 
 def wrap_with_runtime(builder, my_ast, exportable = False):
@@ -51,35 +160,23 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		s.push(I.ASSIGNMENT)
 		s.push(index)
 	# Mathematical constants
+	for name, value in FIXED_VALUES.items():
+		assignment(name, value)
 	# Builtin functions
-	assignment('e', math.e)
-	assignment('pi', math.pi)
-	assignment('π', math.pi)
-	assignment('true', 1)
-	assignment('false', 0)
 	if not exportable:
-		assignment('round', BuiltinFunction(round))
-		assignment('sin', BuiltinFunction(math.sin))
-		assignment('cos', BuiltinFunction(math.cos))
-		assignment('log', BuiltinFunction(math.log))
-		assignment('length', BuiltinFunction(len))
-		assignment('expand', BuiltinFunction(Expanded))
-		assignment('is_function', BuiltinFunction(is_function))
-		assignment('is_real', BuiltinFunction(is_real))
-		assignment('is_complex', BuiltinFunction(is_complex))
-		assignment('gcd', BuiltinFunction(operators.function_gcd))
-		assignment('lcm', BuiltinFunction(operators.function_lcm))
-		assignment('log', BuiltinFunction(operators.function_logarithm))
-		assignment('ln', BuiltinFunction(math.log))
-		assignment('gamma', BuiltinFunction(lambda x: operators.function_factorial(x - 1)))
-	# assignment('')
-	builder.bytecodeify(BOILER_CODE)
+		for name, func in BUILTIN_FUNCTIONS.items():
+			wrapped = except_math_error(func, name)
+			assignment(name, BuiltinFunction(wrapped, name))
+	# The essential things
+	_, boiler = parser.parse(BOILER_CODE)
+	builder.bytecodeify(boiler)
 	# ----- User Code -----------------------
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)
 	builder.new_segment().push(I.END)
 	# ----- Return the resulting bytecode -
 	return builder.dump()
+
 
 def wrap_simple(ast):
 	builder = CodeBuilder()
