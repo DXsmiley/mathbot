@@ -342,6 +342,12 @@ class Interpereter:
 	def inst_access_array_element(self):
 		index = self.pop()
 		array = self.pop()
+		if not isinstance(array, Array):
+			raise EvaluationError('Cannot access element of non-array object')
+		if not isinstance(index, int):
+			raise EvaluationError('Cannot access non-integer element of an array')
+		if index < 0 or index >= len(array):
+			raise EvaluationError('Attempted to access out-of-bounds element of an array')
 		self.push(array.items[index])
 
 	def inst_assignment(self):
