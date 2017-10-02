@@ -3,6 +3,7 @@
 
 import math
 import cmath
+import itertools
 
 from calculator.bytecode import *
 from calculator.functions import *
@@ -76,7 +77,42 @@ def is_complex(x):
 	return int(isinstance(x, complex))
 
 
-BUILTIN_FUNCTIONS = {
+
+def array_length(x):
+	if not isinstance(x, Array):
+		raise EvaluationError('Cannot get the length of non-array object')
+	return len(x)
+
+
+def array_splice(array, start, end):
+	if not isinstance(array, Array):
+		raise EvaluationError('Cannot splice non-array')
+	if not isinstance(start, int) or not isinstance(end, int):
+		raise EvaluationError('Non-integer indexes passed to splice')
+	# Todo: Make this efficient
+	return Array(array.items[start:end])
+
+
+# Todo: Make this more efficient
+def array_join(*items):
+	if len(items) == 0:
+		raise EvaluationError('Cannot join no arrays together.')
+	result = []
+	for i in items:
+		if not isinstance(i, Array):
+			raise EvaluationError('Cannot call join on non-array')
+		result += i.items
+	return Array(result)
+
+
+def array_expand(*arrays):
+	for i in arrays:
+		if not isinstance(i, Array):
+			raise EvaluationError('Cannot expand non-array')
+	return Expanded(arrays)
+
+
+BUILTIN_MATH_FUNCTIONS = {
 	# 'interval': lambda a, b: List(range(a, b)),
 	'sin': maybe_complex(math.sin, cmath.sin),
 	'cos': maybe_complex(math.cos, cmath.cos),
@@ -106,14 +142,17 @@ BUILTIN_FUNCTIONS = {
 	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
 	'gcd': calculator.operators.function_gcd,
 	'lcm': calculator.operators.function_lcm,
-	'choose': m_choose,
+	'choose': m_choose
+}
+
+BUILTIN_FUNCTIONS = {
 	'is_real': is_real,
 	'is_complex': is_complex,
 	'is_function': is_function,
-	# 'length': array_length,
-	# 'join': array_join,
-	# 'splice': array_splice,
-	# 'expand': array_expand,
+	'length': array_length,
+	'join': array_join,
+	'splice': array_splice,
+	'expand': array_expand,
 	'im': lambda x: x.imag,
 	're': lambda x: x.real	
 }
@@ -164,9 +203,11 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		assignment(name, value)
 	# Builtin functions
 	if not exportable:
-		for name, func in BUILTIN_FUNCTIONS.items():
+		for name, func in BUILTIN_MATH_FUNCTIONS.items():
 			wrapped = except_math_error(func, name)
 			assignment(name, BuiltinFunction(wrapped, name))
+		for name, func in BUILTIN_FUNCTIONS.items():
+			assignment(name, BuiltinFunction(func, name))
 	# The essential things
 	_, boiler = parser.parse(BOILER_CODE)
 	builder.bytecodeify(boiler)

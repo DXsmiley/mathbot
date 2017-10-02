@@ -305,7 +305,8 @@ class Interpereter:
 		for i in range(stack_arg_count):
 			arg = self.pop()
 			if isinstance(arg, Expanded):
-				arguments += arg.array.items
+				for i in arg.arrays:
+					arguments += i.items
 			else:
 				arguments.append(arg)
 		function = self.pop()
@@ -389,16 +390,24 @@ class Interpereter:
 		function = self.stack[-3]
 		source = self.stack[-2]
 		dest = self.stack[-1]
+		if not isinstance(function, Function):
+			raise EvaluationError('map function requires a function as its first arguments')
+		if function.macro:
+			raise EvaluationError('map function does not support taking a macro function')
 		if len(dest) < len(source):
 			value = source.items[len(dest)]
 			self.push(self.place + 1)
 			self.push(self.current_scope)
 			self.current_scope = IndexedScope(function.scope, 1, [value])
 			num_parameters = self.bytes[function.address + 1]
+			variadic = self.bytes[function.address + 1 + num_parameters + 1]
+			if num_parameters != 1:
+				raise EvaluationError('map function requires an argument which takes a single function')
+			if variadic:
+				raise EvaluationError('map function does not support taking a variadic function')
 			# TODO:
 			#  - Friendlier error message
 			#  - Enable caching on the function
-			#  - Handle variatic functions
 			#  - Just make a method for handing calling functions like this?
 			assert(num_parameters == 1)
 			self.place = (function.address + num_parameters + 3) - 1

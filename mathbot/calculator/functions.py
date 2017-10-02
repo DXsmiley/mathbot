@@ -1,4 +1,6 @@
 import weakref
+import calculator.errors
+import functools
 
 
 class BuiltinFunction:
@@ -48,14 +50,36 @@ class Array:
 		return str(self)
 
 
-class Expanded:
+class Interval:
 
-	def __init__(self, array):
-		assert(isinstance(array, Array))
-		self.array = array
+	def __init__(self, start, gap, length):
+		self.start = start
+		self.gap = gap
+		self.length = length
+
+	def __call__(self, index):
+		assert(index < length)
+		return self.start + self.gap * index
 
 	def __len__(self):
-		return len(self.array)
+		return self.length
+
+	def __str__(self):
+		return 'interval({}, {}, {})'.format(self, start, self.gap, start.length)
+
+	def __repr__(self):
+		return str(self)
+
+
+class Expanded:
+
+	def __init__(self, arrays):
+		# assert(isinstance(array, Array))
+		self.arrays = arrays
+		self.length = sum(map(len, arrays))
+
+	def __len__(self):
+		return self.length
 
 	def __str__(self):
 		return 'expanded({})'.format(', '.join(map(str, self.array.items)))
