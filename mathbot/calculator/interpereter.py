@@ -433,10 +433,7 @@ class Interpereter:
 			next_item = array.items[index]
 			self.call_function(function, [value, next_item], self.place + 1)
 		else:
-			self.pop()
-			self.pop()
-			self.pop()
-			self.pop()
+			self.pop_n(4)
 			self.push(value)
 			# Skip the store instruction and the second reduce instruction
 			self.place += 2
