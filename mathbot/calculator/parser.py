@@ -384,11 +384,11 @@ def tokenizer(string, ttypes):
 	regexes = list(map(lambda x: (x[0], re.compile(x[1]), x[2]), regexes))
 	result = []
 	# Hard coded thing here, maybe remove it.
-	string = string.replace('\n', ' ').replace('\t', ' ')
+	string = string.replace('\t', ' ')
 	original_string = string
 	location = 0
 	while len(string) > 0:
-		if string[0] == ' ':
+		if string[0] in ' \n':
 			string = string[1:]
 			location += 1
 		else:
@@ -404,11 +404,12 @@ def tokenizer(string, ttypes):
 				raise TokenizationFailed(location)
 				# raise TokenizationFailed(original_string, len(original_string) - len(string))
 			# print(possible[0][1])
-			result.append({
-				'string': possible[0][1],
-				'position': location,
-				'#': possible[0][0]
-			})
+			if possible[0][0] != '__remove__':
+				result.append({
+					'string': possible[0][1],
+					'position': location,
+					'#': possible[0][0]
+				})
 			location += len(possible[0][1])
 			string = string[len(possible[0][1]):]
 	return result
@@ -429,6 +430,7 @@ def parse(string):
 	tokens = tokenizer(
 		string,
 		[
+			('__remove__', r'#.*'),
 			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
 			('word', r'π|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 			('die_op', r'd'),
