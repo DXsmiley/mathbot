@@ -233,7 +233,10 @@ def test_if_statement():
 def test_map():
 	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
 	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(4)', 8)
+	doit('map(sin, array(0, 1, 2, 3, 4))(3)', math.sin(3))
 	throws('map((a, b) -> a + b, array(0, 1, 2, 3, 4, 5))(4)')
+	doit('length(array(1, 2, 3))', 3)
+	doit('f = (x) -> x * 2, length(map(f, array()))', 0)
 
 def test_reduce():
 	doit('reduce((a, b) -> a + b, array(0, 1, 2, 3, 4))', 10)

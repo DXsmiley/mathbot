@@ -159,6 +159,12 @@ class Interpereter:
 		'''Remove the item from the top of the stack and return it'''
 		return self.stack.pop()
 
+	def pop_n(self, count):
+		''' Remove n items from the top of the stack and return them
+			The first item in the list comes from the top of the stack
+		'''
+		return [self.stack.pop() for i in range(count)]
+
 	def push(self, item):
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
@@ -396,35 +402,24 @@ class Interpereter:
 		function = self.stack[-3]
 		source = self.stack[-2]
 		dest = self.stack[-1]
-		if not isinstance(function, Function):
+		if not isinstance(function, (Function, BuiltinFunction)):
 			raise EvaluationError('map function requires a function as its first arguments')
 		if function.macro:
 			raise EvaluationError('map function does not support taking a macro function')
 		if len(dest) < len(source):
 			value = source.items[len(dest)]
-			self.push(self.place + 1)
-			self.push(self.current_scope)
-			self.current_scope = IndexedScope(function.scope, 1, [value])
-			num_parameters = self.bytes[function.address + 1]
-			variadic = self.bytes[function.address + 1 + num_parameters + 1]
-			if num_parameters != 1:
-				raise EvaluationError('map function requires an argument which takes a single function')
-			if variadic:
-				raise EvaluationError('map function does not support taking a variadic function')
-			# TODO:
-			#  - Friendlier error message
-			#  - Enable caching on the function
-			#  - Just make a method for handing calling functions like this?
-			assert(num_parameters == 1)
-			self.place = (function.address + num_parameters + 3) - 1
+			self.call_function(function, [value], self.place + 1)
 		else:
-			# Skip the store function
-			self.place += 1
+			# Cleanup the stack and push the result
+			self.pop_n(3)
+			self.push(dest)
+			# Skip the cache and map store instructions
+			self.place += 2
 
 	def inst_special_map_store(self):
 		result = self.pop()
 		self.top.items.append(result)
-		self.place -= 2
+		self.place -= 2 + 1
 
 	def inst_special_reduce(self):
 		function = self.stack[-4]

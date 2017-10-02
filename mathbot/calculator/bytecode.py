@@ -220,6 +220,7 @@ class CodeSegment:
 				self.bytecodeify(args[1], s)
 				self.push(I.CONSTANT_EMPTY_ARRAY)
 				self.push(I.SPECIAL_MAP)
+				self.push(I.STORE_IN_CACHE)
 				self.push(I.SPECIAL_MAP_STORE)
 			elif function_name == 'reduce':
 				self.bytecodeify(args[0], s)
