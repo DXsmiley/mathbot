@@ -169,7 +169,7 @@ class Interpereter:
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
 
-	def run(self, tick_limit = None, error_if_exhausted = False):
+	def run(self, tick_limit = None, error_if_exhausted = False, expect_complete = False):
 		try:
 			if tick_limit is None:
 				while self.head != bytecode.I.END:
@@ -187,8 +187,9 @@ class Interpereter:
 		# print(self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
-		if len(self.stack) > 2:
-			raise SystemError('Execution finished with extra items on the stack. Is there a leak?')
+		if expect_complete:
+			if len(self.stack) > 2:
+				raise SystemError('Execution finished with extra items on the stack. Is there a leak?')
 		return self.top
 
 	async def run_async(self):

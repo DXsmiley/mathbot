@@ -7,7 +7,7 @@ def calculate(equation, tick_limit = None):
 	tokens, ast = calculator.parser.parse(equation)
 	bytecode = calculator.runtime.wrap_simple(ast)
 	interp = calculator.interpereter.Interpereter(bytecode)
-	return interp.run(tick_limit = tick_limit)
+	return interp.run(tick_limit = tick_limit, expect_complete = True)
 
 async def calculate_async(equation, tick_limit = None):
 	tokens, ast = calculator.parser.parse(equation)
