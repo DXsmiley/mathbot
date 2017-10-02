@@ -33,9 +33,10 @@ class Function:
 
 class Array:
 
+	macro = False
+
 	def __init__(self, items):
 		self.items = items
-		self.macro = False
 
 	def __call__(self, index):
 		return self.items[index]
@@ -52,20 +53,22 @@ class Array:
 
 class Interval:
 
+	macro = False
+
 	def __init__(self, start, gap, length):
 		self.start = start
 		self.gap = gap
 		self.length = length
 
 	def __call__(self, index):
-		assert(index < length)
+		assert(index < self.length)
 		return self.start + self.gap * index
 
 	def __len__(self):
 		return self.length
 
 	def __str__(self):
-		return 'interval({}, {}, {})'.format(self, start, self.gap, start.length)
+		return 'interval({} : {})'.format(self.start, self.start + self.length * self.gap)
 
 	def __repr__(self):
 		return str(self)

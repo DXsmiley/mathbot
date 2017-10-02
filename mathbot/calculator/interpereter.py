@@ -408,8 +408,10 @@ class Interpereter:
 			raise EvaluationError('map function requires a function as its first arguments')
 		if function.macro:
 			raise EvaluationError('map function does not support taking a macro function')
+		if not isinstance(source, (Array, Interval)):
+			raise EvaluationError('Cannot run map function on something that is not an array or an interval')
 		if len(dest) < len(source):
-			value = source.items[len(dest)]
+			value = source(len(dest))
 			self.call_function(function, [value], self.place + 1)
 		else:
 			# Cleanup the stack and push the result
@@ -446,7 +448,7 @@ class Interpereter:
 
 	def call_function(self, function, arguments, return_to):
 		assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
-		if isinstance(function, BuiltinFunction) or isinstance(function, Array):
+		if isinstance(function, (BuiltinFunction, Array, Interval)):
 			result = function(*arguments)
 			self.push(result)
 			self.place = return_to + 1 # Skip the 'store in cache' instruction

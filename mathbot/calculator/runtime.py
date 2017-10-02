@@ -80,7 +80,7 @@ def is_complex(x):
 
 
 def array_length(x):
-	if not isinstance(x, Array):
+	if not isinstance(x, (Array, Interval)):
 		raise EvaluationError('Cannot get the length of non-array object')
 	return len(x)
 
@@ -111,6 +111,16 @@ def array_expand(*arrays):
 		if not isinstance(i, Array):
 			raise EvaluationError('Cannot expand non-array')
 	return Expanded(arrays)
+
+
+def make_range(start, end):
+	if not isinstance(start, int):
+		raise EvaluationError('Cannot create range on non-int')
+	if not isinstance(end, int):
+		raise EvaluationError('Cannot create range on non-int')
+	if end < start:
+		raise EvaluationError('Cannot create backwards ranges')
+	return Interval(start, 1, end - start)
 
 
 BUILTIN_MATH_FUNCTIONS = {
@@ -155,7 +165,8 @@ BUILTIN_FUNCTIONS = {
 	'splice': array_splice,
 	'expand': array_expand,
 	'im': lambda x: x.imag,
-	're': lambda x: x.real	
+	're': lambda x: x.real,
+	'range': make_range
 }
 
 
