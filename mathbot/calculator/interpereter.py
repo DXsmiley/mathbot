@@ -187,6 +187,8 @@ class Interpereter:
 		# print(self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
+		if len(self.stack) > 2:
+			raise SystemError('Execution finished with extra items on the stack. Is there a leak?')
 		return self.top
 
 	async def run_async(self):
