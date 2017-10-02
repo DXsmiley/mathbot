@@ -70,6 +70,41 @@ def rolldie(times, faces):
 	return sum(random.randint(1, faces) for i in range(times))
 
 
+class FunctionInspector:
+	''' Used to provide an abstraction around accessing information about a function,
+		as opposed to looking at the bytecode directly.
+
+		Function data is stored as follows:
+			- (null) <- function_object.address
+			- num_arguments
+			- name of arguments (strings, currently unused, num_arguments of them)
+			- is_variadic <- either 1 or 2
+			- (code starts here)
+	'''
+
+	def __init__(self, interpereter, function_object):
+		assert(isinstance(function_object, Function))
+		# This is all we need from the interpereter, so grab it
+		# if we need more information later we can take it
+		self.bytes = interpereter.bytes
+		self.function_object = function_object
+		self.address = self.function_object.address
+
+	@property
+	def num_parameters(self):
+		return self.bytes[self.address + 1]
+
+	@property
+	def code_address(self):
+		return self.address + self.num_parameters + 3
+
+	@property
+	def is_variadic(self):
+		return self.bytes[self.address + self.num_parameters + 2]
+
+
+
+
 class Interpereter:
 
 	def __init__(self, bytes, trace = False, builder = None):
@@ -286,14 +321,12 @@ class Interpereter:
 		# print(self.place, self.stack, ':', function, processed, '/', num_args)
 		# stack contains: function, arguments
 		if processed < num_args and not function.macro:
-			callme = self.stack[-1 - processed]
-			# print(callme)
+			arg_resolver = self.stack[-1 - processed]
 			self.push(processed + 1)
 			# Return here afterwards, next instruction is STORE_DEMACROD
 			self.push(self.place + 1)
 			self.push(self.current_scope)
-			# print(self.stack)
-			self.place = (callme.address + 3) - 1
+			self.place = FunctionInspector(self, arg_resolver).code_address - 1
 		else:
 			# print('DONE', self.stack)
 			# Skip over the STORE_DEMACROD instruction
@@ -454,21 +487,15 @@ class Interpereter:
 			self.push(result)
 			self.place = return_to + 1 # Skip the 'store in cache' instruction
 		elif isinstance(function, Function):
+			inspector = FunctionInspector(self, function)
 			# Create the new scope in which to run the function
-			addr = function.address
-			num_parameters = self.bytes[addr + 1]
-			parameters = [
-				self.bytes[i] for i in
-				range(addr + 2, addr + 2 + num_parameters)
-			]
-			variadic = self.bytes[addr + 2 + num_parameters]
-			if variadic:
+			addr = inspector.address
+			num_parameters = inspector.num_parameters
+			if inspector.is_variadic:
 				if len(arguments) < num_parameters - 1:
 					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
 				main = arguments[:num_parameters - 1]
 				extra = arguments[num_parameters - 1:]
-				# scope_dict = {key: value for key, value in zip(parameters, main)}
-				# scope_dict[parameters[-1]] = Array(extra)
 				scope_array = main
 				scope_array.append(Array(extra))
 				new_scope = IndexedScope(function.scope, num_parameters, scope_array)
@@ -478,9 +505,6 @@ class Interpereter:
 				if num_parameters == 0:
 					new_scope = function.scope
 				else:
-					# new_scope = Scope(function.scope, {
-					# 	key: value for key, value in zip(parameters, arguments)
-					# })
 					new_scope = IndexedScope(function.scope, num_parameters, arguments)
 			cache_key = tuple(arguments)
 			if cache_key in function.cache:
@@ -499,7 +523,7 @@ class Interpereter:
 				# Remember the current scope
 				self.push(self.current_scope)
 				self.current_scope = new_scope
-				self.place = addr + 3 + num_parameters
+				self.place = inspector.code_address
 		else:
 			raise EvaluationError('{} is not a function'.format(function))
 		self.place -= 1 # Negate the +1 after this
