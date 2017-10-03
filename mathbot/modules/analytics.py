@@ -8,6 +8,7 @@ import core.parameters
 
 CARBON_URL = 'https://www.carbonitex.net/discord/data/botdata.php'
 DISCORD_BOTS_URL = 'https://bots.discord.pw/api/bots/{bot_id}/stats'
+BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
 
 class AnalyticsModule(core.module.Module):
 
@@ -66,6 +67,23 @@ class AnalyticsModule(core.module.Module):
 				}
 				async with session.post(url, **payload) as response:
 					print('Analytics: bots.pw:', response.status)
+			# Submit to discordbots.org
+			bots_org_key = core.parameters.get('analytics bots-org')
+			if bots_org_key:
+				url = BOTS_ORG_URL.format(bot_id = self.client.user.id)
+				payload = {
+					'json': {
+						'server_count': ns,
+						'shard_count': self.shard_count,
+						'shard_id': self.shard_id
+					},
+					'headers': {
+						'Authorization': bots_org_key,
+						'Content-Type': 'application/json'
+					}
+				}
+				async with await self.bot.session.post(url, **payload) as response:
+					print('Analytics: bots.org:', response.status)
 
 	def num_servers(self):
 		# return '3800' # Something temporary (but accurate-ish) while I'm testing.
