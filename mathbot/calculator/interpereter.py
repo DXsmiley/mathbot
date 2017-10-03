@@ -311,7 +311,7 @@ class Interpereter:
 	def inst_jump_if_macro(self):
 		self.place += 1
 		if self.top.macro:
-			self.place = self.head # Not -1 because it jumps to nothing
+			self.place = self.head - 1 # Is now -1 for flexibility
 
 	def inst_demacroify(self):
 		self.place += 1

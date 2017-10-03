@@ -1,33 +1,33 @@
 # Bytecode Reference
 
 - 0 - Nothing
-- 1 - Constant [value]
-- 2 - Binary Addition
-- 3 - Binary Subtraction
-- 4 - Binary Multiplication
-- 5 - Binary Division
-- 6 - Binary Subtraction
-- 7 - Binary Power
-- 8 - Binary Logical And
-- 9 - Binary Logical Or
-- 10 - Binary Die roll
-- 11 - Unary Not
-- 12 - ???
-- 13 - Unary Factorial
-- 14 - Jump is macro [destination]
+- 1 - Constant [value] ( -> t)
+- 2 - Binary Addition (t, t -> t)
+- 3 - Binary Subtraction (t, t -> t)
+- 4 - Binary Multiplication (t, t -> t)
+- 5 - Binary Division (t, t -> t)
+- 6 - Binary Modulo (t, t -> t)
+- 7 - Binary Power (t, t -> t)
+- 8 - Binary Logical And (t, t -> t)
+- 9 - Binary Logical Or (t, t -> t)
+- 10 - Binary Die roll (t, t -> t)
+- 11 - Unary Not (t -> t)
+- 12 - Unary Minus (t -> t)
+- 13 - Unary Factorial (t -> t)
+- 14 - Jump if macro [destination]
 - 15 - Argument list end [number of arguments, jump macro, jump end]
-- 16 - Word (variable access)
-- 17 - Assignment [value]
-- 18 - Swap top two items of the stack
+- 16 - Word (variable access) (DEPRECATED?)
+- 17 - Assignment [address] (value -> )
+- 18 - Swap top two items of the stack (a, b -> b, a)
 - 19 - End program
-- 20 - Declare macro function
-- 21 - Declare normal function
+- 20 - Declare macro function [address] ( -> f)
+- 21 - Declare normal function [address] ( -> f)
 - 22 - Return from function
 - 23 - Jump [address]
-- 24 - Jump if true [addres]
-- 25 - Jump if false [address]
-- 26 - Duplicate top value
-- 27 - Discord top value from stack
+- 24 - Jump if true [addres] (b -> )
+- 25 - Jump if false [address] (b -> )
+- 26 - Duplicate top value (a -> a, a)
+- 27 - Discord top value from stack (a -> )
 
 - 28 to 34 - Binary comparators
 - 25 to 40 - Comparators used for chains
