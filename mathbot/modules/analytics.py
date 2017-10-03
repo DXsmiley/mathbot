@@ -12,11 +12,29 @@ DISCORD_BOTS_URL = 'https://bots.discord.pw/api/bots/{bot_id}/stats'
 class AnalyticsModule(core.module.Module):
 
 	@core.handles.startup_task()
-	async def list_large_servers(self):
+	async def identify_bot_farms(self):
+		''' This function lists any medium / large servers with more bots
+			than humans. The eventual goal is to identify and leave any
+			servers that are just full of bots and don't actually have any
+			proper activity in them. I should also add some metric gathering
+			to figure out how much the bot gets used in various servers.
+		'''
+		print('    Humans |  Bots | Server Name')
 		for server in self.client.servers:
-			num_members = len(server.members)
-			if num_members > 200:
-				print('{:4d} {}'.format(num_members, server.name))
+			num_humans = 0
+			num_bots = 0
+			for user in server.members:
+				if user.bot:
+					num_bots += 1
+				else:
+					num_humans += 1
+			num_members = num_humans + num_bots
+			if num_bots > num_humans and num_members > 20:
+				print('    {:6d} | {:5d} | {}'.format(
+					num_humans,
+					num_bots,
+					server.name
+				))
 
 	@core.handles.startup_task()
 	async def post_stats(self):
