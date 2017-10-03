@@ -430,7 +430,7 @@ def parse(string):
 		string,
 		[
 			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
-			('word', r'π|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
+			('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 			('die_op', r'd'),
 			('pow_op', r'\^'),
 			('superscript', r'[⁰¹²³⁴⁵⁶⁷⁸⁹]+'),
