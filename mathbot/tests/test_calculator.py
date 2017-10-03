@@ -144,6 +144,7 @@ def test_functions():
 	doit('if(0, 0, 0)', 0)
 	compile_fail('if(0, 0)')
 	compile_fail('if(0, 0, 0, 0)')
+	doit('f = (x) -> x, t = f(5), 1 + f(5)', 6)
 
 def test_macros():
 	doit('((x) ~> x())(5)', 5)

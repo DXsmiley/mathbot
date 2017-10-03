@@ -493,7 +493,12 @@ class Interpereter:
 			cache_key = tuple(arguments)
 			if cache_key in function.cache:
 				self.push(function.cache[cache_key])
-				self.place = return_to + 1
+				# self.push = return_to + 1
+				if disable_cache:
+					self.place = return_to
+				else:
+					# Skip the STORE_IN_CACHE instruction
+					self.place = return_to + 1
 			else:
 				if disable_cache:
 					self.push(return_to)

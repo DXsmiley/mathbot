@@ -272,9 +272,8 @@ class CodeSegment:
 				for i in argument_functions:
 					self.push(I.FUNCTION_NORMAL)
 					self.push(i)
-				self.push(I.ARG_LIST_END)
+				self.push(I.ARG_LIST_END_NO_CACHE)
 				self.push(len(args))
-				self.push(I.STORE_IN_CACHE)
 				# Aaaaand we done here
 				self.push(landing_end)
 		elif node_type == 'word':
