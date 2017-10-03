@@ -464,12 +464,17 @@ class Interpereter:
 		self.place -= 3
 
 	def call_function(self, function, arguments, return_to, disable_cache = False):
-		if not disable_cache:
+		if disable_cache:
+			assert(self.bytes[return_to] != bytecode.I.STORE_IN_CACHE)
+		else:
 			assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
 		if isinstance(function, (BuiltinFunction, Array, Interval)):
 			result = function(*arguments)
 			self.push(result)
-			self.place = return_to + 1 # Skip the 'store in cache' instruction
+			if disable_cache:
+				self.place = return_to
+			else:
+				self.place = return_to + 1 # Skip the 'store in cache' instruction
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
 			# Create the new scope in which to run the function
