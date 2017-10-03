@@ -419,13 +419,11 @@ class Interpereter:
 		dest = self.stack[-1]
 		if not isinstance(function, (Function, BuiltinFunction)):
 			raise EvaluationError('map function requires a function as its first arguments')
-		if function.macro:
-			raise EvaluationError('map function does not support taking a macro function')
 		if not isinstance(source, (Array, Interval)):
 			raise EvaluationError('Cannot run map function on something that is not an array or an interval')
 		if len(dest) < len(source):
 			value = source(len(dest))
-			self.call_function(function, [value], self.place + 1)
+			self.call_function(function, [value], self.place + 1, macro_unprepped = True)
 		else:
 			# Cleanup the stack and push the result
 			self.pop_n(3)
@@ -450,7 +448,7 @@ class Interpereter:
 			raise EvaluationError('reduce function expects an array as its second argument')
 		if index < len(array):
 			next_item = array(index)
-			self.call_function(function, [value, next_item], self.place + 1)
+			self.call_function(function, [value, next_item], self.place + 1, macro_unprepped = True)
 		else:
 			self.pop_n(4)
 			self.push(value)
@@ -463,12 +461,12 @@ class Interpereter:
 		self.stack[-1] += 1
 		self.place -= 3
 
-	def call_function(self, function, arguments, return_to, disable_cache = False):
+	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False):
 		if disable_cache:
 			assert(self.bytes[return_to] != bytecode.I.STORE_IN_CACHE)
 		else:
 			assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
-		if isinstance(function, (BuiltinFunction, Array, Interval)):
+		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
 			result = function(*arguments)
 			self.push(result)
 			if disable_cache:
@@ -480,31 +478,33 @@ class Interpereter:
 			# Create the new scope in which to run the function
 			addr = inspector.address
 			num_parameters = inspector.num_parameters
-			if inspector.is_variadic:
-				if len(arguments) < num_parameters - 1:
-					raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
-				main = arguments[:num_parameters - 1]
-				extra = arguments[num_parameters - 1:]
-				scope_array = main
-				scope_array.append(Array(extra))
-				new_scope = IndexedScope(function.scope, num_parameters, scope_array)
-			else:
-				if num_parameters != len(arguments):
-					raise EvaluationError('Improper number of arguments for function {}'.format(function))
-				if num_parameters == 0:
-					new_scope = function.scope
-				else:
-					new_scope = IndexedScope(function.scope, num_parameters, arguments)
 			cache_key = tuple(arguments)
 			if cache_key in function.cache:
 				self.push(function.cache[cache_key])
-				# self.push = return_to + 1
 				if disable_cache:
 					self.place = return_to
 				else:
 					# Skip the STORE_IN_CACHE instruction
 					self.place = return_to + 1
 			else:
+				if inspector.is_variadic:
+					if len(arguments) < num_parameters - 1:
+						raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
+					main = arguments[:num_parameters - 1]
+					extra = arguments[num_parameters - 1:]
+					scope_array = main
+					scope_array.append(Array(extra))
+					new_scope = IndexedScope(function.scope, num_parameters, scope_array)
+				else:
+					if num_parameters != len(arguments):
+						raise EvaluationError('Improper number of arguments for function {}'.format(function))
+					if num_parameters == 0:
+						new_scope = function.scope
+					elif function.macro and macro_unprepped:
+						wrapped = tuple(map(SingularValue, arguments))
+						new_scope = IndexedScope(function.scope, num_parameters, wrapped)
+					else:
+						new_scope = IndexedScope(function.scope, num_parameters, arguments)
 				if disable_cache:
 					self.push(return_to)
 				else:
@@ -539,16 +539,3 @@ def test(string):
 	# 	print('{:3d} - {}'.format(index, byte))
 	vm = Interpereter(bytes, builder = builder, trace = True)
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
-
-
-if __name__ == '__main__':
-	test('1 + 2')
-	test('x = 1, y = x + 2, x + y')
-	test('() -> 2')
-	test('(x) -> 2 * x')
-	test('t = (x) -> 3 * x, t(2) + 4')
-	test('diff = (a, b, c) -> a - b - c, diff(1, 2, 3)')
-	test('diff = (a, b, c) ~> a() - b() - c(), diff(1, 2, 3)')
-	test('if(0, 3, 4)')
-	test('if(1, 3, 4)')
-	# test('sin(3)')

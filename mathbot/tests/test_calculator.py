@@ -234,6 +234,7 @@ def test_if_statement():
 def test_map():
 	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
 	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(4)', 8)
+	doit('map((x) ~> x() * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
 	doit('map(sin, array(0, 1, 2, 3, 4))(3)', math.sin(3))
 	doit('map((x) -> x * 2, range(0, 6))(1)', 2)
 	doit('map((x) -> x * 2, range(0, 6))(4)', 8)
@@ -247,6 +248,7 @@ def test_reduce():
 	throws('reduce((a, b) -> a + b, array())')
 	throws('reduce(3, 4)')
 	throws('reduce(() -> f, array(1, 2))')
+	doit('msum = (x, y) ~> x() + y(), reduce(msum, array(1, 2, 3, 4))', 10)
 
 def test_range():
 	for i in range(0, 5):
