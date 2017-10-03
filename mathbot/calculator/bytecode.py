@@ -23,6 +23,7 @@ class I(enum.IntEnum):
 	UNR_FAC = 13
 	JUMP_IF_MACRO = 14
 	ARG_LIST_END = 15
+	ARG_LIST_END_NO_CACHE = 54
 	WORD = 16
 	ASSIGNMENT = 17
 	STACK_SWAP = 18
@@ -51,8 +52,8 @@ class I(enum.IntEnum):
 	CMP_N_EQ = 40
 
 	STORE_IN_CACHE = 41
-	DEMACROIFY = 42
-	STORE_DEMACROD = 43
+	# DEMACROIFY = 42
+	# STORE_DEMACROD = 43
 
 	ACCESS_GLOBAL = 44
 	ACCESS_LOCAL = 45
@@ -65,7 +66,7 @@ class I(enum.IntEnum):
 	SPECIAL_REDUCE_STORE = 52
 	CONSTANT_EMPTY_ARRAY = 50
 
-	# Next to use: 54
+	# Next to use: 55
 
 
 OPERATOR_DICT = {
@@ -238,22 +239,44 @@ class CodeSegment:
 				self.push(I.STORE_IN_CACHE)
 				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
-				self.bytecodeify(p['function'], s)
-				for i in args[::-1]:
-					self.bytecodeify({
+				# IDEA: If the function contains only a small amount of code, we can also
+				# inline it (for normal function calls). Cannot inline everything since
+				# this leads to exponential code growth.
+				argument_functions = [
+					self.define_function({
 						'#': 'function_definition',
 						'parameters': {'items': []},
 						'kind': '->',
 						'expression': i
-					}, s)
-				self.push(I.CONSTANT)
-				self.push(0)
-				self.push(I.DEMACROIFY)
-				self.push(len(args))
-				self.push(I.STORE_DEMACROD)
+					}, s) for i in args[::-1]
+				]
+				self.bytecodeify(p['function'], s)
+				landing_macro = Destination()
+				landing_end = Destination()
+				# Need to jump because normal functions and macros are handled differently
+				self.push(I.JUMP_IF_MACRO)
+				self.push(Pointer(landing_macro))
+				# Handle if normal function
+				for i in argument_functions:
+					self.push(I.FUNCTION_NORMAL)
+					self.push(i)
+					self.push(I.ARG_LIST_END_NO_CACHE)
+					self.push(0)
 				self.push(I.ARG_LIST_END)
 				self.push(len(args))
 				self.push(I.STORE_IN_CACHE)
+				self.push(I.JUMP)
+				self.push(Pointer(landing_end))
+				# Handle if macro function
+				self.push(landing_macro)
+				for i in argument_functions:
+					self.push(I.FUNCTION_NORMAL)
+					self.push(i)
+				self.push(I.ARG_LIST_END)
+				self.push(len(args))
+				self.push(I.STORE_IN_CACHE)
+				# Aaaaand we done here
+				self.push(landing_end)
 		elif node_type == 'word':
 			# self.push(I.WORD)
 			# self.push(p['string'].lower())
@@ -295,23 +318,11 @@ class CodeSegment:
 			self.push(I.END)
 		elif node_type == 'function_definition':
 			# Create the function itself
-			contents = self.new_segment(late = True)
-			start_address = Destination()
-			contents.push(start_address)
-			params = [i['string'].lower() for i in p['parameters']['items']]
-			contents.push(len(params))
-			for i in params:
-				contents.push(i)
-			contents.push(p.get('variadic', 0))
-			if len(params) == 0:
-				contents.bytecodeify(p['expression'], s)
-			else:
-				subscope = Scope(params, superscope = s)
-				contents.bytecodeify(p['expression'], subscope)
-			contents.push(I.RETURN)
+			start_pointer = self.define_function(p, s)
 			# Create the bytecode for the current scope
 			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
-			self.push(Pointer(start_address))
+			self.push(start_pointer)
+			return 
 		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
@@ -329,6 +340,23 @@ class CodeSegment:
 				self.push(I.DISCARD)
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
+
+	def define_function(self, p, s):
+		contents = self.new_segment(late = True)
+		start_address = Destination()
+		contents.push(start_address)
+		params = [i['string'].lower() for i in p['parameters']['items']]
+		contents.push(len(params))
+		for i in params:
+			contents.push(i)
+		contents.push(p.get('variadic', 0))
+		if len(params) == 0:
+			contents.bytecodeify(p['expression'], s)
+		else:
+			subscope = Scope(params, superscope = s)
+			contents.bytecodeify(p['expression'], subscope)
+		contents.push(I.RETURN)
+		return Pointer(start_address)
 
 
 def convert_number(x):

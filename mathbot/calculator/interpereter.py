@@ -129,9 +129,10 @@ class Interpereter:
 			b.BIN_AND: self.inst_and,
 			b.BIN_OR_: self.inst_or,
 			b.JUMP_IF_MACRO: self.inst_jump_if_macro,
-			b.DEMACROIFY: self.inst_demacroify,
-			b.STORE_DEMACROD: self.inst_store_demacrod,
+			# b.DEMACROIFY: self.inst_demacroify,
+			# b.STORE_DEMACROD: self.inst_store_demacrod,
 			b.ARG_LIST_END: self.inst_arg_list_end,
+			b.ARG_LIST_END_NO_CACHE: self.inst_arg_list_end_no_cache,
 			b.ASSIGNMENT: self.inst_assignment,
 			b.WORD: self.inst_word,
 			b.ACCESS_LOCAL: self.inst_access_local,
@@ -313,33 +314,7 @@ class Interpereter:
 		if self.top.macro:
 			self.place = self.head - 1 # Is now -1 for flexibility
 
-	def inst_demacroify(self):
-		self.place += 1
-		num_args = self.head
-		processed = self.pop()
-		function = self.stack[- 1 - num_args]
-		# print(self.place, self.stack, ':', function, processed, '/', num_args)
-		# stack contains: function, arguments
-		if processed < num_args and not function.macro:
-			arg_resolver = self.stack[-1 - processed]
-			self.push(processed + 1)
-			# Return here afterwards, next instruction is STORE_DEMACROD
-			self.push(self.place + 1)
-			self.push(self.current_scope)
-			self.place = FunctionInspector(self, arg_resolver).code_address - 1
-		else:
-			# print('DONE', self.stack)
-			# Skip over the STORE_DEMACROD instruction
-			self.place += 1
-
-	def inst_store_demacrod(self):
-		result = self.pop()
-		processed = self.top
-		self.stack[-1 - processed] = result
-		# Jump back to the DEMACROIFY instruction
-		self.place -= 3
-
-	def inst_arg_list_end(self):
+	def inst_arg_list_end(self, disable_cache = False):
 		# Look at the number of arguments
 		self.place += 1
 		stack_arg_count = self.head
@@ -352,7 +327,11 @@ class Interpereter:
 			else:
 				arguments.append(arg)
 		function = self.pop()
-		self.call_function(function, arguments, self.place + 1)
+		self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache)
+
+	def inst_arg_list_end_no_cache(self):
+		self.inst_arg_list_end(disable_cache = True)
+
 
 	def inst_word(self):
 		assert(False)
@@ -484,8 +463,9 @@ class Interpereter:
 		self.stack[-1] += 1
 		self.place -= 3
 
-	def call_function(self, function, arguments, return_to):
-		assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
+	def call_function(self, function, arguments, return_to, disable_cache = False):
+		if not disable_cache:
+			assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
 		if isinstance(function, (BuiltinFunction, Array, Interval)):
 			result = function(*arguments)
 			self.push(result)
@@ -515,15 +495,18 @@ class Interpereter:
 				self.push(function.cache[cache_key])
 				self.place = return_to + 1
 			else:
-				if function.macro:
-					# Return here after the function is done but skip the STORE_IN_CACHE instruction
-					self.push(return_to + 1)
-				else:
-					# Required for storing the result in the result cache
-					self.push(function)
-					self.push(cache_key)
-					# Return here after the function is done
+				if disable_cache:
 					self.push(return_to)
+				else:
+					if function.macro:
+						# Return here after the function is done but skip the STORE_IN_CACHE instruction
+						self.push(return_to + 1)
+					else:
+						# Required for storing the result in the result cache
+						self.push(function)
+						self.push(cache_key)
+						# Return here after the function is done
+						self.push(return_to)
 				# Remember the current scope
 				self.push(self.current_scope)
 				self.current_scope = new_scope

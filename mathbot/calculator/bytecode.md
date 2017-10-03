@@ -33,8 +33,8 @@
 - 25 to 40 - Comparators used for chains
 
 - 41 - Store in cache
-- 42 - Demacroify
-- 43 - Store-demacrod - Demacro'd function
+- 42 - Demacroify (DEAD)
+- 43 - Store-demacrod (demacro'd function) (DEAD)
 
 
 ## Chain comparators
