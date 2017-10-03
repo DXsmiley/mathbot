@@ -249,8 +249,8 @@ def test_reduce():
 
 def test_range():
 	for i in range(0, 5):
-		doit(f'range(0, 5)({i})', i)
-		doit(f'range(10, 20)({i})', i + 10)
+		doit('range(0, 5)({})'.format(i), i)
+		doit('range(10, 20)({})'.format(i), i + 10)
 	doit('length(range(0, 5))', 5)
 	doit('length(range(8, 10))', 2)
 	doit('length(range(7, 7))', 0)
