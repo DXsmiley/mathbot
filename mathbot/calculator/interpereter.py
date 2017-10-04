@@ -78,8 +78,8 @@ class FunctionInspector:
 		Function data is stored as follows:
 			- (null) <- function_object.address
 			- num_arguments
-			- name of arguments (strings, currently unused, num_arguments of them)
-			- is_variadic <- either 1 or 2
+			- is_variadic <- either 0 or 1
+			- is_macro <- either 0 or 1
 			- (code starts here)
 	'''
 
@@ -96,12 +96,16 @@ class FunctionInspector:
 		return self.bytes[self.address + 1]
 
 	@property
-	def code_address(self):
-		return self.address + self.num_parameters + 3
+	def is_variadic(self):
+		return self.bytes[self.address + 2]
 
 	@property
-	def is_variadic(self):
-		return self.bytes[self.address + self.num_parameters + 2]
+	def is_macro(self):
+		return self.bytes[self.address + 3]
+
+	@property
+	def code_address(self):
+		return self.address + 4
 
 
 class CallingCache:
@@ -161,8 +165,9 @@ class Interpereter:
 			b.ACCESS_GLOBAL: self.inst_access_gobal,
 			b.ACCESS_SEMI: self.inst_access_semi,
 			b.ACCESS_ARRAY_ELEMENT: self.inst_access_array_element,
-			b.FUNCTION_NORMAL: self.inst_function_normal,
-			b.FUNCTION_MACRO: self.inst_function_macro,
+			b.FUNCTION_NORMAL: self.inst_function,
+			# b.FUNCTION_NORMAL: self.inst_function_normal,
+			# b.FUNCTION_MACRO: self.inst_function_macro,
 			b.RETURN: self.inst_return,
 			b.JUMP: self.inst_jump,
 			b.JUMP_IF_TRUE: self.inst_jump_if_true,
@@ -335,7 +340,7 @@ class Interpereter:
 
 	def inst_jump_if_macro(self):
 		self.place += 1
-		if self.top.macro:
+		if isinstance(self.top, Function) and FunctionInspector(self, self.top).is_macro:
 			self.place = self.head - 1 # Is now -1 for flexibility
 
 	def inst_arg_list_end(self, disable_cache = False):
@@ -355,7 +360,6 @@ class Interpereter:
 
 	def inst_arg_list_end_no_cache(self):
 		self.inst_arg_list_end(disable_cache = True)
-
 
 	def inst_word(self):
 		assert(False)
@@ -401,13 +405,17 @@ class Interpereter:
 		name = self.head
 		self.root_scope.set(name, 0, value)
 
-	def inst_function_normal(self):
+	def inst_function(self):
 		self.place += 1
-		self.push(Function(self.head, self.current_scope, False))
+		self.push(Function(self.head, self.current_scope))
 
-	def inst_function_macro(self):
-		self.place += 1
-		self.push(Function(self.head, self.current_scope, True))
+	# def inst_function_normal(self):
+	# 	self.place += 1
+	# 	self.push(Function(self.head, self.current_scope, False))
+
+	# def inst_function_macro(self):
+	# 	self.place += 1
+	# 	self.push(Function(self.head, self.current_scope, True))
 
 	def inst_return(self):
 		result = self.pop()
@@ -433,7 +441,8 @@ class Interpereter:
 		# print(self.stack)
 		value = self.pop()
 		cache_key = self.pop()
-		self.calling_cache[cache_key] = value
+		if cache_key is not None:
+			self.calling_cache[cache_key] = value
 		self.push(value)
 
 	def inst_special_map(self):
@@ -451,13 +460,13 @@ class Interpereter:
 			# Cleanup the stack and push the result
 			self.pop_n(3)
 			self.push(dest)
-			# Skip the cache and map store instructions
-			self.place += 2
+			# Skip the map store instruction
+			self.place += 1
 
 	def inst_special_map_store(self):
 		result = self.pop()
 		self.top.items.append(result)
-		self.place -= 2 + 1
+		self.place -= 1 + 1 # Go to previous instruction, cancel advancement
 
 	def inst_special_filter(self):
 		function = self.stack[-4]
@@ -475,8 +484,8 @@ class Interpereter:
 			# Cleanup the stack and push the result
 			self.pop_n(4)
 			self.push(dest)
-			# Skip the cache and filter store instructions
-			self.place += 2
+			# Skip the filter store instruction
+			self.place += 1
 
 	def inst_special_filter_store(self):
 		# function, source, dest, iterator, resut <- top of stack
@@ -487,7 +496,7 @@ class Interpereter:
 		if result:
 			dest.items.append(source(iterator))
 		self.stack[-1] += 1 # Advance iterator
-		self.place -= 2 + 1
+		self.place -= 1 + 1 # Go to previous instruction, cancel advancement
 
 	def inst_special_reduce(self):
 		function = self.stack[-4]
@@ -505,41 +514,33 @@ class Interpereter:
 		else:
 			self.pop_n(4)
 			self.push(value)
-			# Skip the store instruction and the second reduce instruction
-			self.place += 2
+			# Skip the second reduce instruction
+			self.place += 1
 
 	def inst_special_reduce_store(self):
 		result = self.pop()
 		self.stack[-2] = result
 		self.stack[-1] += 1
-		self.place -= 3
+		self.place -= 1 + 1
 
 	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False):
-		if disable_cache:
-			assert(self.bytes[return_to] != bytecode.I.STORE_IN_CACHE)
-		else:
-			assert(self.bytes[return_to] == bytecode.I.STORE_IN_CACHE)
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
 			result = function(*arguments)
 			self.push(result)
-			if disable_cache:
-				self.place = return_to
-			else:
-				self.place = return_to + 1 # Skip the 'store in cache' instruction
+			self.place = return_to
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
 			# Create the new scope in which to run the function
 			addr = inspector.address
 			num_parameters = inspector.num_parameters
-			cache_key = tuple([function] + arguments)
-			if cache_key in self.calling_cache:
-				self.push(self.calling_cache[cache_key])
-				if disable_cache:
+			need_to_call = True
+			if not disable_cache:
+				cache_key = tuple([function] + arguments)
+				if not inspector.is_macro and cache_key in self.calling_cache:
+					self.push(self.calling_cache[cache_key])
 					self.place = return_to
-				else:
-					# Skip the STORE_IN_CACHE instruction
-					self.place = return_to + 1
-			else:
+					need_to_call = False
+			if need_to_call:
 				if inspector.is_variadic:
 					if len(arguments) < num_parameters - 1:
 						raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
@@ -553,24 +554,16 @@ class Interpereter:
 						raise EvaluationError('Improper number of arguments for function {}'.format(function))
 					if num_parameters == 0:
 						new_scope = function.scope
-					elif function.macro and macro_unprepped:
+					elif inspector.is_macro and macro_unprepped:
 						wrapped = tuple(map(SingularValue, arguments))
 						new_scope = IndexedScope(function.scope, num_parameters, wrapped)
 					else:
 						new_scope = IndexedScope(function.scope, num_parameters, arguments)
-				if disable_cache:
-					self.push(return_to)
-				else:
-					if function.macro:
-						# Return here after the function is done but skip the STORE_IN_CACHE instruction
-						self.push(return_to + 1)
-					else:
-						# Required for storing the result in the result cache
-						self.push(cache_key)
-						# Return here after the function is done
-						self.push(return_to)
-				# Remember the current scope
+				self.push(return_to)
 				self.push(self.current_scope)
+				if not inspector.is_macro:
+					self.push(None if disable_cache else cache_key)
+				# Remember the current scope
 				self.current_scope = new_scope
 				self.place = inspector.code_address
 		else:

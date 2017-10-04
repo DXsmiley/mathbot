@@ -225,7 +225,6 @@ class CodeSegment:
 				self.bytecodeify(args[1], s)
 				self.push(I.CONSTANT_EMPTY_ARRAY)
 				self.push(I.SPECIAL_MAP)
-				self.push(I.STORE_IN_CACHE)
 				self.push(I.SPECIAL_MAP_STORE)
 			elif function_name == 'filter':
 				if len(args) != 2:
@@ -236,7 +235,7 @@ class CodeSegment:
 					I.CONSTANT_EMPTY_ARRAY,
 					I.CONSTANT, 0,
 					I.SPECIAL_FILTER,
-					I.STORE_IN_CACHE,
+					# I.STORE_IN_CACHE,
 					I.SPECIAL_FILTER_STORE
 				)
 			elif function_name == 'reduce':
@@ -254,7 +253,6 @@ class CodeSegment:
 				self.push(1)
 				# Stack now contains [function, array, result, index]
 				self.push(I.SPECIAL_REDUCE)
-				self.push(I.STORE_IN_CACHE)
 				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
 				# IDEA: If the function contains only a small amount of code, we can also
@@ -282,7 +280,6 @@ class CodeSegment:
 					self.push(0)
 				self.push(I.ARG_LIST_END)
 				self.push(len(args))
-				self.push(I.STORE_IN_CACHE)
 				self.push(I.JUMP)
 				self.push(Pointer(landing_end))
 				# Handle if macro function
@@ -337,7 +334,8 @@ class CodeSegment:
 			# Create the function itself
 			start_pointer = self.define_function(p, s)
 			# Create the bytecode for the current scope
-			self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
+			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
+			self.push(I.FUNCTION_NORMAL)
 			self.push(start_pointer)
 			return 
 		elif node_type == 'comparison':
@@ -364,14 +362,18 @@ class CodeSegment:
 		contents.push(start_address)
 		params = [i['string'].lower() for i in p['parameters']['items']]
 		contents.push(len(params))
-		for i in params:
-			contents.push(i)
+		# for i in params:
+		# 	contents.push(i)
 		contents.push(p.get('variadic', 0))
+		is_macro = int(p.get('kind') == '~>')
+		contents.push(is_macro)
 		if len(params) == 0:
 			contents.bytecodeify(p['expression'], s)
 		else:
 			subscope = Scope(params, superscope = s)
 			contents.bytecodeify(p['expression'], subscope)
+		if not is_macro:
+			contents.push(I.STORE_IN_CACHE)
 		contents.push(I.RETURN)
 		return Pointer(start_address)
 

@@ -2,27 +2,29 @@ import calculator
 import pytest
 import math
 
+TIMEOUT = 100000
+
 class Ignore: pass
 
 def doit(equation, result):
-	r = calculator.calculate(equation)
+	r = calculator.calculate(equation, tick_limit = TIMEOUT)
 	assert result is Ignore or r == result
 
 def repeat(equation, start, end):
 	for i in range(100):
-		r = calculator.calculate(equation)
+		r = calculator.calculate(equation, tick_limit = TIMEOUT)
 		assert start <= r <= end
 
 def unknown(equation):
-	calculator.calculate(equation)
+	calculator.calculate(equation, tick_limit = TIMEOUT)
 
 def throws(equation):
 	with pytest.raises(calculator.errors.EvaluationError):
-		calculator.calculate(equation)
+		calculator.calculate(equation, tick_limit = TIMEOUT)
 
 def compile_fail(equation):
 	with pytest.raises(calculator.errors.CompilationError):
-		calculator.calculate(equation)
+		calculator.calculate(equation, tick_limit = TIMEOUT)
 
 def test_negation():
 	doit("9", 9)

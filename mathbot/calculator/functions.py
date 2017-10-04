@@ -8,7 +8,6 @@ class BuiltinFunction:
 	def __init__(self, func, name = None):
 		self.func = func
 		self.name = name or getattr(func, '__name__', '<unnamed>')
-		self.macro = False
 		
 	def __call__(self, *args):
 		return self.func(*args)
@@ -19,18 +18,15 @@ class BuiltinFunction:
 
 class Function:
 
-	def __init__(self, address, scope, macro): # , variadic):
+	def __init__(self, address, scope):
 		self.address = address
 		self.scope = scope
-		self.macro = macro
 
 	def __repr__(self):
-		return ('m' if self.macro else 'f') + '({})'.format(self.address)
+		return 'f({})'.format(self.address)
 
 
 class Array:
-
-	macro = False
 
 	def __init__(self, items):
 		self.items = items
@@ -53,8 +49,6 @@ class Array:
 
 class SingularValue:
 
-	macro = False
-
 	def __init__(self, item):
 		self.item = item
 
@@ -69,8 +63,6 @@ class SingularValue:
 
 
 class Interval:
-
-	macro = False
 
 	def __init__(self, start, gap, length):
 		self.start = start
