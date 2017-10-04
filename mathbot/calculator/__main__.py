@@ -102,6 +102,9 @@ def interactive_terminal():
 			show_parsepoint = not show_parsepoint
 		elif line == ':trace':
 			interpereter.trace = not interpereter.trace
+		elif line == ':cache':
+			for key, value in interpereter.calling_cache.values.items():
+				print('{:40} : {:20}'.format(str(key), str(value)))
 		else:
 			try:
 				tokens, ast = parser.parse(line)
