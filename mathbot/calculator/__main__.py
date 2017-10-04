@@ -31,7 +31,7 @@ def main():
 		filename = proc_filename(args.filename)
 		code = open(filename).read()
 		tokens, ast = parser.parse(code)
-		btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = True)
+		btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
 		if args.compile:
 			print(bytecode.stringify(btc))
 			return

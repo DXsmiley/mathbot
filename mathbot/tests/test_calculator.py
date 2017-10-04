@@ -250,6 +250,16 @@ def test_reduce():
 	throws('reduce(() -> f, array(1, 2))')
 	doit('msum = (x, y) ~> x() + y(), reduce(msum, array(1, 2, 3, 4))', 10)
 
+def test_filter():
+	doit('''
+		is_even = (x) -> (x % 2 == 0),
+		length(filter(is_even, range(0, 100)))
+	''', 50)
+	doit('''
+		is_small = (x) ~> x() < 5,
+		length(filter(is_small, range(0, 100)))
+	''', 5)
+
 def test_range():
 	for i in range(0, 5):
 		doit('range(0, 5)({})'.format(i), i)

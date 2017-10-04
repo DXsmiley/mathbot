@@ -64,9 +64,11 @@ class I(enum.IntEnum):
 	SPECIAL_MAP_STORE = 51
 	SPECIAL_REDUCE = 49
 	SPECIAL_REDUCE_STORE = 52
+	SPECIAL_FILTER = 55
+	SPECIAL_FILTER_STORE = 56
 	CONSTANT_EMPTY_ARRAY = 50
 
-	# Next to use: 55
+	# Next to use: 57
 
 
 OPERATOR_DICT = {
@@ -176,8 +178,8 @@ class CodeSegment:
 	def new_segment(self, late = False):
 		return self.builder.new_segment(late = late)
 
-	def push(self, item):
-		self.items.append(item)
+	def push(self, *items):
+		self.items += items
 
 	def bytecodeify(self, p, s):
 		node_type = p['#']
@@ -217,13 +219,29 @@ class CodeSegment:
 				self.bytecodeify(args[2], s)
 				self.push(p_end)
 			elif function_name == 'map':
+				if len(args) != 2:
+					raise calculator.errors.CompilationError('Invalid number of argument for map function')
 				self.bytecodeify(args[0], s)
 				self.bytecodeify(args[1], s)
 				self.push(I.CONSTANT_EMPTY_ARRAY)
 				self.push(I.SPECIAL_MAP)
 				self.push(I.STORE_IN_CACHE)
 				self.push(I.SPECIAL_MAP_STORE)
+			elif function_name == 'filter':
+				if len(args) != 2:
+					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
+				self.bytecodeify(args[0], s)
+				self.bytecodeify(args[1], s)
+				self.push(
+					I.CONSTANT_EMPTY_ARRAY,
+					I.CONSTANT, 0,
+					I.SPECIAL_FILTER,
+					I.STORE_IN_CACHE,
+					I.SPECIAL_FILTER_STORE
+				)
 			elif function_name == 'reduce':
+				if len(args) != 2:
+					raise calculator.errors.CompilationError('Invalid number of argument for reduce function')
 				self.bytecodeify(args[0], s)
 				self.bytecodeify(args[1], s)
 				# Get the first element of the array

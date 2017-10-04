@@ -167,6 +167,8 @@ class Interpereter:
 			b.CONSTANT_EMPTY_ARRAY: self.inst_constant_empty_array,
 			b.SPECIAL_REDUCE: self.inst_special_reduce,
 			b.SPECIAL_REDUCE_STORE: self.inst_special_reduce_store,
+			b.SPECIAL_FILTER: self.inst_special_filter,
+			b.SPECIAL_FILTER_STORE: self.inst_special_filter_store,
 			b.DUPLICATE: self.inst_duplicate
 		}
 
@@ -434,6 +436,36 @@ class Interpereter:
 	def inst_special_map_store(self):
 		result = self.pop()
 		self.top.items.append(result)
+		self.place -= 2 + 1
+
+	def inst_special_filter(self):
+		function = self.stack[-4]
+		source = self.stack[-3]
+		dest = self.stack[-2]
+		iterator = self.stack[-1]
+		if not isinstance(function, (Function, BuiltinFunction)):
+			raise EvaluationError('filter function requires a function as its first argument')
+		if not isinstance(source, (Array, Interval)):
+			raise EvaluationError('filter function requres an array or interval as its second argument')
+		if iterator < len(source):
+			value = source(iterator)
+			self.call_function(function, [value], self.place + 1, macro_unprepped = True)
+		else:
+			# Cleanup the stack and push the result
+			self.pop_n(4)
+			self.push(dest)
+			# Skip the cache and filter store instructions
+			self.place += 2
+
+	def inst_special_filter_store(self):
+		# function, source, dest, iterator, resut <- top of stack
+		result = self.pop()
+		source = self.stack[-3]
+		dest = self.stack[-2]
+		iterator = self.stack[-1]
+		if result:
+			dest.items.append(source(iterator))
+		self.stack[-1] += 1 # Advance iterator
 		self.place -= 2 + 1
 
 	def inst_special_reduce(self):

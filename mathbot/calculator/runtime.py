@@ -186,7 +186,8 @@ FIXED_VALUES = {
 BOILER_CODE = '''
 if = (c, t, f) ~> if(c(), t(), f()),
 map = (f, a) -> map(f, a),
-reduce = (f, a) -> reduce(f, a)
+reduce = (f, a) -> reduce(f, a),
+filter = (f, a) -> filter(f, a)
 '''
 
 
