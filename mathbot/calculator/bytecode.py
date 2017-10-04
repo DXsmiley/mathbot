@@ -346,13 +346,29 @@ class CodeSegment:
 				op = p['rest'][0]['operator']
 				self.push(OPERATOR_DICT[op])
 			else:
-				self.push(I.CONSTANT)
-				self.push(1)
+				bailed = Destination()
+				end = Destination()
+				self.push(I.CONSTANT, 1)
 				self.bytecodeify(p['first'], s)
-				for i in p['rest']:
-					self.bytecodeify(i['value'], s)
-					self.push(COMPARATOR_DICT[i['operator']])
-				self.push(I.DISCARD)
+				for index, ast in enumerate(p['rest']):
+					if index > 0:
+						self.push(
+							I.STACK_SWAP, # Get the flag on top
+							I.DUPLICATE,  # Copy the flag (copy consumed by branch)
+							I.JUMP_IF_FALSE, # If its zero, bail
+							Pointer(bailed),
+							I.STACK_SWAP # Put the value back on top
+						)
+					self.bytecodeify(ast['value'], s)
+					self.push(COMPARATOR_DICT[ast['operator']])
+				self.push(
+					I.JUMP,
+					Pointer(end),
+					bailed,
+					I.STACK_SWAP,
+					end,
+					I.DISCARD,
+				)
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
 

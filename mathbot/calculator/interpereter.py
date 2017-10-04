@@ -196,7 +196,8 @@ class Interpereter:
 			b.SPECIAL_REDUCE_STORE: self.inst_special_reduce_store,
 			b.SPECIAL_FILTER: self.inst_special_filter,
 			b.SPECIAL_FILTER_STORE: self.inst_special_filter_store,
-			b.DUPLICATE: self.inst_duplicate
+			b.DUPLICATE: self.inst_duplicate,
+			b.STACK_SWAP: self.inst_stack_swap
 		}
 
 	def prepare_extra_code(self, ast, ready_to_run = True):
@@ -283,6 +284,12 @@ class Interpereter:
 
 	def inst_duplicate(self):
 		self.push(self.top)
+
+	def inst_stack_swap(self):
+		a = self.pop()
+		b = self.pop()
+		self.push(a)
+		self.push(b)
 
 	def binary_op(op):
 		def internal(self):

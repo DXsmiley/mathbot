@@ -122,6 +122,7 @@ def test_equality():
 	doit('1 < 2 < 3', True)
 	doit('1 < 2 > 1', True)
 	doit('1 < 2 > 3', False)
+	doit('1 < 2 > 3 < 4', False)
 	doit('1 == 1', True)
 	doit('1 != 1', False)
 	doit('1 == 2', False)
