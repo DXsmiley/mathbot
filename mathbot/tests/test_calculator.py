@@ -171,6 +171,14 @@ def test_logic():
 	doit('!!1', 1)
 	doit('!!3!!', 1)
 
+def test_short_circuit():
+	doit('1 | x', 1)
+	doit('1 | x | x | x', 1)
+	doit('0 & x', 0)
+	doit('0 & x & x', 0)
+	throws('0 | x')
+	throws('1 & x')
+
 def test_gcd():
 	doit('gcd(8, 6)', 2)
 	doit('lcm(3, 2)', 6)

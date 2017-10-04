@@ -187,9 +187,39 @@ class CodeSegment:
 			self.push(I.CONSTANT)
 			self.push(convert_number(p['string']))
 		elif node_type == 'bin_op':
-			self.bytecodeify(p['right'], s)
-			self.bytecodeify(p['left'], s)
-			self.push(OPERATOR_DICT[p['operator']])
+			op = p['operator']
+			left = p['left']
+			right = p['right']
+			if op == '&': # Logical and
+				end = Destination()
+				self.bytecodeify(left, s)
+				self.push(
+					I.DUPLICATE,
+					I.JUMP_IF_FALSE,
+					Pointer(end)
+				)
+				self.bytecodeify(right, s)
+				self.push(
+					I.BIN_AND,
+					end
+				)
+			elif op == '|': # Logical or
+				end = Destination()
+				self.bytecodeify(left, s)
+				self.push(
+					I.DUPLICATE,
+					I.JUMP_IF_TRUE,
+					Pointer(end)
+				)
+				self.bytecodeify(right, s)
+				self.push(
+					I.BIN_OR_,
+					end
+				)
+			else:
+				self.bytecodeify(right, s)
+				self.bytecodeify(left, s)
+				self.push(OPERATOR_DICT[op])
 		elif node_type == 'not':
 			self.bytecodeify(p['expression'], s)
 			self.push(I.UNR_NOT)
