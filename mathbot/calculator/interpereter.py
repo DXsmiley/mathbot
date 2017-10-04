@@ -2,6 +2,7 @@ import json
 import asyncio
 import math
 import random
+import collections
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
@@ -103,11 +104,32 @@ class FunctionInspector:
 		return self.bytes[self.address + self.num_parameters + 2]
 
 
+class CallingCache:
+
+	def __init__(self, capacity = 10000):
+		self.values = {}
+		self.queue = collections.deque()
+		self.capacity = 10000
+
+	def __contains__(self, key):
+		return key in self.values
+
+	def __setitem__(self, key, value):
+		assert(key not in self.values)
+		self.values[key] = value
+		self.queue.append(key)
+		if len(self.queue) > self.capacity:
+			drop = self.queue.popleft()
+			del self.values[drop]
+
+	def __getitem__(self, key):
+		return self.values[key]
 
 
 class Interpereter:
 
 	def __init__(self, bytes, trace = False, builder = None):
+		self.calling_cache = CallingCache()
 		self.builder = builder
 		self.trace = trace
 		self.bytes = bytes
@@ -411,8 +433,7 @@ class Interpereter:
 		# print(self.stack)
 		value = self.pop()
 		cache_key = self.pop()
-		function = self.pop()
-		function.cache[cache_key] = value
+		self.calling_cache[cache_key] = value
 		self.push(value)
 
 	def inst_special_map(self):
@@ -510,9 +531,9 @@ class Interpereter:
 			# Create the new scope in which to run the function
 			addr = inspector.address
 			num_parameters = inspector.num_parameters
-			cache_key = tuple(arguments)
-			if cache_key in function.cache:
-				self.push(function.cache[cache_key])
+			cache_key = tuple([function] + arguments)
+			if cache_key in self.calling_cache:
+				self.push(self.calling_cache[cache_key])
 				if disable_cache:
 					self.place = return_to
 				else:
@@ -545,7 +566,6 @@ class Interpereter:
 						self.push(return_to + 1)
 					else:
 						# Required for storing the result in the result cache
-						self.push(function)
 						self.push(cache_key)
 						# Return here after the function is done
 						self.push(return_to)

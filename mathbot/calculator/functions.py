@@ -23,9 +23,6 @@ class Function:
 		self.address = address
 		self.scope = scope
 		self.macro = macro
-		self.cache = {}
-		# self.variadic = variadic
-		# assert(not (macro and variadic))
 
 	def __repr__(self):
 		return ('m' if self.macro else 'f') + '({})'.format(self.address)
