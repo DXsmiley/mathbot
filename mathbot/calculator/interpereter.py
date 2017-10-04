@@ -530,9 +530,6 @@ class Interpereter:
 			self.place = return_to
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
-			# Create the new scope in which to run the function
-			addr = inspector.address
-			num_parameters = inspector.num_parameters
 			need_to_call = True
 			if not disable_cache:
 				cache_key = tuple([function] + arguments)
@@ -541,6 +538,7 @@ class Interpereter:
 					self.place = return_to
 					need_to_call = False
 			if need_to_call:
+				num_parameters = inspector.num_parameters
 				if inspector.is_variadic:
 					if len(arguments) < num_parameters - 1:
 						raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
@@ -559,11 +557,14 @@ class Interpereter:
 						new_scope = IndexedScope(function.scope, num_parameters, wrapped)
 					else:
 						new_scope = IndexedScope(function.scope, num_parameters, arguments)
+				# Remember the current scope
 				self.push(return_to)
 				self.push(self.current_scope)
+				# For normal functions, the last thing that happens is that the result is
+				# stored in a cache. Need the key in order to do that.
 				if not inspector.is_macro:
 					self.push(None if disable_cache else cache_key)
-				# Remember the current scope
+				# Enter the function
 				self.current_scope = new_scope
 				self.place = inspector.code_address
 		else:
