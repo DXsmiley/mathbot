@@ -52,6 +52,8 @@ PREAMBLE = r'''
 \newcommand{\bbQ}{\mathbb{Q}}
 \newcommand{\bbC}{\mathbb{C}}
 \newcommand{\bbZ}{\mathbb{Z}}
+\newcommand{\bbN}{\mathbb{N}}
+
 '''
 
 TEMPLATE = r'''
