@@ -53,7 +53,7 @@ PREAMBLE = r'''
 \newcommand{\bbC}{\mathbb{C}}
 \newcommand{\bbZ}{\mathbb{Z}}
 \newcommand{\bbN}{\mathbb{N}}
-
+\newcommand{\bigO}{\mathcal{O}}
 '''
 
 TEMPLATE = r'''
