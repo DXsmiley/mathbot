@@ -73,7 +73,7 @@ TEMPLATE_INLINE = r'''
 \end{document}
 '''
 
-RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)';
+RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)'
 
 RENDER_ERROR = '''\
 The server sent back the following error:
@@ -211,7 +211,7 @@ TEX_REPLACEMENTS = {
 
 
 def process_latex(latex):
-	latex = latex.strip('`').strip(' ').strip('\n')
+	latex = latex.strip(' `\n')
 	if latex.startswith('tex'):
 		latex = latex[3:]
 	for key, value in TEX_REPLACEMENTS.items():
@@ -246,35 +246,37 @@ class LatexModule(core.module.Module):
 		elif not has_required_perms(message.channel):
 			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
 		else:
+			# print('Handling command:', latex)
 			await self.handle(message, latex, 'normal')
 
 	@command_latex.edit(require_before = False, require_after = True)
 	async def handle_edit(self, before, after, latex):
-		if latex != '':
+		if latex != '' and before.content != after.content:
 			blob = self.connections.get(before.id, {'template': 'normal'})
 			try:
 				await self.client.delete_message(blob['message'])
 			except Exception:
 				pass
+			# print('Handling edit:', latex)
 			await self.handle(after, latex, blob.get('template'))
 
 	@core.handles.on_message()
 	async def inline_latex(self, message):
 		if not message.author.bot and not message.content.startswith('=') and message.content.count('$$') >= 2:
 			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
-				latex = extract_inline_tex(message.content)
+				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
 					await self.handle(message, latex, 'inline')
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2:
+		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
 			blob = self.connections.get(before.id, {'template': 'inline'})
 			try:
 				await self.client.delete_message(blob['message'])
 			except Exception:
 				pass
-			latex = extract_inline_tex(after.content)
+			latex = extract_inline_tex(after.clean_content)
 			if latex != '':
 				await self.handle(after, latex, blob.get('template'))
 
@@ -340,7 +342,7 @@ def extract_inline_tex(content):
 		while True:
 			word = next(parts)
 			if word != '':
-				latex += '{} '.format(word)
+				latex += '{} '.format(word.replace('#', '\#').replace('$', '\$'))
 			word = next(parts)
 			if word != '':
 				latex += '$\displaystyle {}$ '.format(word.strip('`'))

@@ -96,7 +96,7 @@ class Manager:
 
 	# Find the proper handler for a given command
 	def find_command_handler(self, cmd_string):
-		parts = cmd_string.split(' ')
+		parts = cmd_string.replace('\n', ' ').split(' ')
 		for num_parts in range(len(parts), 0, -1):
 			joined = ' '.join(parts[:num_parts])
 			command = self.commands.get(joined)
@@ -133,7 +133,7 @@ class Manager:
 			if cmd_after:
 				command, arguments = self.find_command_handler(cmd_after)
 				if command is not None and command.on_edit is not None:
-					await self.exec_edit_command(before, after, command, cmd_after)
+					await self.exec_edit_command(before, after, command, arguments)
 		except Exception as e:
 			traceback.print_exc()
 			await core.dreport.send(self.client, after.channel, after.content, extra = traceback.format_exc())
