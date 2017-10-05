@@ -151,6 +151,13 @@ def atom(tokens):
 		return t
 
 
+def word(tokens):
+	if tokens.peek(0, 'word'):
+		t = tokens.details()
+		tokens.eat()
+		return t
+
+
 def wrapped_expression(tokens):
 	if isinstance(tokens[0], TokenBlock):
 		return expression(tokens.eat())
@@ -258,7 +265,7 @@ def expression(tokens):
 	return function_definition(tokens)
 
 
-_parameter_list = eat_delimited(atom, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
+_parameter_list = eat_delimited(word, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
 
 def parameter_list(tokens):
 	params = _parameter_list(tokens)
@@ -316,7 +323,7 @@ def function_definition(tokens):
 
 def statement(tokens):
 	if tokens.peek(1, 'assignment'):
-		name = atom(tokens)
+		name = word(tokens)
 		tokens.eat()
 		value = expression(tokens)
 		return {
