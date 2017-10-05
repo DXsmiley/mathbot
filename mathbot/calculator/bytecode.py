@@ -99,6 +99,14 @@ COMPARATOR_DICT = {
 }
 
 
+PROTECTED_NAMES = [
+	'if',
+	'map',
+	'filter',
+	'reduce'
+]
+
+
 class Pointer:
 
 	def __init__(self, destination):
@@ -143,8 +151,8 @@ class CodeBuilder:
 			self.segments.append(seg)
 		return seg
 
-	def bytecodeify(self, ast, late = False):
-		self.new_segment().bytecodeify(ast, self.globalscope)
+	def bytecodeify(self, ast, late = False, unsafe = False):
+		self.new_segment().bytecodeify(ast, self.globalscope, unsafe)
 
 	def dump(self):
 		newcode = []
@@ -181,7 +189,7 @@ class CodeSegment:
 	def push(self, *items):
 		self.items += items
 
-	def bytecodeify(self, p, s):
+	def bytecodeify(self, p, s, unsafe):
 		node_type = p['#']
 		if node_type == 'number':
 			self.push(I.CONSTANT)
@@ -192,43 +200,43 @@ class CodeSegment:
 			right = p['right']
 			if op == '&': # Logical and
 				end = Destination()
-				self.bytecodeify(left, s)
+				self.bytecodeify(left, s, unsafe)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_FALSE,
 					Pointer(end)
 				)
-				self.bytecodeify(right, s)
+				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_AND,
 					end
 				)
 			elif op == '|': # Logical or
 				end = Destination()
-				self.bytecodeify(left, s)
+				self.bytecodeify(left, s, unsafe)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_TRUE,
 					Pointer(end)
 				)
-				self.bytecodeify(right, s)
+				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_OR_,
 					end
 				)
 			else:
-				self.bytecodeify(right, s)
-				self.bytecodeify(left, s)
+				self.bytecodeify(right, s, unsafe)
+				self.bytecodeify(left, s, unsafe)
 				self.push(OPERATOR_DICT[op])
 		elif node_type == 'not':
-			self.bytecodeify(p['expression'], s)
+			self.bytecodeify(p['expression'], s, unsafe)
 			self.push(I.UNR_NOT)
 		elif node_type == 'die':
-			self.bytecodeify(p['faces'], s)
-			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s)
+			self.bytecodeify(p['faces'], s, unsafe)
+			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s, unsafe)
 			self.push(I.BIN_DIE)
 		elif node_type == 'uminus':
-			self.bytecodeify(p['value'], s)
+			self.bytecodeify(p['value'], s, unsafe)
 			self.push(I.UNR_MIN)
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
@@ -239,28 +247,28 @@ class CodeSegment:
 					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
 				p_end = Destination()
 				p_false = Destination()
-				self.bytecodeify(args[0], s)
+				self.bytecodeify(args[0], s, unsafe)
 				self.push(I.JUMP_IF_FALSE)
 				self.push(Pointer(p_false))
-				self.bytecodeify(args[1], s)
+				self.bytecodeify(args[1], s, unsafe)
 				self.push(I.JUMP)
 				self.push(Pointer(p_end))
 				self.push(p_false)
-				self.bytecodeify(args[2], s)
+				self.bytecodeify(args[2], s, unsafe)
 				self.push(p_end)
 			elif function_name == 'map':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for map function')
-				self.bytecodeify(args[0], s)
-				self.bytecodeify(args[1], s)
+				self.bytecodeify(args[0], s, unsafe)
+				self.bytecodeify(args[1], s, unsafe)
 				self.push(I.CONSTANT_EMPTY_ARRAY)
 				self.push(I.SPECIAL_MAP)
 				self.push(I.SPECIAL_MAP_STORE)
 			elif function_name == 'filter':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
-				self.bytecodeify(args[0], s)
-				self.bytecodeify(args[1], s)
+				self.bytecodeify(args[0], s, unsafe)
+				self.bytecodeify(args[1], s, unsafe)
 				self.push(
 					I.CONSTANT_EMPTY_ARRAY,
 					I.CONSTANT, 0,
@@ -271,8 +279,8 @@ class CodeSegment:
 			elif function_name == 'reduce':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for reduce function')
-				self.bytecodeify(args[0], s)
-				self.bytecodeify(args[1], s)
+				self.bytecodeify(args[0], s, unsafe)
+				self.bytecodeify(args[1], s, unsafe)
 				# Get the first element of the array
 				self.push(I.DUPLICATE)
 				self.push(I.CONSTANT)
@@ -294,9 +302,9 @@ class CodeSegment:
 						'parameters': {'items': []},
 						'kind': '->',
 						'expression': i
-					}, s) for i in args[::-1]
+					}, s, unsafe) for i in args[::-1]
 				]
-				self.bytecodeify(p['function'], s)
+				self.bytecodeify(p['function'], s, unsafe)
 				landing_macro = Destination()
 				landing_end = Destination()
 				# Need to jump because normal functions and macros are handled differently
@@ -339,11 +347,14 @@ class CodeSegment:
 				self.push(depth)
 				self.push(index)
 		elif node_type == 'factorial':
-			self.bytecodeify(p['value'], s)
+			self.bytecodeify(p['value'], s, unsafe)
 			self.push(I.UNR_FAC)
 		elif node_type == 'assignment':
-			self.bytecodeify(p['value'], s)
-			scope, depth, index = s.find_value(p['variable']['string'].lower())
+			self.bytecodeify(p['value'], s, unsafe)
+			name = p['variable']['string'].lower()
+			if name in PROTECTED_NAMES and not unsafe:
+				raise calculator.errors.CompilationError('"{}" cannot be assigned to'.format(name))
+			scope, depth, index = s.find_value(name)
 			assert(scope == self.builder.globalscope)
 			# print(scope, depth, index)
 			self.push(I.ASSIGNMENT)
@@ -351,18 +362,18 @@ class CodeSegment:
 			# self.push(I.ASSIGNMENT)
 			# self.push(p['variable']['string'].lower())
 		elif node_type == 'statement_list':
-			self.bytecodeify(p['statement'], s)
+			self.bytecodeify(p['statement'], s, unsafe)
 			if p['next'] is not None:
-				self.bytecodeify(p['next'], s)
+				self.bytecodeify(p['next'], s, unsafe)
 		elif node_type == 'program':
 			for i in p['items']:
-				self.bytecodeify(i, s)
+				self.bytecodeify(i, s, unsafe)
 			# self.push(I.END)
 		elif node_type == 'end':
 			self.push(I.END)
 		elif node_type == 'function_definition':
 			# Create the function itself
-			start_pointer = self.define_function(p, s)
+			start_pointer = self.define_function(p, s, unsafe)
 			# Create the bytecode for the current scope
 			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(I.FUNCTION_NORMAL)
@@ -371,15 +382,15 @@ class CodeSegment:
 		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
-				self.bytecodeify(p['rest'][0]['value'], s)
-				self.bytecodeify(p['first'], s)
+				self.bytecodeify(p['rest'][0]['value'], s, unsafe)
+				self.bytecodeify(p['first'], s, unsafe)
 				op = p['rest'][0]['operator']
 				self.push(OPERATOR_DICT[op])
 			else:
 				bailed = Destination()
 				end = Destination()
 				self.push(I.CONSTANT, 1)
-				self.bytecodeify(p['first'], s)
+				self.bytecodeify(p['first'], s, unsafe)
 				for index, ast in enumerate(p['rest']):
 					if index > 0:
 						self.push(
@@ -389,7 +400,7 @@ class CodeSegment:
 							Pointer(bailed),
 							I.STACK_SWAP # Put the value back on top
 						)
-					self.bytecodeify(ast['value'], s)
+					self.bytecodeify(ast['value'], s, unsafe)
 					self.push(COMPARATOR_DICT[ast['operator']])
 				self.push(
 					I.JUMP,
@@ -402,11 +413,14 @@ class CodeSegment:
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
 
-	def define_function(self, p, s):
+	def define_function(self, p, s, unsafe):
 		contents = self.new_segment(late = True)
 		start_address = Destination()
 		contents.push(start_address)
 		params = [i['string'].lower() for i in p['parameters']['items']]
+		for i in params:
+			if i in PROTECTED_NAMES:
+				raise calculator.errors.CompilationError('"{}" is not allowed as a funcation parameter'.format(i))
 		contents.push(len(params))
 		# for i in params:
 		# 	contents.push(i)
@@ -414,10 +428,10 @@ class CodeSegment:
 		is_macro = int(p.get('kind') == '~>')
 		contents.push(is_macro)
 		if len(params) == 0:
-			contents.bytecodeify(p['expression'], s)
+			contents.bytecodeify(p['expression'], s, unsafe)
 		else:
 			subscope = Scope(params, superscope = s)
-			contents.bytecodeify(p['expression'], subscope)
+			contents.bytecodeify(p['expression'], subscope, unsafe)
 		if not is_macro:
 			contents.push(I.STORE_IN_CACHE)
 		contents.push(I.RETURN)

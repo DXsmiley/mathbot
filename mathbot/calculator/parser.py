@@ -145,9 +145,10 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 
 
 def atom(tokens):
-	t = tokens.details()
-	tokens.eat()
-	return t
+	if tokens.peek(0, 'number', 'word'):
+		t = tokens.details()
+		tokens.eat()
+		return t
 
 
 def wrapped_expression(tokens):
@@ -282,7 +283,7 @@ logic_or  = eat_delimited(logic_and, ['lor_op'],  BINDING_LEFT,  'bin_op')
 
 def comparison_list(tokens):
 	result = logic_or(tokens)
-	if tokens.peek(0, 'comp_op'):
+	if result and tokens.peek(0, 'comp_op'):
 		result = {
 			'#': 'comparison',
 			'first': result,

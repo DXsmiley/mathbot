@@ -11,7 +11,7 @@ def doit(equation, result):
 	assert result is Ignore or r == result
 
 def repeat(equation, start, end):
-	for i in range(100):
+	for i in range(20):
 		r = calculator.calculate(equation, tick_limit = TIMEOUT)
 		assert start <= r <= end
 
@@ -24,6 +24,10 @@ def throws(equation):
 
 def compile_fail(equation):
 	with pytest.raises(calculator.errors.CompilationError):
+		calculator.calculate(equation, tick_limit = TIMEOUT)
+
+def parse_fail(equation):
+	with pytest.raises(calculator.parser.ParseFailed):
 		calculator.calculate(equation, tick_limit = TIMEOUT)
 
 def test_negation():
@@ -279,3 +283,19 @@ def test_range():
 	doit('length(range(8, 10))', 2)
 	doit('length(range(7, 7))', 0)
 	throws('range(5, 4)')
+
+def test_invalid_syntax():
+	parse_fail('= == =')
+	parse_fail('== = ==')
+	parse_fail('= = =')
+	parse_fail('== == ==')
+
+def test_compile_failures():
+	compile_fail('(if) -> 0')
+	compile_fail('(map) -> 0')
+	compile_fail('(reduce) -> 0')
+	compile_fail('(filter) -> 0')
+	compile_fail('if = 0')
+	compile_fail('map = 0')
+	compile_fail('reduce = 0')
+	compile_fail('filter = 0')
