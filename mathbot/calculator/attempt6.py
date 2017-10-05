@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 import json
 import re
 
@@ -373,14 +370,6 @@ def run(string):
 		print(json.dumps(result, indent = 4))
 
 
-def run_script(module):
-	filename = 'calculator/scripts/{}.c5'.format(module)
-	with open(filename) as f:
-		data = f.read()
-	data = data.replace('\n', ' ')
-	return run(data)
-
-
 def tokenizer(string, ttypes):
 	# print(string)
 	regexes = [x if len(x) == 3 else (x[0], x[1], None) for x in ttypes]
@@ -417,17 +406,6 @@ def tokenizer(string, ttypes):
 	return result
 
 
-if __name__ == '__main__':
-	# run('1 + 2')
-	# run('( ) -> 4')
-	run_script('c6')
-	run_script('sayaks')
-	# line = input('> ')
-	# while line != '':
-	# 	run(line)
-	# 	line = input('> ')
-
-
 def parse(string):
 	tokens = tokenizer(
 		string,
@@ -441,7 +419,6 @@ def parse(string):
 			('mul_op', r'[/÷]', '/'),
 			('mul_op', r'[*×]', '*'),
 			('add_op', r'[+-]'),
-			# ('comp_op', r'<=|>='),
 			('comp_op', r'<=|>=|<|>|!=|=='),
 			('paren', r'[()]'),
 			('function_definition', r'~>|->'),
