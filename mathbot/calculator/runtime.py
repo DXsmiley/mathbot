@@ -196,10 +196,11 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
 
 
-def wrap_with_runtime(builder, my_ast, exportable = False):
+def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = False):
 	# ----- Declarations --------------------
 	s = builder.new_segment()
-	s.push(I.BEGIN_PROTECTED_GLOBAL_BLOCK)
+	if protect_globals:
+		s.push(I.BEGIN_PROTECTED_GLOBAL_BLOCK)
 	def assignment(name, value):
 		s.push(I.CONSTANT)
 		s.push(value)
@@ -231,9 +232,10 @@ def wrap_with_runtime(builder, my_ast, exportable = False):
 		_, ast = parser.parse(code)
 		builder.bytecodeify(ast)
 	# ----- User Code -----------------------
+	if protect_globals:
+		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK, I.END)
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)
-	builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK, I.END)
 	# ----- Return the resulting bytecode -
 	return builder.dump()
 
