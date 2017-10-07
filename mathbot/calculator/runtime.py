@@ -232,10 +232,11 @@ def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = Fal
 		_, ast = parser.parse(code)
 		builder.bytecodeify(ast)
 	# ----- User Code -----------------------
-	if protect_globals:
-		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK, I.END)
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)
+	if protect_globals:
+		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK)
+	builder.new_segment().push(I.END)
 	# ----- Return the resulting bytecode -
 	return builder.dump()
 
