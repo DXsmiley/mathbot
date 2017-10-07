@@ -51,6 +51,8 @@ class AnalyticsModule(core.module.Module):
 				}
 				async with session.post(CARBON_URL, data = data) as response:
 					print('Analytics: Carbon:', response.status)
+					if response.status != 200:
+						print(await response.text())
 			# Submit stats to bots.discord.pw
 			discord_bots_key = core.parameters.get('analytics discord-bots')
 			if discord_bots_key:
@@ -67,6 +69,8 @@ class AnalyticsModule(core.module.Module):
 				}
 				async with session.post(url, **payload) as response:
 					print('Analytics: bots.pw:', response.status)
+					if response.status != 200:
+						print(await response.text())
 			# Submit to discordbots.org
 			bots_org_key = core.parameters.get('analytics bots-org')
 			if bots_org_key:
@@ -82,8 +86,10 @@ class AnalyticsModule(core.module.Module):
 						'Content-Type': 'application/json'
 					}
 				}
-				async with await self.bot.session.post(url, **payload) as response:
+				async with session.post(url, **payload) as response:
 					print('Analytics: bots.org:', response.status)
+					if response.status != 200:
+						print(await response.text())
 
 	def num_servers(self):
 		# return '3800' # Something temporary (but accurate-ish) while I'm testing.

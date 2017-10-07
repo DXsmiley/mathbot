@@ -74,18 +74,15 @@ def create_manager(shard_id, shard_count):
 		modules.about.AboutModule(),
 		modules.latex.LatexModule(),
 		modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
-		modules.purge.PurgeModule()
+		modules.purge.PurgeModule(),
+		# Will only trigger stats if supplied with tokens
+		modules.analytics.AnalyticsModule()
 	)
 
 	if RELEASE == 'development':
 		manager.add_modules(
 			modules.throws.ThrowsModule(),
 			modules.echo.EchoModule()
-		)
-
-	if RELEASE == 'production':
-		manager.add_modules(
-			modules.analytics.AnalyticsModule()
 		)
 
 	return manager
