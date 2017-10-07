@@ -456,7 +456,7 @@ def stringify(bytecode):
 			result.append(i)
 		elif isinstance(i, int):
 			result.append('i')
-			result.append(i)
+			result.append(int(i))
 		elif isinstance(i, float):
 			result.append('f')
 			result.append(i)
