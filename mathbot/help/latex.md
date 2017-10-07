@@ -36,3 +36,7 @@ Examples
 `The answer is $$x^{2 + y}$$.`
 
 `$$1 + 2$$ equals $$3$$.`
+
+## Custom commands
+
+Some custom commands have been added to make typing quick LaTeX easy. These include `\bbR`, `\bbN` etc. for `\mathbb{R}`, `mathbb{N}` and other common set symbols and `\bigO` for `\mathcal{O}`

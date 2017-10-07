@@ -47,6 +47,13 @@ PREAMBLE = r'''
 \mathchardef\qof    = "0\declfam 72
 \mathchardef\lamed  = "0\declfam 6C
 \mathchardef\mim    = "0\declfam 6D
+
+\newcommand{\bbR}{\mathbb{R}}
+\newcommand{\bbQ}{\mathbb{Q}}
+\newcommand{\bbC}{\mathbb{C}}
+\newcommand{\bbZ}{\mathbb{Z}}
+\newcommand{\bbN}{\mathbb{N}}
+\newcommand{\bigO}{\mathcal{O}}
 '''
 
 TEMPLATE = r'''
