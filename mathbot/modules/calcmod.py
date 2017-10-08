@@ -173,8 +173,10 @@ class CalculatorModule(core.module.Module):
 				except asyncio.TimeoutError:
 					result = 'Calculation took too long'
 				except calculator.EvaluationError as e:
-					traceback.print_exc()
+					# traceback.print_exc()
 					result = 'Error: ' + str(e)
+					if len(result) > 2000:
+						result = 'An error occurred, but it was too large to display.'
 				except calculator.attempt6.ImbalancedBraces as e:
 					result = 'Invalid syntax: Imbalanced braces'
 				except calculator.attempt6.TokenizationFailed as e:
@@ -192,5 +194,5 @@ class CalculatorModule(core.module.Module):
 						result = 'Result was too big :('
 					if len(result) < 1000 and await advertising.should_advertise_to(message.author, message.channel):
 						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-					safe.sprint(result)
+				safe.sprint(result)
 				await self.send_message(message.channel, result, blame = message.author)
