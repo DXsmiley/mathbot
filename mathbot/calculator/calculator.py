@@ -11,19 +11,19 @@ import calculator.attempt6
 DIGITS_LIMIT = 2000
 
 
-def except_math_error(f):
+def except_math_error(f, name="name not provided"):
 	def internal(*x):
 		try:
 			return f(*x)
 		except Exception:
 			if len(x) == 0:
-				raise EvaluationError('Can\'t run {} function with no arguments.'.format(f.__name__))
+				raise EvaluationError('Can\'t run {} function with no arguments.'.format(name))
 			elif len(x) == 1:
 				formatted = calculator.errors.format_value(x[0])
-				raise EvaluationError('Can\'t run {} function on value {}'.format(f.__name__, formatted))
+				raise EvaluationError('Can\'t run {} function on value {}'.format(name, formatted))
 			else:
 				formatted = ', '.join(map(calculator.errors.format_value, x))
-				raise EvaluationError('Can\'t run {} function on values ({})'.format(f.__name__, formatted))
+				raise EvaluationError('Can\'t run {} function on values ({})'.format(name, formatted))
 	internal.__name__ = f.__name__
 	return internal
 
@@ -381,42 +381,42 @@ def m_choose(n, k):
 	)
 
 
-def maybe_complex(f_real, f_complex):
+def maybe_complex(f_real, f_complex, name):
 	def internal(x):
 		if isinstance(x, complex):
 			return f_complex(x)
 		return f_real(x)
-	return except_math_error(internal)
+	return except_math_error(internal, name)
 
 
 BUILTIN_FUNCTIONS = {
 	# 'interval': lambda a, b: List(range(a, b)),
-	'sin': maybe_complex(math.sin, cmath.sin),
-	'cos': maybe_complex(math.cos, cmath.cos),
-	'tan': maybe_complex(math.tan, cmath.tan),
-	'sind': except_math_error(fdeg(math.sin)),
-	'cosd': except_math_error(fdeg(math.cos)),
-	'tand': except_math_error(fdeg(math.tan)),
-	'asin': maybe_complex(math.asin, cmath.asin),
-	'acos': maybe_complex(math.acos, cmath.acos),
-	'atan': maybe_complex(math.atan, cmath.atan),
-	'asind': except_math_error(adeg(math.asin)),
-	'acosd': except_math_error(adeg(math.acos)),
-	'atand': except_math_error(adeg(math.atan)),
-	'sinh': maybe_complex(math.sinh, cmath.sinh),
-	'cosh': maybe_complex(math.cosh, cmath.cosh),
-	'tanh': maybe_complex(math.tanh, cmath.tanh),
-	'asinh': maybe_complex(math.asinh, cmath.asinh),
-	'acosh': maybe_complex(math.acosh, cmath.acosh),
-	'atanh': maybe_complex(math.atanh, cmath.atanh),
-	'deg': except_math_error(math.degrees),
-	'rad': except_math_error(math.radians),
+	'sin': maybe_complex(math.sin, cmath.sin, "sine"),
+	'cos': maybe_complex(math.cos, cmath.cos, "cosine"),
+	'tan': maybe_complex(math.tan, cmath.tan, "tangent"),
+	'sind': except_math_error(fdeg(math.sin), "sine"),
+	'cosd': except_math_error(fdeg(math.cos), "cosine"),
+	'tand': except_math_error(fdeg(math.tan), "tangent"),
+	'asin': maybe_complex(math.asin, cmath.asin, "arcsine"),
+	'acos': maybe_complex(math.acos, cmath.acos, "arccosine"),
+	'atan': maybe_complex(math.atan, cmath.atan, "arctangent"),
+	'asind': except_math_error(adeg(math.asin), "arcsine"),
+	'acosd': except_math_error(adeg(math.acos), "arccos"),
+	'atand': except_math_error(adeg(math.atan), "arctan"),
+	'sinh': maybe_complex(math.sinh, cmath.sinh, "hyperbolic sine"),
+	'cosh': maybe_complex(math.cosh, cmath.cosh, "hyperbolic cosine"),
+	'tanh': maybe_complex(math.tanh, cmath.tanh, "hyperbolic tangent"),
+	'asinh': maybe_complex(math.asinh, cmath.asinh, "inverse hyperbolic sine"),
+	'acosh': maybe_complex(math.acosh, cmath.acosh, "inverse hyperbolic cosine"),
+	'atanh': maybe_complex(math.atanh, cmath.atanh, "inverse hyperbolic tangent"),
+	'deg': except_math_error(math.degrees, "to degrees"),
+	'rad': except_math_error(math.radians, "to radians"),
 	'log': calculator.operators.function_logarithm,
-	'ln': maybe_complex(math.log, cmath.log),
-	'round': except_math_error(round),
-	'int': except_math_error(int),
-	'sqrt': except_math_error(lambda x : x ** 0.5),
-	'gamma': except_math_error(lambda x: calculator.operators.function_factorial(x - 1)),
+	'ln': maybe_complex(math.log, cmath.log, "natural logarithm"),
+	'round': except_math_error(round, "round"),
+	'int': except_math_error(int, "int"),
+	'sqrt': except_math_error(lambda x : x ** 0.5, "square root"),
+	'gamma': except_math_error(lambda x: calculator.operators.function_factorial(x - 1), "gamma"),
 	'gcd': calculator.operators.function_gcd,
 	'lcm': calculator.operators.function_lcm,
 	'choose': m_choose,
@@ -427,8 +427,8 @@ BUILTIN_FUNCTIONS = {
 	'join': array_join,
 	'splice': array_splice,
 	'expand': array_expand,
-	'im': except_math_error(lambda x: x.imag),
-	're': except_math_error(lambda x: x.real)	
+	'im': except_math_error(lambda x: x.imag, "im"),
+	're': except_math_error(lambda x: x.real, "re")	
 }
 
 
