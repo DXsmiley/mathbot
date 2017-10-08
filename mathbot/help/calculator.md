@@ -79,6 +79,8 @@ The following functions are available:
     - `gcd(a, b)` : computes the greatest common denominator or a and b
     - `lcm(a, b)` : computes the lowest common multiple of a and b
     - `choose(n, k)` : computes `n` choose `k`
+    - `re(x)` : get the real part of a complex number
+    - `im(x)` : get the imaginary part of a complex number
 
 :::page-break
 
