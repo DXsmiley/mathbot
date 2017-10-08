@@ -1,4 +1,4 @@
-from calculator.errors import EvaluationError
+from calculator.errors import EvaluationError, format_value
 import calculator.operators
 import asyncio
 import math
@@ -19,12 +19,12 @@ def except_math_error(f, name="name not provided"):
                 raise EvaluationError(
                     'Can\'t run {} function with no arguments.'.format(name))
             elif len(x) == 1:
-                formatted = calculator.errors.format_value(x[0])
+                formatted = format_value(x[0])
                 raise EvaluationError(
                     'Can\'t run {} function on value {}'.format(
                         name, formatted))
             else:
-                formatted = ', '.join(map(calculator.errors.format_value, x))
+                formatted = ', '.join(map(format_value, x))
                 raise EvaluationError(
                     'Can\'t run {} function on values ({})'.format(
                         name, formatted))
@@ -77,9 +77,9 @@ is in place while the feature is in the development.')
 
     def call(self, arguments, interpereter):
         if len(arguments) != 1 or not isinstance(
-            arguments[0], int) or not (
-            0 <= arguments[0] < len(
-                self.values)):
+                arguments[0], int) or not (
+                    0 <= arguments[0] < len(
+                        self.values)):
             raise EvaluationError(
                 'Attempted to get non-existent value of array')
         return self.values[arguments[0]]
@@ -101,7 +101,8 @@ class Function(BaseFunction):
         # TODO: setup scope
         if len(arguments) > 128:
             raise EvaluationError(
-                'No more than 128 arguments may be passed to a function at once.')
+                'No more than 128 \
+arguments may be passed to a function at once.')
         if self.variadic:
             if len(arguments) < len(self.parameters) - 1:
                 raise EvaluationError(
@@ -119,13 +120,15 @@ class Function(BaseFunction):
                     self.parameters[:-1], main_arguments)}
                 values[self.parameters[-1]] = Array(extra_arguments)
                 subscope = Scope(self.scope, values)
-                self.cache[tp] = yield from ev(self.expression, subscope, interpereter)
+                self.cache[tp] = yield from ev(self.expression, subscope,
+                                               interpereter)
             else:
                 subscope = Scope(
                     self.scope, {
                         key: value for key, value in zip(
                             self.parameters, arguments)})
-                self.cache[tp] = yield from ev(self.expression, subscope, interpereter)
+                self.cache[tp] = yield from ev(self.expression, subscope,
+                                               interpereter)
         return self.cache[tp]
 
     def __str__(self):
@@ -140,7 +143,6 @@ class BuiltinFunction(BaseFunction):
 
     def call(self, arguments, interpereter):
         return self.function(*arguments)
-        yield
 
     def __str__(self):
         return 'builtin function {}'.format(self.name)
@@ -187,11 +189,11 @@ class MacroArgumentFunction(BaseFunction):
         return 'macro argument function'
 
 
-# A Macro is a function where the arguments are functions which can
-# be called to get the ACTUAL values. Used to implement things like
-# if statements
 class Macro:
-
+    """
+    This is a function where the arguments are functions which can be called
+    to get the ACTUAl values. Used to implement things like if statements.
+    """
     def __init__(self, function):
         self.function = function
 
@@ -235,7 +237,8 @@ class Scope:
     def __setitem__(self, key, value):
         if self.protected_names is not None and key in self.protected_names:
             raise EvaluationError(
-                '\'{}\' is a protected constant and cannot be overridden'.format(key))
+                '\'{}\' is a protected constant and cannot be overridden'
+                .format(key))
         self.values[key] = value
 
     def clear_cache(self, seen=None):
@@ -286,7 +289,7 @@ def mergemany(*args):
     r = {}
     for i in args:
         for k, v in i.items():
-            assert(k not in r)
+            assert k not in r
             r[k] = v
     return r
 
@@ -406,8 +409,10 @@ BUILTIN_FUNCTIONS = {
     'cosh': maybe_complex(math.cosh, cmath.cosh, "hyperbolic cosine"),
     'tanh': maybe_complex(math.tanh, cmath.tanh, "hyperbolic tangent"),
     'asinh': maybe_complex(math.asinh, cmath.asinh, "inverse hyperbolic sine"),
-    'acosh': maybe_complex(math.acosh, cmath.acosh, "inverse hyperbolic cosine"),
-    'atanh': maybe_complex(math.atanh, cmath.atanh, "inverse hyperbolic tangent"),
+    'acosh': maybe_complex(math.acosh, cmath.acosh,
+                           "inverse hyperbolic cosine"),
+    'atanh': maybe_complex(math.atanh, cmath.atanh,
+                           "inverse hyperbolic tangent"),
     'deg': except_math_error(math.degrees, "to degrees"),
     'rad': except_math_error(math.radians, "to radians"),
     'log': calculator.operators.function_logarithm,
@@ -415,7 +420,8 @@ BUILTIN_FUNCTIONS = {
     'round': except_math_error(round, "round"),
     'int': except_math_error(int, "int"),
     'sqrt': except_math_error(lambda x: x ** 0.5, "square root"),
-    'gamma': except_math_error(lambda x: calculator.operators.function_factorial(x - 1), "gamma"),
+    'gamma': except_math_error(lambda x: calculator.operators.\
+                               function_factorial(x - 1), "gamma"),
     'gcd': calculator.operators.function_gcd,
     'lcm': calculator.operators.function_lcm,
     'choose': m_choose,
@@ -468,8 +474,8 @@ def rolldie(times, faces):
         faces = int(faces)
     if not isinstance(times, int) or not isinstance(faces, int):
         raise EvaluationError('Cannot roll {} dice with {} faces'.format(
-            calculator.errors.format_value(times),
-            calculator.errors.format_value(faces)
+            format_value(times),
+            format_value(faces)
         ))
     if times < 1:
         return 0
@@ -590,13 +596,14 @@ def evaluate_step(p, scope, it):
             left = yield from evaluate_step(p['left'], scope, it)
             right = yield from evaluate_step(p['right'], scope, it)
             op = OPERATOR_DICT.get(p['operator'])
-            assert(op is not None)
+            assert op is not None
             return op(left, right)
         elif node_type == 'not':
             value = yield from evaluate_step(p['expression'], scope, it)
             return 0 if value else 1
         elif node_type == 'die':
-            times = (yield from evaluate_step(p['times'], scope, it)) if 'times' in p else 1
+            times = (yield from evaluate_step(p['times'], scope, it)) \
+                if 'times' in p else 1
             faces = (yield from evaluate_step(p['faces'], scope, it))
             return rolldie(times, faces)
         elif node_type == 'udie':
@@ -610,8 +617,8 @@ def evaluate_step(p, scope, it):
             if not isinstance(
                     function,
                     BaseFunction) and not isinstance(
-                    function,
-                    Macro):
+                        function,
+                        Macro):
                 raise EvaluationError(
                     '{} is not a function'.format(
                         format_value(function)))
@@ -641,7 +648,7 @@ def evaluate_step(p, scope, it):
             scope[name] = value
             return value
         elif node_type == 'statement_list':
-            yield from ev(p['statement'], scope)
+            yield from ev(p['statement'], scope, it)
             p = p['next']
         elif node_type == 'program':
             result = 0
@@ -678,7 +685,7 @@ def evaluate_step(p, scope, it):
 
 def calculate(equation, scope=None, stop_errors=False, limits={}):
     to, result = calculator.attempt6.parse(equation)
-    assert(result is not None)
+    assert result is not None
     loop = asyncio.get_event_loop()
     future = evaluate(result, scope or new_scope(), limits)
     return loop.run_until_complete(future)
@@ -690,24 +697,3 @@ def calculate_async(equation, scope=None, limits={}, stop_errors=False):
         raise calculator.attempt6.ParseFailed(' '.join(to.tokens),
                                               to.rightmost)
     return evaluate(result, scope or new_scope(), limits)
-
-
-if False:
-
-    word = ReToken(r'[a-zA-Z_][a-zA-Z0-9_]*')
-    pipe = Supress(Token('|'))
-    colon = Supress(Token(':'))
-    equals = Supress(Token('='))
-    lpar = Supress(Token('('))
-    rpar = Supress(Token(')'))
-    comma = Supress(Token(','))
-
-    attrib = word('key') + colon + word('value')
-    attributes = attrib('first') | attrib('first') + attributes('rest')
-    rule = word('name') + ~(colon + word)('')
-    atom = rule | (lpar + options + ~(comma + attributes)('attributes') + rpar)
-    sequence = Attach(atom('first') + ~sequence('rest'), {'type': sequence})
-    options = sequence | Attach(
-        options('left') + pipe + sequence('right'), {'type': sequence})
-    statement = word('name') + equals + options('statement')
-    grammar = Repeat(statement)
