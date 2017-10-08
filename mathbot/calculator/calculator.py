@@ -1,4 +1,4 @@
-from calculator.errors import *
+from calculator.errors import EvaluationError
 import calculator.operators
 import asyncio
 import math
@@ -152,7 +152,7 @@ class BuiltinCoroutine(BaseFunction):
         self.function = function
 
     def call(self, arguments, interpereter):
-        raise NotImplementedException
+        raise NotImplementedError
 
 
 class BuiltinGenerator(BaseFunction):
@@ -687,7 +687,8 @@ def calculate(equation, scope=None, stop_errors=False, limits={}):
 def calculate_async(equation, scope=None, limits={}, stop_errors=False):
     to, result = calculator.attempt6.parse(equation)
     if result is None:
-        raise ParseFailed(' '.join(to.tokens), to.rightmost)
+        raise calculator.attempt6.ParseFailed(' '.join(to.tokens),
+                                              to.rightmost)
     return evaluate(result, scope or new_scope(), limits)
 
 
