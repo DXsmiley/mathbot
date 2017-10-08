@@ -10,7 +10,7 @@ import calculator.attempt6
 DIGITS_LIMIT = 2000
 
 
-def except_math_error(f, name="name not provided"):
+def except_math_error(f, name='	name not provided'):
 	def internal(*x):
 		try:
 			return f(*x)
@@ -83,6 +83,7 @@ is in place while the feature is in the development.')
 			raise EvaluationError(
 				'Attempted to get non-existent value of array')
 		return self.values[arguments[0]]
+		yield
 
 	def __str__(self):
 		return 'array({})'.format(', '.join(map(str, self.values)))
@@ -143,6 +144,7 @@ class BuiltinFunction(BaseFunction):
 
 	def call(self, arguments, interpereter):
 		return self.function(*arguments)
+		yield
 
 	def __str__(self):
 		return 'builtin function {}'.format(self.name)
@@ -410,9 +412,9 @@ BUILTIN_FUNCTIONS = {
 	'tanh': maybe_complex(math.tanh, cmath.tanh, "hyperbolic tangent"),
 	'asinh': maybe_complex(math.asinh, cmath.asinh, "inverse hyperbolic sine"),
 	'acosh': maybe_complex(math.acosh, cmath.acosh,
-						   "inverse hyperbolic cosine"),
+							"inverse hyperbolic cosine"),
 	'atanh': maybe_complex(math.atanh, cmath.atanh,
-						   "inverse hyperbolic tangent"),
+							"inverse hyperbolic tangent"),
 	'deg': except_math_error(math.degrees, "to degrees"),
 	'rad': except_math_error(math.radians, "to radians"),
 	'log': calculator.operators.function_logarithm,
