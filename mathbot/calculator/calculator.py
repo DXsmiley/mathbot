@@ -3,7 +3,6 @@ import calculator.operators
 import asyncio
 import math
 import cmath
-import weakref
 import random
 import calculator.attempt6
 
@@ -84,17 +83,6 @@ is in place while the feature is in the development.')
             raise EvaluationError(
                 'Attempted to get non-existent value of array')
         return self.values[arguments[0]]
-        yield
-
-    # def slice(self, start, end):
-    # 	new = Array()
-    # 	new.front = self.front
-    # 	new.back = self.back
-    # 	new.has_ownership = False
-    #
-    # def append(self, value):
-    # 	if self.has_ownership:
-    # 		self.back.append(value)
 
     def __str__(self):
         return 'array({})'.format(', '.join(map(str, self.values)))
@@ -106,7 +94,6 @@ class Function(BaseFunction):
         self.parameters = parameters
         self.expression = expression
         self.scope = scope
-        # self.cache = weakref.WeakKeyDictionary()
         self.cache = {}
         self.variadic = variadic
 
@@ -164,10 +151,8 @@ class BuiltinCoroutine(BaseFunction):
     def __init__(self, function):
         self.function = function
 
-    # This one's not good.
     def call(self, arguments, interpereter):
         raise NotImplementedException
-        # return await self.function(*arguments)
 
 
 class BuiltinGenerator(BaseFunction):
@@ -251,8 +236,6 @@ class Scope:
         if self.protected_names is not None and key in self.protected_names:
             raise EvaluationError(
                 '\'{}\' is a protected constant and cannot be overridden'.format(key))
-        # if key in self.values:
-        # 	raise EvaluationError('{} has already been assigned in this scope'.format(key))
         self.values[key] = value
 
     def clear_cache(self, seen=None):
@@ -335,10 +318,10 @@ def array_splice(array, start, end):
         raise EvaluationError('Cannot splice non-array')
     if not isinstance(start, int) or not isinstance(end, int):
         raise EvaluationError('Non-integer indexes passed to splice')
-    # Todo: Make this efficient
+    # TODO: Make this efficient
     return Array(array.values[start:end])
 
-# Todo: Make this more efficient
+# TODO: Make this more efficient
 
 
 def array_join(*items):
@@ -372,21 +355,12 @@ def array_expand(*arrays):
     return Expanded(arrays)
 
 
-# def is_int(x):
-# 	return oneify(isinstance(x, int))
-#
-#
-# def is_float(x):
-# 	return oneify(isinstance(x, float))
-
-
 # Changes a trig function to take degrees as its arguments
 def fdeg(func):
     return lambda x: func(math.radians(x))
 
+
 # Changes a trig function to produce degrees as its output
-
-
 def adeg(func):
     return lambda x: math.degrees(func(x))
 
@@ -455,12 +429,6 @@ BUILTIN_FUNCTIONS = {
     'im': except_math_error(lambda x: x.imag, "im"),
     're': except_math_error(lambda x: x.real, "re")
 }
-
-
-# OPERATORS = {
-# 	'+': lambda a, b: a + b,
-# 	'*': lambda a, b:
-# }
 
 
 FIXED_VALUES = {
@@ -614,7 +582,6 @@ def check_parse_tree_warnings(tree):
 
 
 def evaluate_step(p, scope, it):
-    # print(':', json.dumps(p, indent = 4))
     while True:
         node_type = p['#']
         if node_type == 'number':
@@ -671,18 +638,8 @@ def evaluate_step(p, scope, it):
         elif node_type == 'assignment':
             name = p['variable']['string'].lower()
             value = yield from evaluate_step(p['value'], scope, it)
-            # print('Assignment:', name, value)
             scope[name] = value
             return value
-        # elif node_type == 'program':
-        # 	result = None
-        # 	for i in p.get('statements', {'items': []})['items']:
-        # 		result = yield from ev(i, scope)
-        # 	if 'expression' in p:
-        # 		p = p['expression']
-        # 	else:
-        # 		return result
-        # 		# return (yield from evaluate_step(p['expression'], scope))
         elif node_type == 'statement_list':
             yield from ev(p['statement'], scope)
             p = p['next']
@@ -720,10 +677,7 @@ def evaluate_step(p, scope, it):
 
 
 def calculate(equation, scope=None, stop_errors=False, limits={}):
-    # to, result = parse(GRAMMAR, equation, check_ambiguity = False)
     to, result = calculator.attempt6.parse(equation)
-    # print(result)
-    # print(json.dumps(result, indent = 4))
     assert(result is not None)
     loop = asyncio.get_event_loop()
     future = evaluate(result, scope or new_scope(), limits)
@@ -731,9 +685,7 @@ def calculate(equation, scope=None, stop_errors=False, limits={}):
 
 
 def calculate_async(equation, scope=None, limits={}, stop_errors=False):
-    # to, result = parse(GRAMMAR, equation, check_ambiguity = False)
     to, result = calculator.attempt6.parse(equation)
-    # print(json.dumps(result, indent = 4))
     if result is None:
         raise ParseFailed(' '.join(to.tokens), to.rightmost)
     return evaluate(result, scope or new_scope(), limits)
