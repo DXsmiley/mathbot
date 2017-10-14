@@ -20,6 +20,7 @@ import advertising
 core.help.load_from_file('./help/latex.md')
 
 PREAMBLE = r'''
+\usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
