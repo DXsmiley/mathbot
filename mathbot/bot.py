@@ -46,7 +46,7 @@ if RELEASE not in ['development', 'beta', 'production']:
 if not TOKEN:
 	raise Exception('No token specified')
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level = logging.WARNING)
 
 
 # Used to ensure the beta bot only replies in the channel that it is supposed to
