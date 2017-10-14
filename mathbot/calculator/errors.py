@@ -52,6 +52,6 @@ class DomainError(EvaluationError):
 
 	def __str__(self):
 		return '{} cannot be applied to {}'.format(
-			function_name,
-			format_value(value)
+			self.function_name,
+			format_value(self.value)
 		)

@@ -8,3 +8,4 @@ keystore.json
 parameters.json
 # virtualenv directory
 venv/
+.flake8
