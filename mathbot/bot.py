@@ -53,39 +53,39 @@ logging.basicConfig(level = logging.INFO)
 def event_filter(channel):
 	return (RELEASE != 'beta') or ((not channel.is_private) and channel.id == '325908974648164352')
 
-
-def create_manager(shard_id, shard_count):
+async def run_shard(shard_id, shard_count):
 
 	assert(0 <= shard_id < shard_count)
 
-	manager = core.manager.Manager(
-		TOKEN,
-		shard_id = shard_id,
-		shard_count = shard_count,
-		master_filter = event_filter
-	)
+	while True:
 
-	# New modules go here
-	manager.add_modules(
-		modules.help.HelpModule(),
-		modules.wolfram.WolframModule(),
-		modules.settings.SettingsModule(),
-		modules.blame.BlameModule(),
-		modules.about.AboutModule(),
-		modules.latex.LatexModule(),
-		modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
-		modules.purge.PurgeModule(),
-		# Will only trigger stats if supplied with tokens
-		modules.analytics.AnalyticsModule()
-	)
-
-	if RELEASE == 'development':
-		manager.add_modules(
-			modules.throws.ThrowsModule(),
-			modules.echo.EchoModule()
+		manager = core.manager.Manager(
+			TOKEN,
+			shard_id = shard_id,
+			shard_count = shard_count,
+			master_filter = event_filter
 		)
 
-	return manager
+		manager.add_modules(
+			modules.help.HelpModule(),
+			modules.wolfram.WolframModule(),
+			modules.settings.SettingsModule(),
+			modules.blame.BlameModule(),
+			modules.about.AboutModule(),
+			modules.latex.LatexModule(),
+			modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
+			modules.purge.PurgeModule(),
+			# Will only trigger stats if supplied with tokens
+			modules.analytics.AnalyticsModule()
+		)
+
+		if RELEASE == 'development':
+			manager.add_modules(
+				modules.throws.ThrowsModule(),
+				modules.echo.EchoModule()
+			)
+
+		await manager.run_async()
 
 
 total_shards = core.parameters.get('shards total')
@@ -97,10 +97,8 @@ if total_shards is None:
 print('Total shards:', total_shards)
 print('My shards:', ' '.join(map(str, my_shards)))
 
-managers = []
-for shard in my_shards:
-	managers.append(create_manager(shard, total_shards).run_async())
+coroutines = [run_shard(i, total_shards) for i in my_shards]
 
-future = asyncio.gather(*managers)
+future = asyncio.gather(*coroutines)
 loop = asyncio.get_event_loop()
 loop.run_until_complete(future)
