@@ -36,6 +36,38 @@ META_TEMPLATE = r'''
 \usepackage{xcolor}
 \usepackage[a5paper]{geometry}
 
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{chemfig}
+\usepackage{tikz}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage[a5paper]{geometry}
+\newfam\hebfam
+\font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
+\font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
+\font\tmp=rcjhbltx at5pt  \scriptscriptfont\hebfam=\tmp
+\edef\declfam{\ifcase\hebfam 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
+\mathchardef\shin   = "0\declfam 98
+\mathchardef\aleph  = "0\declfam 27
+\mathchardef\beth   = "0\declfam 62
+\mathchardef\gimel  = "0\declfam 67
+\mathchardef\daleth = "0\declfam 64
+\mathchardef\ayin   = "0\declfam 60
+\mathchardef\tsadi  = "0\declfam 76
+\mathchardef\qof    = "0\declfam 72
+\mathchardef\lamed  = "0\declfam 6C
+\mathchardef\mim    = "0\declfam 6D
+\newcommand{\bbR}{\mathbb{R}}
+\newcommand{\bbQ}{\mathbb{Q}}
+\newcommand{\bbC}{\mathbb{C}}
+\newcommand{\bbZ}{\mathbb{Z}}
+\newcommand{\bbN}{\mathbb{N}}
+\newcommand{\bigO}{\mathcal{O}}
+
 \begin{document}
 
     \pagenumbering{gobble}
