@@ -19,7 +19,12 @@ import advertising
 
 core.help.load_from_file('./help/latex.md')
 
-PREAMBLE = r'''
+# % \definecolor{my_colour}{HTML}{#COLOUR}
+# % \color{my_colour}
+
+META_TEMPLATE = r'''
+\documentclass{article}
+
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -31,57 +36,22 @@ PREAMBLE = r'''
 \usepackage{xcolor}
 \usepackage[a5paper]{geometry}
 
-\newfam\hebfam
-\font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
-\font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
-\font\tmp=rcjhbltx at5pt  \scriptscriptfont\hebfam=\tmp
-
-\edef\declfam{\ifcase\hebfam 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
-
-\mathchardef\shin   = "0\declfam 98
-\mathchardef\aleph  = "0\declfam 27
-\mathchardef\beth   = "0\declfam 62
-\mathchardef\gimel  = "0\declfam 67
-\mathchardef\daleth = "0\declfam 64
-\mathchardef\ayin   = "0\declfam 60
-\mathchardef\tsadi  = "0\declfam 76
-\mathchardef\qof    = "0\declfam 72
-\mathchardef\lamed  = "0\declfam 6C
-\mathchardef\mim    = "0\declfam 6D
-
-\newcommand{\bbR}{\mathbb{R}}
-\newcommand{\bbQ}{\mathbb{Q}}
-\newcommand{\bbC}{\mathbb{C}}
-\newcommand{\bbZ}{\mathbb{Z}}
-\newcommand{\bbN}{\mathbb{N}}
-\newcommand{\bigO}{\mathcal{O}}
-'''
-
-TEMPLATE = r'''
 \begin{document}
-\definecolor{my_colour}{HTML}{#COLOUR}
-\color{my_colour}
-\begin{gather*}
 
-#CONTENT
+    \pagenumbering{gobble}
 
-\end{gather*}
+    \definecolor{my_colour}{HTML}{#COLOUR}
+	\color{my_colour}
+
+    \begin{#BLOCK}
+        #CONTENT
+    \end{#BLOCK}
+
 \end{document}
 '''
 
-TEMPLATE_INLINE = r'''
-\begin{document}
-\definecolor{my_colour}{HTML}{#COLOUR}
-\color{my_colour}
-\begin{flushleft}
-
-#CONTENT
-
-\end{flushleft}
-\end{document}
-'''
-
-RESPONSE_PARSING_REGEX = r'^([-]?\d+)\r\n(\S+)\s([-]?\d+)\s(\d+)\s(\d+)\r?\n?([\s\S]*)'
+TEMPLATE = META_TEMPLATE.replace('#BLOCK', 'gather*')
+TEMPLATE_INLINE = META_TEMPLATE.replace('#BLOCK', 'flushleft')
 
 RENDER_ERROR = '''\
 The server sent back the following error:
@@ -104,7 +74,6 @@ def semiquote(s):
 	return s
 
 # Old shade of grey #737f8d
-TEX_PAYLOAD = 'formula={latex}&fsize=26px&fcolor={colour}&mode=0&out=1&remhost=quicklatex.com&preamble={preamble}'
 
 
 class RenderingError(Exception):
@@ -115,38 +84,29 @@ class RenderingError(Exception):
 class EmptyImageError(Exception):
 	pass
 
+class RenderingErrorUnknown(Exception):
+	pass
+
+
+LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
 async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
-	latex = latex.strip()
-	payload = TEX_PAYLOAD.format(
-		latex = semiquote(latex),
-		preamble = semiquote(PREAMBLE),
-		colour = colour_text
-	)
-	# Query the server, it will return the url to get the actual image from.
-	# url = 'http://quicklatex.com/latex3.f' + payload
+	payload = {
+		'format': 'png',
+		'code': latex.strip(),
+	}
 	async with aiohttp.ClientSession() as session:
-		async with session.post('http://quicklatex.com/latex3.f', data = payload, timeout = 8) as loc_req:
+		async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
 			loc_req.raise_for_status()
-			text = await loc_req.text()
-			# print(text)
-			# img_url = text.split('\n')[1].split(' ')[0]
-			# for i in blobs.groups():
-			# 	print('GROUP:', i)
-			blobs = re.match(RESPONSE_PARSING_REGEX, text)
-			status, img_url, valign, imgw, imgh, errmsg = blobs.groups()
-			if status != '0':
-				raise RenderingError(errmsg)
-			if int(imgw) < 4 or int(imgh) < 4:
-				raise EmptyImageError
-			# var status = regs[1];
-			# var imgurl = regs[2];
-			# var valign = regs[3];
-			# var imgw   = regs[4];
-			# var imgh   = regs[5];
-			# var errmsg = regs[6];
+			jdata = await loc_req.json()
+			# print(jdata.get('log'))
+			# print(jdata.get('status'))
+			# print(jdata.get('description'))
+			if jdata['status'] == 'error':
+				raise RenderingErrorUnknown
+			filename = jdata['filename']
 		# Now actually get the image
-		async with session.get(img_url, timeout = 3) as img_req:
+		async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
 			img_req.raise_for_status()
 			fo = io.BytesIO(await img_req.read())
 			image = PIL.Image.open(fo).convert('RGBA')
@@ -156,7 +116,6 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 		back.paste(image, (0, 0), image)
 		image = imageutil.add_border(back, 4, colour_back)
 	return image
-	# return imageutil.paste_to_background(image, padding = 3)
 
 TEX_REPLACEMENTS = {
 	# Capital greek letters
@@ -318,9 +277,15 @@ class LatexModule(core.module.Module):
 			print('Rendering error')
 			msg = RENDER_ERROR.format(e.errmsg)
 			return await self.send_message(message.channel, msg, blame = message.author)
-		except EmptyImageError as e:
+		except EmptyImageError:
 			print('Empty image')
 			return await self.send_message(message.channel, EMPTY_IMAGE_ERROR, blame = message.author)
+		except RenderingErrorUnknown:
+			print('Rendering Error (unknown)')
+			return await self.send_message(message.channel,
+				'Rendering failed. Check your code. You can edit your existing message if needed.',
+				blame = message.author
+			)
 		else:
 			print('Success!')
 			content = None
