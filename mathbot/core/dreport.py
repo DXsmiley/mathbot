@@ -1,4 +1,5 @@
 import core.parameters
+import modules.reporter
 import traceback
 
 ERROR_MESSAGE_EXCEPTION = """\
@@ -29,13 +30,16 @@ async def send(client, origin, query, extra = ''):
 		channel which can be used to log the bot.
 	'''
 	channel_id = core.parameters.get('error-reporting channel')
+	# Error message to user immidiately
 	message = ERROR_MESSAGE_EXCEPTION.format(query)
 	await client.send_message(origin, message)
-	# Todo : need a better method of detecting release mode
-	if channel_id and client.user.name == 'MathBot':
-		try:
-			message = ERROR_MESSAGE_EXTRA.format(query, extra)
-			await client.send_message(client.get_channel(channel_id), message)
-		except Exception as e:
-			print('Issue when sending error message to official server')
-			traceback.print_exc()
+	# Send details to official error place
+	message = ERROR_MESSAGE_EXTRA.format(query, extra)
+	modules.reporter.enque(message)
+
+
+async def silent_report(client, message):
+	''' Sends text to the error logging channel.
+		Can be used for any custom reason.
+	'''
+	modules.reporter.enque(message)

@@ -3,6 +3,8 @@ import discord
 import psutil
 import os
 import asyncio
+import aiohttp
+import datetime
 import core.help
 import core.module
 
@@ -22,6 +24,14 @@ core.help.load_from_file('./help/about.md')
 core.help.load_from_file('./help/management.md')
 
 
+async def get_bot_total_servers(id):
+	async with aiohttp.ClientSession() as session:
+		url = 'https://discordbots.org/api/bots/{}/stats'.format(id)
+		async with session.get(url) as response:
+			jdata = await response.json()
+			return jdata.get('server_count')
+
+
 class AboutModule(core.module.Module):
 
 	# Send a message detailing the shard number, server count,
@@ -29,16 +39,38 @@ class AboutModule(core.module.Module):
 	@core.handles.command('stats stat status', '')
 	async def command_stats(self, message):
 		embed = discord.Embed(title = 'MathBot Stats', colour = BOT_COLOUR)
-		num_servers = len(self.client.servers)
-		embed.add_field(name = 'Servers', value = num_servers, inline = True)
-		shard_text = '{} of {}'.format(self.shard_id + 1, self.shard_count)
-		embed.add_field(name = 'Shard', value = shard_text, inline = True)
-		uptime = get_uptime()
-		embed.add_field(name = 'Uptime', value = uptime, inline = True)
-		memory = '{} MB'.format(get_memory_usage())
-		embed.add_field(name = 'Memory Usage', value = memory, inline = True)
+		embed.add_field(
+			name = 'Total Servers',
+			# MathBot's ID, hard coded for proper testing.
+			value = await get_bot_total_servers('134073775925886976'),
+			inline = True
+		)
+		embed.add_field(
+			name = 'Shard Servers',
+			value = len(self.client.servers),
+			inline = True
+		)
+		embed.add_field(
+			name = 'Shard ID',
+			value = '{} of {}'.format(self.shard_id + 1, self.shard_count),
+			inline = True
+		)
+		embed.add_field(
+			name = 'Uptime',
+			value = get_uptime(),
+			inline = True
+		)
+		embed.add_field(
+			name = 'Memory Usage',
+			value = '{} MB'.format(get_memory_usage()),
+			inline = True
+		)
 		embed.set_footer(text = 'Time is in hh:mm')
 		await self.send_message(message.channel, embed = embed, blame = message.author)
+
+	@core.handles.command('ping', '')
+	async def pong(self, message):
+		await self.send_message(message.channel, 'Pong!', blame = message.author)
 
 	# Aliases for the help command
 	@core.handles.command('about info', '')

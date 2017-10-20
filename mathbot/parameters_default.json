@@ -23,7 +23,8 @@
 	},
 	"analytics": {
 		"carbon": null,
-		"discord-bots": null
+		"discord-bots": null,
+		"bots-org": null
 	},
 	"advertising": {
 		"enable": true,

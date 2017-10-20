@@ -4,7 +4,7 @@
 
 The `{{prefix}}tex` command is used render *LaTeX* equations.
 
-The *LaTeX* rendering is done by <http://quicklatex.com/>
+The *LaTeX* rendering is done by <http://rtex.probablyaweb.site/>
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
 
@@ -36,3 +36,7 @@ Examples
 `The answer is $$x^{2 + y}$$.`
 
 `$$1 + 2$$ equals $$3$$.`
+
+## Custom commands
+
+Some custom commands have been added to make typing quick LaTeX easy. These include `\bbR`, `\bbN` etc. for `\mathbb{R}`, `mathbb{N}` and other common set symbols and `\bigO` for `\mathcal{O}`

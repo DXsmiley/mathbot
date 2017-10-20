@@ -6,3 +6,6 @@ __pycache__
 ignore
 keystore.json
 parameters.json
+# virtualenv directory
+venv/
+.flake8

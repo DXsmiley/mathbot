@@ -87,7 +87,7 @@ def test_unicode():
 	doit('3×2', 6)
 	doit('6÷2', 3)
 	doit('π', math.pi)
-	doit('τ', math.tau)
+	doit('τ', 2 * math.pi)
 	doit('5*0', 0)
 
 def test_dice_rolling():

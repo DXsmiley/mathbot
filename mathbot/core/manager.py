@@ -93,6 +93,7 @@ class Manager:
 		if not self.done_setup:
 			self.setup()
 		await self.client.start(self.token)
+		print('Shard', self.shard_id, 'has shutdown')
 
 	# Find the proper handler for a given command
 	def find_command_handler(self, cmd_string):
@@ -281,5 +282,11 @@ def create_client(manager, shard_id, shard_count):
 		if client._core_ready and manager.master_filter(reaction.message.channel):
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
+
+	# @client.event
+	# async def on_error(event, *args, **kwargs):
+	# 	# If we get here, a RuntimeError has been raised and we need to restart.
+	# 	print('RuntimeError noticed. Will shut down in a moment...')
+	# 	await client.close()
 
 	return client
