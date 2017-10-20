@@ -4,7 +4,7 @@
 
 The `{{prefix}}tex` command is used render *LaTeX* equations.
 
-The *LaTeX* rendering is done by <http://quicklatex.com/>
+The *LaTeX* rendering is done by <http://rtex.probablyaweb.site/>
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
 
