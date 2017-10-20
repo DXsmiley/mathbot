@@ -138,6 +138,19 @@ class Disk(Interface):
 		self.data[key]['expires'] = time.time() + seconds
 		self.save()
 
+	async def lpush(self, key, value):
+		if not isinstance(self.data[key]['value'], list):
+			await self.set(key, collections.deque)
+		self.data[key]['value'].appendleft(value)
+		self.save()
+
+	async def rpop(self, key, value):
+		if not isinstance(self.data[key]['value'], list):
+			await self.set(key, collections.deque)
+		if len(self.data[key]['value']) == 0:
+			return None
+		return self.data[key]['value'].pop()
+
 
 KEY_DELIMITER = ':'
 SETUP = False
@@ -196,8 +209,7 @@ async def set_json(*args, expire = None):
 
 async def lpush(*args):
 	key, value = reduce_key_val(args)
-	print('lpush:', key)
-	print('lpush:', await INTERFACE.lpush(key, value))
+	await INTERFACE.lpush(key, value)
 
 async def rpop(*keys):
 	key = reduce_key(keys)
