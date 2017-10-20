@@ -37,16 +37,6 @@ META_TEMPLATE = r'''
 \usepackage{xcolor}
 \usepackage[a5paper]{geometry}
 
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{mathrsfs}
-\usepackage{chemfig}
-\usepackage{tikz}
-\usepackage{color}
-\usepackage{xcolor}
-\usepackage[a5paper]{geometry}
 \newfam\hebfam
 \font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
 \font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
@@ -71,14 +61,14 @@ META_TEMPLATE = r'''
 
 \begin{document}
 
-    \pagenumbering{gobble}
+\pagenumbering{gobble}
 
-    \definecolor{my_colour}{HTML}{#COLOUR}
-	\color{my_colour}
+\definecolor{my_colour}{HTML}{#COLOUR}
+\color{my_colour}
 
-    \begin{#BLOCK}
-        #CONTENT
-    \end{#BLOCK}
+\begin{#BLOCK}
+#CONTENT
+\end{#BLOCK}
 
 \end{document}
 '''
@@ -255,7 +245,7 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 		async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
 			loc_req.raise_for_status()
 			jdata = await loc_req.json()
-			print('LOG:\n', jdata.get('log'))
+			# print('LOG:\n', jdata.get('log'))
 			# print(jdata.get('status'))
 			# print(jdata.get('description'))
 			if jdata['status'] == 'error':
