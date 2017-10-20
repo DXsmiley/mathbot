@@ -73,6 +73,14 @@ class Redis(Interface):
 		await self.ensure_started()
 		return await self.connection.expire(key, time)
 
+	async def lpush(self, key, value):
+		await self.ensure_started()
+		return await self.connection.lpush(key, value)
+
+	async def rpop(self, key):
+		await self.ensure_started()
+		return self.decipher(await self.connection.rpop(key))
+
 
 class Disk(Interface):
 
@@ -155,6 +163,11 @@ def reduce_key(keys):
 	return KEY_DELIMITER.join(keys)
 
 
+def reduce_key_val(keys):
+	assert(len(keys) >= 2)
+	return KEY_DELIMITER.join(keys[:-1]), keys[-1]
+
+
 async def get(*keys):
 	key = reduce_key(keys)
 	return await INTERFACE.get(key)
@@ -163,9 +176,7 @@ async def get(*keys):
 # It's a bit strange how the end of this is the value
 async def set(*args, expire = None):
 	assert(len(args) >= 2)
-	args = list(args)
-	value = args.pop()
-	key = reduce_key(args)
+	key, value = reduce_key_val(args)
 	await INTERFACE.set(key, value)
 	if expire is not None:
 		await INTERFACE.expire(key, expire)
@@ -178,13 +189,19 @@ async def get_json(*keys):
 
 async def set_json(*args, expire = None):
 	assert(len(args) >= 2)
-	args = list(args)
-	value = json.dumps(args.pop())
-	key = reduce_key(args)
-	await INTERFACE.set(key, value)
+	key, value = reduce_key_val(args)
+	await INTERFACE.set(key, json.dumps(value))
 	if expire is not None:
 		await INTERFACE.expire(key, expire)
 
+async def lpush(*args):
+	key, value = reduce_key_val(args)
+	print('lpush:', key)
+	print('lpush:', await INTERFACE.lpush(key, value))
+
+async def rpop(*keys):
+	key = reduce_key(keys)
+	return await INTERFACE.rpop(key)
 
 async def delete(*args):
 	assert(len(args) >= 1)
