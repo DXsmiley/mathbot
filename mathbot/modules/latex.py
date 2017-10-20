@@ -17,10 +17,11 @@ import imageutil
 import core.help
 import advertising
 
+
 core.help.load_from_file('./help/latex.md')
 
-# % \definecolor{my_colour}{HTML}{#COLOUR}
-# % \color{my_colour}
+
+LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
 META_TEMPLATE = r'''
 \documentclass{article}
@@ -85,69 +86,14 @@ META_TEMPLATE = r'''
 TEMPLATE = META_TEMPLATE.replace('#BLOCK', 'gather*')
 TEMPLATE_INLINE = META_TEMPLATE.replace('#BLOCK', 'flushleft')
 
-RENDER_ERROR = '''\
-The server sent back the following error:
-```
-{}
-```
-'''
-
-EMPTY_IMAGE_ERROR = '''\
-The resulting image was empty. Check your equation.
-'''
+# Error messages
 
 LATEX_TIMEOUT_MESSAGE = 'The renderer took too long to respond.'
 
-
-def semiquote(s):
-	s = s.replace('%', '%25')
-	s = s.replace('&', '%26')
-	s = s.replace('\n', ' ')
-	return s
-
-# Old shade of grey #737f8d
-
-
-class RenderingError(Exception):
-
-	def __init__(self, errmsg):
-		self.errmsg = errmsg
-
-class EmptyImageError(Exception):
-	pass
-
-class RenderingErrorUnknown(Exception):
-	pass
-
-
-LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
-
-async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
-	payload = {
-		'format': 'png',
-		'code': latex.strip(),
-	}
-	async with aiohttp.ClientSession() as session:
-		async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
-			loc_req.raise_for_status()
-			jdata = await loc_req.json()
-			# print(jdata.get('log'))
-			# print(jdata.get('status'))
-			# print(jdata.get('description'))
-			if jdata['status'] == 'error':
-				raise RenderingErrorUnknown
-			filename = jdata['filename']
-		# Now actually get the image
-		async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
-			img_req.raise_for_status()
-			fo = io.BytesIO(await img_req.read())
-			image = PIL.Image.open(fo).convert('RGBA')
-	if colour_back is not None:
-		colour_back = imageutil.hex_to_tuple(colour_back)
-		back = imageutil.new_monocolour(image.size, colour_back)
-		back.paste(image, (0, 0), image)
-		image = imageutil.add_border(back, 4, colour_back)
-	return image
+PERMS_FAILURE = '''\
+I don't have permission to upload images here :frowning:
+The owner of this server should be able to fix this issue.
+'''
 
 TEX_REPLACEMENTS = {
 	# Capital greek letters
@@ -209,27 +155,8 @@ TEX_REPLACEMENTS = {
 }
 
 
-def process_latex(latex):
-	latex = latex.strip(' `\n')
-	if latex.startswith('tex'):
-		latex = latex[3:]
-	for key, value in TEX_REPLACEMENTS.items():
-		if key in latex:
-			latex = latex.replace(key, value)
-	return latex
-
-
-def has_required_perms(channel):
-	if channel.is_private:
-		return True
-	perms = channel.permissions_for(channel.server.me)
-	return perms.attach_files
-
-
-PERMS_FAILURE = '''\
-I don't have permission to upload images here :frowning:
-The owner of this server should be able to fix this issue.
-'''
+class RenderingError(Exception):
+	pass
 
 
 class LatexModule(core.module.Module):
@@ -305,15 +232,8 @@ class LatexModule(core.module.Module):
 			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
 		except asyncio.TimeoutError:
 			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
-		except RenderingError as e:
-			print('Rendering error')
-			msg = RENDER_ERROR.format(e.errmsg)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		except EmptyImageError:
-			print('Empty image')
-			return await self.send_message(message.channel, EMPTY_IMAGE_ERROR, blame = message.author)
-		except RenderingErrorUnknown:
-			print('Rendering Error (unknown)')
+		except RenderingError:
+			print('Rendering Error')
 			return await self.send_message(message.channel,
 				'Rendering failed. Check your code. You can edit your existing message if needed.',
 				blame = message.author
@@ -324,6 +244,34 @@ class LatexModule(core.module.Module):
 			if await advertising.should_advertise_to(message.author, message.channel):
 				content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
 			return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
+
+
+async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
+	payload = {
+		'format': 'png',
+		'code': latex.strip(),
+	}
+	async with aiohttp.ClientSession() as session:
+		async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
+			loc_req.raise_for_status()
+			jdata = await loc_req.json()
+			print('LOG:\n', jdata.get('log'))
+			# print(jdata.get('status'))
+			# print(jdata.get('description'))
+			if jdata['status'] == 'error':
+				raise RenderingError
+			filename = jdata['filename']
+		# Now actually get the image
+		async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
+			img_req.raise_for_status()
+			fo = io.BytesIO(await img_req.read())
+			image = PIL.Image.open(fo).convert('RGBA')
+	if colour_back is not None:
+		colour_back = imageutil.hex_to_tuple(colour_back)
+		back = imageutil.new_monocolour(image.size, colour_back)
+		back.paste(image, (0, 0), image)
+		image = imageutil.add_border(back, 4, colour_back)
+	return image
 
 
 async def get_colours(message):
@@ -354,3 +302,20 @@ def extract_inline_tex(content):
 	except StopIteration:
 		pass
 	return latex.rstrip()
+
+
+def process_latex(latex):
+	latex = latex.strip(' `\n')
+	if latex.startswith('tex'):
+		latex = latex[3:]
+	for key, value in TEX_REPLACEMENTS.items():
+		if key in latex:
+			latex = latex.replace(key, value)
+	return latex
+
+
+def has_required_perms(channel):
+	if channel.is_private:
+		return True
+	perms = channel.permissions_for(channel.server.me)
+	return perms.attach_files
