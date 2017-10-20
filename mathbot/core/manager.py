@@ -120,8 +120,6 @@ class Manager:
 				cmd_string = await self.check_prefixes(message)
 				if cmd_string:
 					await self.handle_redirect(message, cmd_string)
-		# except RuntimeError:
-		# 	raise
 		except Exception as e:
 			traceback.print_exc()
 			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
@@ -137,10 +135,6 @@ class Manager:
 				command, arguments = self.find_command_handler(cmd_after)
 				if command is not None and command.on_edit is not None:
 					await self.exec_edit_command(before, after, command, arguments)
-		# except RuntimeError:
-		# 	print('Runtime Error!!!')
-		# 	traceback.print_exc()
-		# 	# raise
 		except Exception as e:
 			traceback.print_exc()
 			await core.dreport.send(self.client, after.channel, after.content, extra = traceback.format_exc())
