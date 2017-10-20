@@ -6,6 +6,11 @@ import core.handles
 import core.keystore
 
 
+# This queue is a global object, which actually means that multiple
+# shards might fiddle with it. HOWEVER, this is fine since there'll
+# just be multiple shards pushing from the queue to the redis store
+# every 10 seconds or so. Because we're using coroutines and not
+# read threads, this is OK.
 QUEUE = collections.deque()
 
 
