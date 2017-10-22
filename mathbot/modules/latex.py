@@ -53,6 +53,13 @@ PREAMBLE = r'''
 \newcommand{\bbC}{\mathbb{C}}
 \newcommand{\bbZ}{\mathbb{Z}}
 \newcommand{\bbN}{\mathbb{N}}
+\newcommand{\bbH}{\mathbb{H}}
+\newcommand{\bbK}{\mathbb{K}}
+\newcommand{\bbG}{\mathbb{G}}
+\newcommand{\bbP}{\mathbb{P}}
+\newcommand{\bbX}{\mathbb{X}}
+\newcommand{\bbD}{\mathbb{D}}
+\newcommand{\bbO}{\mathbb{O}}
 \newcommand{\bigO}{\mathcal{O}}
 '''
 
