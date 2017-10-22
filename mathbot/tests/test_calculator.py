@@ -66,7 +66,7 @@ def test_constants():
 	doit("PI^2", math.pi**2)
 	doit("e / 3", math.e / 3)
 
-def test_functions():
+def test_math_functions():
 	doit("round(PI^2)", round(math.pi**2))
 	doit("sin(PI/2)", math.sin(math.pi/2))
 	doit("int(E)", int(math.e))
@@ -145,7 +145,7 @@ def test_assignment():
 
 def test_functions():
 	doit('double = (x) -> x * 2, double(3)', 6)
-	doit('product = (x, y) -> x * y, product(4, 5)', 20)
+	doit('multiply = (x, y) -> x * y, multiply(4, 5)', 20)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(5)', 8)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(50)', 20365011074)
 	doit('if(0, 0, 0)', 0)
@@ -221,15 +221,15 @@ def test_variadic_function():
 	doit('((a.) -> a(4) + 2)(0, 1, 2, 3, 4, 5, 7, 8, 9)', 6)
 	doit('list = (x.) -> x, list(9, 8, 7, 6, 5)', Ignore)
 	doit('''
-		min2 = (x, y) -> if (x < y, x, y),
-		minV = (l, i) -> if (i == length(l) - 1, l(i), min2(l(i), minV(l, i + 1))),
-		min = (x.) -> minV(x, 0),
-		min(7, 3, 6, 9)
+		_min2 = (x, y) -> if (x < y, x, y),
+		_minV = (l, i) -> if (i == length(l) - 1, l(i), _min2(l(i), _minV(l, i + 1))),
+		_min = (x.) -> _minV(x, 0),
+		_min(7, 3, 6, 9)
 	''', 3)
 
 def test_argument_expansion():
-	doit('sum = (x, y) -> x + y, array = (a.) -> a, sum(expand(array(1, 2)))', 3)
-	throws('sum = (x, y) ~> x() + y(), array = (a.) -> a, sum(expand(array(1, 2)))')
+	doit('sum(expand(array(1, 2)))', 3)
+	throws('msum = (x, y) ~> x() + y(), msum(expand(array(1, 2)))')
 
 def test_superscript():
 	doit('2²', 4)

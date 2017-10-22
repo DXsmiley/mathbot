@@ -24,7 +24,7 @@ class IndexedScope:
 		self.superscope = superscope
 		if size != len(values):
 			raise calculator.errors.SystemError('Attempted to create a scope with number of values unequal to the size')
-		self.values = values
+		self.values = [(False, i) for i in values]
 
 	def get(scope, index, depth):
 		while depth > 0:
@@ -32,15 +32,17 @@ class IndexedScope:
 			depth -= 1
 		if index >= len(scope.values) or scope.values[index] == None:
 			raise ScopeMissedError
-		return scope.values[index]
+		return scope.values[index][1]
 
-	def set(scope, index, depth, value):
+	def set(scope, index, depth, value, protected = False):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
 		while len(scope.values) <= index:
-			scope.values.append(None)
-		scope.values[index] = value
+			scope.values.append((None, None))
+		if scope.values[index][0] is True:
+			raise EvaluationError('Cannot assign to protected value')
+		scope.values[index] = (protected, value)
 
 	def __repr__(self):
 		return 'indexed-scope'
@@ -141,6 +143,7 @@ class Interpereter:
 		self.stack = [None]
 		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
+		self.protected_assignment_mode = False
 		b = bytecode.I
 		self.switch_dictionary = {
 			b.NOTHING: do_nothing,
@@ -197,7 +200,9 @@ class Interpereter:
 			b.SPECIAL_FILTER: self.inst_special_filter,
 			b.SPECIAL_FILTER_STORE: self.inst_special_filter_store,
 			b.DUPLICATE: self.inst_duplicate,
-			b.STACK_SWAP: self.inst_stack_swap
+			b.STACK_SWAP: self.inst_stack_swap,
+			b.BEGIN_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_enable,
+			b.END_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_disable
 		}
 
 	def prepare_extra_code(self, ast, ready_to_run = True):
@@ -290,6 +295,12 @@ class Interpereter:
 		b = self.pop()
 		self.push(a)
 		self.push(b)
+
+	def inst_protected_mode_enable(self):
+		self.protected_assignment_mode = True
+
+	def inst_protected_mode_disable(self):
+		self.protected_assignment_mode = False
 
 	def binary_op(op):
 		def internal(self):
@@ -410,7 +421,7 @@ class Interpereter:
 		value = self.pop()
 		self.place += 1
 		name = self.head
-		self.root_scope.set(name, 0, value)
+		self.root_scope.set(name, 0, value, protected = self.protected_assignment_mode)
 
 	def inst_function(self):
 		self.place += 1

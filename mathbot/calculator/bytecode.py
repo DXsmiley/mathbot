@@ -68,7 +68,10 @@ class I(enum.IntEnum):
 	SPECIAL_FILTER_STORE = 56
 	CONSTANT_EMPTY_ARRAY = 50
 
-	# Next to use: 57
+	BEGIN_PROTECTED_GLOBAL_BLOCK = 57
+	END_PROTECTED_GLOBAL_BLOCK = 58
+
+	# Next to use: 59
 
 
 OPERATOR_DICT = {
@@ -467,7 +470,7 @@ def stringify(bytecode):
 			result.append(i)
 		elif isinstance(i, int):
 			result.append('i')
-			result.append(i)
+			result.append(int(i))
 		elif isinstance(i, float):
 			result.append('f')
 			result.append(i)
