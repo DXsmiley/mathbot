@@ -35,6 +35,7 @@ META_TEMPLATE = r'''
 \usepackage{tikz}
 \usepackage{color}
 \usepackage{xcolor}
+\usepackage{cancel}
 \usepackage[a5paper]{geometry}
 
 \newfam\hebfam
