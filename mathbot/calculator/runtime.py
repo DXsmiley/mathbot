@@ -228,9 +228,10 @@ def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = Fal
 		for name, func in BUILTIN_FUNCTIONS.items():
 			assignment(name, BuiltinFunction(func, name))
 	# The essential things
-	for code in [BOILER_CODE, LIBRARY_CODE]:
-		_, ast = parser.parse(code)
-		builder.bytecodeify(ast)
+	_, ast = parser.parse(BOILER_CODE)
+	builder.bytecodeify(ast, unsafe = True)
+	_, ast = parser.parse(LIBRARY_CODE)
+	builder.bytecodeify(ast)
 	# ----- User Code -----------------------
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)

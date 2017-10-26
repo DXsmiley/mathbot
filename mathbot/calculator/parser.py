@@ -145,9 +145,17 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 
 
 def atom(tokens):
-	t = tokens.details()
-	tokens.eat()
-	return t
+	if tokens.peek(0, 'number', 'word'):
+		t = tokens.details()
+		tokens.eat()
+		return t
+
+
+def word(tokens):
+	if tokens.peek(0, 'word'):
+		t = tokens.details()
+		tokens.eat()
+		return t
 
 
 def wrapped_expression(tokens):
@@ -257,7 +265,7 @@ def expression(tokens):
 	return function_definition(tokens)
 
 
-_parameter_list = eat_delimited(atom, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
+_parameter_list = eat_delimited(word, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
 
 def parameter_list(tokens):
 	params = _parameter_list(tokens)
@@ -282,7 +290,7 @@ logic_or  = eat_delimited(logic_and, ['lor_op'],  BINDING_LEFT,  'bin_op')
 
 def comparison_list(tokens):
 	result = logic_or(tokens)
-	if tokens.peek(0, 'comp_op'):
+	if result and tokens.peek(0, 'comp_op'):
 		result = {
 			'#': 'comparison',
 			'first': result,
@@ -315,7 +323,7 @@ def function_definition(tokens):
 
 def statement(tokens):
 	if tokens.peek(1, 'assignment'):
-		name = atom(tokens)
+		name = word(tokens)
 		tokens.eat()
 		value = expression(tokens)
 		return {

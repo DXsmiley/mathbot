@@ -108,8 +108,9 @@ def interactive_terminal():
 		else:
 			try:
 				tokens, ast = parser.parse(line)
+				if show_tree:
+					print(json.dumps(ast, indent = 4))
 				ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
-				# print(json.dumps(ast, indent = 4))
 				interpereter.prepare_extra_code({
 					'#': 'program',
 					'items': [ast]
