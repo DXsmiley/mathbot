@@ -1,3 +1,11 @@
+# So these look pretty weird, but they're actually required
+# for the language to function correctly
+if = (c, t, f) ~> if(c(), t(), f()),
+map = (f, a) -> map(f, a),
+reduce = (f, a) -> reduce(f, a),
+filter = (f, a) -> filter(f, a),
+
+# Kinda need this one
 array = (a.) -> a,
 
 # Functions that wrap around the standard operators

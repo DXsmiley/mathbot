@@ -120,6 +120,8 @@ def interactive_terminal():
 				print(run_with_timeout(interpereter.run_async(), 5))
 			except errors.EvaluationError as e:
 				print(str(e))
+			except parser.ParseFailed as e:
+				print(format_parse_error('error', line, e.location))
 			except Exception as e:
 				traceback.print_exc()
 

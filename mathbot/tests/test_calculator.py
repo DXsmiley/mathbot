@@ -40,6 +40,9 @@ def test_negation():
 	doit("-E", -math.e)
 	doit('3-2', 1)
 	doit('3 - 2', 1)
+	doit('-2^2', -4)
+	doit('(-2)^2', 4)
+	doit('2^-1', 1/2)
 
 def test_4func():
 	doit("9 + 3 + 6", 9 + 3 + 6)

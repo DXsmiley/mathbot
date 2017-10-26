@@ -31,7 +31,8 @@ class TokenRoot:
 
 	''' Class that contains a list of tokens '''
 
-	def __init__(self, nested_tokens):
+	def __init__(self, string, nested_tokens):
+		self.string = string
 		self.rightmost = -1
 		self.tokens = self.process_nested_tokens(nested_tokens)
 
@@ -104,7 +105,7 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 		else:
 			listing = [subrule(tokens)]
 		while tokens.peek(0, *delimiters):
-			listing.append(tokens.eat())
+			listing.append(tokens.eat_details())
 			listing.append(subrule(tokens))
 		if len(listing) == 1 and not always_package:
 			return listing[0]
@@ -116,21 +117,23 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 				right = listing.pop()
 				value = {
 					'#': type,
-					'operator': delimiter,
+					'operator': delimiter['string'],
 					'left': value,
-					'right': right
+					'right': right,
+					'token': delimiter
 				}
 			return value
 		elif binding == BINDING_RIGHT:
 			value = listing.pop()
 			while listing:
-				delmiter = listing.pop()
+				delimiter = listing.pop()
 				left = listing.pop()
 				value = {
 					'#': type,
-					'operator': delmiter,
+					'operator': delimiter['string'],
 					'left': left,
-					'right': value
+					'right': value,
+					'token': delimiter
 				}
 			return value
 		elif binding == DROP_DELIMITERS:
@@ -220,16 +223,6 @@ def dieroll(tokens):
 	return left
 
 
-def uminus(tokens):
-	if tokens[0] == '-':
-		tokens.eat()
-		return {
-			'#': 'uminus',
-			'value': uminus(tokens)
-		}
-	return dieroll(tokens)
-
-
 SUPERSCRIPT_MAP = {
 	ord('⁰'): '0',
 	ord('¹'): '1',
@@ -244,7 +237,7 @@ SUPERSCRIPT_MAP = {
 }
 
 def superscript(tokens):
-	result = uminus(tokens)
+	result = dieroll(tokens)
 	while tokens.peek(0, 'superscript'):
 		tok = tokens.eat_details()
 		print(tok['string'], tok['string'].translate(SUPERSCRIPT_MAP))
@@ -278,10 +271,29 @@ def parameter_list(tokens):
 
 argument_list = eat_delimited(expression, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
 
+def uminus2(tokens):
+	if tokens[0] == '-':
+		tokens.eat()
+		return {
+			'#': 'uminus',
+			'value': uminus2(tokens)
+		}
+	return superscript(tokens)
 
-power     = eat_delimited(superscript,    ['pow_op'],  BINDING_RIGHT, 'bin_op')
+
+power     = eat_delimited(uminus2,    ['pow_op'],  BINDING_RIGHT, 'bin_op')
+
+def uminus(tokens):
+	if tokens[0] == '-':
+		tokens.eat()
+		return {
+			'#': 'uminus',
+			'value': uminus(tokens)
+		}
+	return power(tokens)
+
 # power     = eat_delimited(uminus,    ['pow_op'],  BINDING_RIGHT, 'bin_op')
-modulo    = eat_delimited(power,     ['mod_op'],  BINDING_LEFT,  'bin_op')
+modulo    = eat_delimited(uminus,     ['mod_op'],  BINDING_LEFT,  'bin_op')
 product   = eat_delimited(modulo,    ['mul_op'],  BINDING_LEFT,  'bin_op')
 addition  = eat_delimited(product,   ['add_op'],  BINDING_LEFT,  'bin_op')
 logic_and = eat_delimited(addition,  ['land_op'], BINDING_LEFT,  'bin_op')
@@ -309,14 +321,15 @@ def comparison_list(tokens):
 def function_definition(tokens):
 	if tokens.peek(1, 'function_definition'):
 		args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
-		kind = tokens.eat()
+		kind = tokens.eat_details()
 		expr = expression(tokens)
 		return {
 			'#': 'function_definition',
 			'parameters': args,
-			'kind': kind,
+			'kind': kind['string'],
 			'expression': expr,
-			'variadic': is_variadic
+			'variadic': is_variadic,
+			'token': kind
 		}
 	return comparison_list(tokens)
 
@@ -386,14 +399,13 @@ def run_script(module):
 	return run(data)
 
 
-def tokenizer(string, ttypes):
+def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 	# print(string)
 	regexes = [x if len(x) == 3 else (x[0], x[1], None) for x in ttypes]
 	regexes = list(map(lambda x: (x[0], re.compile(x[1]), x[2]), regexes))
 	result = []
 	# Hard coded thing here, maybe remove it.
-	string = string.replace('\t', ' ')
-	original_string = string
+	string = original_string.replace('\t', ' ')
 	location = 0
 	while len(string) > 0:
 		if string[0] in ' \n':
@@ -414,9 +426,13 @@ def tokenizer(string, ttypes):
 			# print(possible[0][1])
 			if possible[0][0] != '__remove__':
 				result.append({
+					'#': possible[0][0],
 					'string': possible[0][1],
 					'position': location,
-					'#': possible[0][0]
+					'source': {
+						'name': source_name,
+						'code': original_string
+					}
 				})
 			location += len(possible[0][1])
 			string = string[len(possible[0][1]):]
@@ -434,7 +450,7 @@ if __name__ == '__main__':
 	# 	line = input('> ')
 
 
-def parse(string):
+def parse(string, source_name = '__unknown__'):
 	tokens = tokenizer(
 		string,
 		[
@@ -458,9 +474,10 @@ def parse(string):
 			('lor_op', r'\|'),
 			('bang', r'!'),
 			('period', r'\.')
-		]
+		],
+		source_name = source_name
 	)
-	tokens = process_tokens(tokens)
-	tokens = TokenRoot(tokens)
-	result = ensure_completed(program, tokens.tokens)
-	return tokens, result
+	nested = process_tokens(tokens)
+	package = TokenRoot(string, nested)
+	result = ensure_completed(program, package.tokens)
+	return package, result

@@ -182,15 +182,6 @@ FIXED_VALUES = {
 }
 
 
-# This looks weird but it works because the functions on the inside get optimised out
-BOILER_CODE = '''
-if = (c, t, f) ~> if(c(), t(), f()),
-map = (f, a) -> map(f, a),
-reduce = (f, a) -> reduce(f, a),
-filter = (f, a) -> filter(f, a)
-'''
-
-
 # Code that is really useful to it's included by default
 with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
@@ -228,10 +219,10 @@ def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = Fal
 		for name, func in BUILTIN_FUNCTIONS.items():
 			assignment(name, BuiltinFunction(func, name))
 	# The essential things
-	_, ast = parser.parse(BOILER_CODE)
-	builder.bytecodeify(ast, unsafe = True)
+	# _, ast = parser.parse(BOILER_CODE)
+	# builder.bytecodeify(ast, unsafe = True)
 	_, ast = parser.parse(LIBRARY_CODE)
-	builder.bytecodeify(ast)
+	builder.bytecodeify(ast, unsafe = True)
 	# ----- User Code -----------------------
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)

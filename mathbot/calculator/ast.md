@@ -72,3 +72,15 @@ This does not differentiate between macros and normal functions.
 ## `output` (deprecated)
 
 - `expression`: AST.
+
+# Error info
+
+Error info can appear on (almost) any node. It specifies what section of the original source code to blame if something goes wrong.
+
+Blame information looks like this:
+
+{
+	'name': 'source_filename.c5',
+	'location': 10,
+	'code': 'Original source code'
+}

@@ -185,12 +185,14 @@ class CodeSegment:
 		self.builder = builder
 		self.start_address = None
 		self.items = []
+		self.error_link = []
 
 	def new_segment(self, late = False):
 		return self.builder.new_segment(late = late)
 
-	def push(self, *items):
+	def push(self, *items, error = None):
 		self.items += items
+		self.error_link += [error] * len(items)
 
 	def bytecodeify(self, p, s, unsafe):
 		node_type = p['#']
