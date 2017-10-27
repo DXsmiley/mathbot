@@ -42,11 +42,11 @@ class Module:
 		commands = []
 		for name, item in self.__class__.__dict__.items():
 			if isinstance(item, core.handles.Command):
-				print('Registered command:', item.name, '(', item.format, ')')
-				if item.perm_setting:
-					print(' - Setting:', item.perm_setting)
-				if item.on_edit:
-					print(' - Has edit handler')
+				# print('Registered command:', item.name, '(', item.format, ')')
+				# if item.perm_setting:
+				# 	print(' - Setting:', item.perm_setting)
+				# if item.on_edit:
+				# 	print(' - Has edit handler')
 				commands.append(item)
 		return commands
 
