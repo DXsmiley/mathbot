@@ -82,8 +82,8 @@ class AboutModule(core.module.Module):
 	@core.handles.background_task()
 	async def update_status_message(self):
 		while True:
-			# status = 'bit.ly/mathbot'
-			status = 'bit.ly/mb-code'
+			status = 'bit.ly/mathbot'
+			# status = 'bit.ly/mb-code'
 			game = discord.Game(name = status)
 			await self.client.change_presence(game = game)
 			await asyncio.sleep(60 * 5)
