@@ -85,8 +85,20 @@ is in place while the feature is in the development.')
 		return self.values[arguments[0]]
 		yield
 
+	def str_safe(self, depth):
+		# If other 'deep' objects are added to the calculator, this safeguard
+		# will no longer work
+		if depth > 2:
+			return 'array(...)'
+		return 'array({})'.format(', '.join(
+			map(
+				lambda i: i.str_safe(depth + 1) if isinstance(i, Array) else str(i),
+				self.values
+			)
+		))
+
 	def __str__(self):
-		return 'array({})'.format(', '.join(map(str, self.values)))
+		return self.str_safe(0)
 
 
 class Function(BaseFunction):
