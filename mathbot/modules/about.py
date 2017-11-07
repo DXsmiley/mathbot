@@ -22,6 +22,7 @@ Uptime: {} days {} hours {} minutes {} seconds
 core.help.load_from_file('./help/help.md', topics = [''])
 core.help.load_from_file('./help/about.md')
 core.help.load_from_file('./help/management.md')
+core.help.load_from_file('./help/commands.md')
 
 
 async def get_bot_total_servers(id):
