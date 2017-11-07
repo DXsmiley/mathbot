@@ -390,7 +390,7 @@ class WolframModule(core.module.Module):
 			print('Wolf: HTTP processing error:', e.message)
 			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
 		except xml.parsers.expat.ExpatError as e:
-			print('Wolf: XML processing error:', e.message)
+			print('Wolf: XML processing error:', e)
 			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame = blame)
 		else:
 			if len(result.sections) == 0:
