@@ -40,21 +40,16 @@ class PurgeModule(core.module.Module):
 		elif number < 1:
 			await self.send_message(message.channel, 'Cannot purge less than 1 message.', blame = message.author)
 		else:
-			number = min(500, number)
+			number = min(200, number)
+			print('Running purge', number)
 			try:
-				m = 'Purging bot results from the previous {} messages.'.format(number)
-				await self.send_message(message.channel, m, blame = message.author)
-				await asyncio.sleep(3)
-				await self.client.purge_from(
-					message.channel,
-					limit = number + 1,
-					check = lambda x : x.author == self.client.user
-				)
-				await asyncio.sleep(3)
-				try:
-					await self.client.delete_message(message)
-					await self.send_message(message.author, 'Purge complete.', blame = message.author)
-				except discord.errors.Forbidden:
-					pass
+				async for message in self.client.logs_from(message.channel, limit = number):
+					if message.author == self.client.user:
+						try:
+							await self.client.delete_message(message)
+						except discord.Errors.NotFound:
+							pass
+						await asyncio.sleep(1)
 			except discord.errors.Forbidden:
 				await self.send_message(message.channel, BOT_PERM_ERROR, blame = message.author)
+			print('Purge complete')
