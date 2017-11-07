@@ -195,14 +195,15 @@ class LatexModule(core.module.Module):
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
 		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
-			blob = self.connections.get(before.id, {'template': 'inline'})
-			try:
-				await self.client.delete_message(blob['message'])
-			except Exception:
-				pass
-			latex = extract_inline_tex(after.clean_content)
-			if latex != '':
-				await self.handle(after, latex, blob.get('template'))
+			if after.channel.is_private or (await core.settings.get_setting(after, 'c-tex') and await core.settings.get_setting(after, 'f-inline-tex')):
+				blob = self.connections.get(before.id, {'template': 'inline'})
+				try:
+					await self.client.delete_message(blob['message'])
+				except Exception:
+					pass
+				latex = extract_inline_tex(after.clean_content)
+				if latex != '':
+					await self.handle(after, latex, blob.get('template'))
 
 	async def handle(self, message, latex, template):
 		safe.sprint('Latex ({}, {}) : {}'.format(message.author.name, template, latex))
