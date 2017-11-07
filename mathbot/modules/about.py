@@ -8,7 +8,7 @@ import datetime
 import core.help
 import core.module
 
-BOT_COLOUR = 1424337
+BOT_COLOUR = 0x19BAE5
 
 startup_time = datetime.datetime.now()
 
