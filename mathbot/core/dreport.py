@@ -34,6 +34,8 @@ async def send(client, origin, query, extra = ''):
 	message = ERROR_MESSAGE_EXCEPTION.format(query)
 	await client.send_message(origin, message)
 	# Send details to official error place
+	if len(extra) > 1500:
+		extra = '... ' + extra[-1500: 000]
 	message = ERROR_MESSAGE_EXTRA.format(client.shard_id, query, extra)
 	modules.reporter.enque(message)
 

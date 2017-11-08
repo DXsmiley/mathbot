@@ -27,7 +27,7 @@ class ReporterModule(core.module.Module):
 				else:
 					await asyncio.sleep(10)
 		except Exception:
-			print('Exception in queue_reports on shard', self.client.shard_id)
+			print('Exception in queue_reports on shard {}. This is bad.'.format(self.client.shard_id))
 
 	@core.handles.background_task(requires_ready = True)
 	async def send_reports(self):
@@ -38,15 +38,16 @@ class ReporterModule(core.module.Module):
 				print('Channel:', report_channel)
 				while True:
 					message = await core.keystore.rpop('error-report')
-					# print('Reporting:', report_channel, '\n>>> ', message)
 					if message is not None:
-						if len(message) > 1800:
-							message = message[1800:] + '...'
+						# Errors should have already been trimmed before they reach this point,
+						# but this is just in case something slips past
+						if len(message) > 1900:
+							message = message[1900:] + ' **(emergency trim)**'
 						await self.client.send_message(report_channel, message)
 					else:
 						await asyncio.sleep(10)
 		except Exception:
-			print('Exception in send_message on shard', self.client.shard_id)
+			print('Exception in send_reports on shard {}. This is bad.'.format(self.client.shard_id))
 			traceback.print_exc()
 
 	async def get_report_channel(self):
