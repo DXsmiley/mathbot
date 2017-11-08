@@ -1,5 +1,6 @@
 import collections
 import asyncio
+import traceback
 
 import core.module
 import core.handles
@@ -34,6 +35,7 @@ class ReporterModule(core.module.Module):
 			report_channel = await self.get_report_channel()
 			if report_channel:
 				print('Shard', self.client.shard_id, 'will report errors!')
+				print('Channel:', report_channel)
 				while True:
 					message = await core.keystore.rpop('error-report')
 					if message is not None:
@@ -42,6 +44,7 @@ class ReporterModule(core.module.Module):
 						await asyncio.sleep(10)
 		except Exception:
 			print('Exception in send_message on shard', self.client.shard_id)
+			traceback.print_exc()
 
 	async def get_report_channel(self):
 		channel_id = core.parameters.get('error-reporting channel')
