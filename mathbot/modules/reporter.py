@@ -38,6 +38,7 @@ class ReporterModule(core.module.Module):
 				print('Channel:', report_channel)
 				while True:
 					message = await core.keystore.rpop('error-report')
+					print('Reporting:', report_channel, '\n>>> ', message)
 					if message is not None:
 						await self.client.send_message(report_channel, message)
 					else:
