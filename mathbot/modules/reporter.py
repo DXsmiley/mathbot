@@ -42,8 +42,9 @@ class ReporterModule(core.module.Module):
 		if channel_id:
 			try:
 				channel = self.client.get_channel(channel_id)
-				await self.client.send_message(channel, 'Shard {} reporting for duty!'.format(self.shard_id))
-				return channel
+				if channel:
+					await self.client.send_message(channel, 'Shard {} reporting for duty!'.format(self.shard_id))
+					return channel
 			except Exception:
 				pass
 		return None
