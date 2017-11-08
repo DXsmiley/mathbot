@@ -21,6 +21,7 @@ import modules.purge
 import modules.echo
 import modules.analytics
 import modules.reporter
+import modules.greeter
 
 import core.manager
 import core.keystore
@@ -78,7 +79,8 @@ async def run_shard(shard_id, shard_count):
 			modules.purge.PurgeModule(),
 			# Will only trigger stats if supplied with tokens
 			modules.analytics.AnalyticsModule(),
-			modules.reporter.ReporterModule()
+			modules.reporter.ReporterModule(),
+			modules.greeter.GreeterModule()
 		)
 
 		if RELEASE == 'development':

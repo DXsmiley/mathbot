@@ -38,6 +38,7 @@ class Manager:
 		self.modules = []
 		self.raw_handlers_message = []
 		self.raw_handlers_edit = []
+		self.raw_handlers_member_joined = []
 		self.shard_id = shard_id
 		self.shard_count = shard_count
 		self.client = create_client(self, shard_id, shard_count)
@@ -74,12 +75,16 @@ class Manager:
 				self.raw_handlers_message.append(handler)
 				handler.module = module
 			# Get the edit handlers
-			for handler in module.collection_edit_handlers():
+			for handler in module.collect_edit_handlers():
 				self.raw_handlers_edit.append(handler)
 				handler.module = module
 			# Get the reaction handlers
-			for handler in module.collection_reaction_handlers():
+			for handler in module.collect_reaction_handlers():
 				self.reaction_handlers[handler.emoji].append((module, handler))
+			# Get the join handlers
+			for handler in module.collect_member_join_handlers():
+				self.raw_handlers_member_joined.append(handler)
+				handler.module = module
 		self.done_setup = True
 
 	# Run the bot. Blocking command.
@@ -175,6 +180,11 @@ class Manager:
 			for command in module.collect_startup_tasks():
 				tasks.append(command.func(module))
 		asyncio.gather(*tasks)
+
+	async def handle_member_joined(self, member):
+		for handler in self.raw_handlers_member_joined:
+			if handler.servers is None or member.server.id in handler.servers:
+				await handler.func(handler.module, member)
 
 	# Actually execute a command! There's so many layers to this stuff...
 	async def exec_command(self, message, command, arguments):
@@ -282,6 +292,11 @@ def create_client(manager, shard_id, shard_count):
 		if client._core_ready and manager.master_filter(reaction.message.channel):
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
+
+	@client.event
+	async def on_member_join(member):
+		if client._core_ready:
+			await manager.handle_member_joined(member)
 
 	# @client.event
 	# async def on_error(event, *args, **kwargs):
