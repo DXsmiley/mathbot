@@ -382,19 +382,25 @@ def adeg(func):
 	return lambda x: math.degrees(func(x))
 
 
-def m_choose(n, k):
-	return calculator.operators.operator_division(
-		calculator.operators.function_factorial(n),
-		calculator.operators.operator_multiply(
-			calculator.operators.function_factorial(k),
-			calculator.operators.function_factorial(
-				calculator.operators.operator_subtract(
-					n,
-					k
+def m_choose(*args):
+	if len(args) != 2:
+		raise EvaluationError('choose function requires two arguments')
+	n, k = args
+	try:
+		return calculator.operators.operator_division(
+			calculator.operators.function_factorial(n),
+			calculator.operators.operator_multiply(
+				calculator.operators.function_factorial(k),
+				calculator.operators.function_factorial(
+					calculator.operators.operator_subtract(
+						n,
+						k
+					)
 				)
 			)
 		)
-	)
+	except:
+		raise EvaluationError('Cannot run choose function with arguments {} and {}', n, k)
 
 
 def maybe_complex(f_real, f_complex, name):
@@ -611,7 +617,10 @@ def evaluate_step(p, scope, it):
 			right = yield from evaluate_step(p['right'], scope, it)
 			op = OPERATOR_DICT.get(p['operator'])
 			assert op is not None
-			return op(left, right)
+			try:
+				return op(left, right)
+			except OverflowError:
+				raise op.raise_error(left, right)
 		elif node_type == 'not':
 			value = yield from evaluate_step(p['expression'], scope, it)
 			return 0 if value else 1
