@@ -38,8 +38,10 @@ class ReporterModule(core.module.Module):
 				print('Channel:', report_channel)
 				while True:
 					message = await core.keystore.rpop('error-report')
-					print('Reporting:', report_channel, '\n>>> ', message)
+					# print('Reporting:', report_channel, '\n>>> ', message)
 					if message is not None:
+						if len(message) > 1800:
+							message = message[1800:] + '...'
 						await self.client.send_message(report_channel, message)
 					else:
 						await asyncio.sleep(10)
