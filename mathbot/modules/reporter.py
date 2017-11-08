@@ -11,7 +11,7 @@ import core.keystore
 # shards might fiddle with it. HOWEVER, this is fine since there'll
 # just be multiple shards pushing from the queue to the redis store
 # every 10 seconds or so. Because we're using coroutines and not
-# read threads, this is OK.
+# real threads, this is OK.
 QUEUE = collections.deque()
 
 
@@ -27,7 +27,7 @@ class ReporterModule(core.module.Module):
 				else:
 					await asyncio.sleep(10)
 		except Exception:
-			print('Exception in queue_reports on shard {}. This is bad.'.format(self.client.shard_id))
+			print('Exception in ReporterModule.queue_reports on shard {}. This is bad.'.format(self.client.shard_id))
 
 	@core.handles.background_task(requires_ready = True)
 	async def send_reports(self):
@@ -47,7 +47,7 @@ class ReporterModule(core.module.Module):
 					else:
 						await asyncio.sleep(10)
 		except Exception:
-			print('Exception in send_reports on shard {}. This is bad.'.format(self.client.shard_id))
+			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.client.shard_id))
 			traceback.print_exc()
 
 	async def get_report_channel(self):
