@@ -134,11 +134,12 @@ class CallingCache:
 
 class Interpereter:
 
-	def __init__(self, bytes, trace = False, builder = None):
+	def __init__(self, code_constructed, trace = False, builder = None):
 		self.calling_cache = CallingCache()
 		self.builder = builder
 		self.trace = trace
-		self.bytes = bytes
+		self.bytes = code_constructed.bytecode
+		self.erlnk = code_constructed.error_link
 		self.place = 0
 		self.stack = [None]
 		self.root_scope = IndexedScope(None, 0, [])
@@ -214,7 +215,9 @@ class Interpereter:
 			self.place = len(self.bytes)
 			self.stack = [None]
 		self.builder.bytecodeify(ast)
-		self.bytes = self.builder.dump()
+		constructed = self.builder.dump()
+		self.bytes = constructed.bytecode
+		self.erlnk = constructed.error_link
 
 	@property
 	def head(self):
@@ -252,6 +255,7 @@ class Interpereter:
 					self.tick()
 					# print(self.place, self.stack)
 		except EvaluationError as e:
+			e._linking = self.erlnk[self.place]
 			raise e
 		except Exception as e:
 			raise e

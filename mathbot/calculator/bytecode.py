@@ -137,6 +137,38 @@ class Scope:
 		return self.superscope.find_value(name, depth + 1)
 
 
+class ConstructedBytecode:
+
+	def __init__(self, bytecode, error_link):
+		self.bytecode = bytecode
+		self.error_link = error_link
+
+	def dump(self):
+		result = []
+		for i, e in zip(self.bytecode, self.error_link):
+			if i is None:
+				result.append(['nul'])
+			elif isinstance(i, I):
+				result.append([
+					'ist',
+					int(i),
+					'?' if e is None else e['position'],
+					'?' if e is None else e['name']
+				])
+			elif isinstance(i, str):
+				result.append(['str', i])
+			elif isinstance(i, int):
+				result.append(['int', int(i)])
+			elif isinstance(i, float):
+				result.append(['flt', i])
+			elif isinstance(i, complex):
+				result.append(['cpx', i.real, i.imag])
+			else:
+				raise Exception('Unknown bytecode item: {}'.format(str(i)))
+		toline = lambda items : ' '.join(map(str, items))
+		return '\n'.join(map(toline, result))
+
+
 class CodeBuilder:
 
 	def __init__(self, offset = 0):
@@ -145,6 +177,7 @@ class CodeBuilder:
 		self.offset = offset
 		self.globalscope = Scope([])
 		self.bytecode = []
+		self.error_link = []
 
 	def new_segment(self, late = False):
 		seg = CodeSegment(self)
@@ -159,8 +192,10 @@ class CodeBuilder:
 
 	def dump(self):
 		newcode = []
+		newerrs = []
 		for i in itertools.chain(self.segments, self.segments_backend):
 			newcode += i.items
+			newerrs += i.error_link
 		self.segments = []
 		self.segments_backend = []
 		offset = self.offset + len(self.bytecode)
@@ -176,7 +211,8 @@ class CodeBuilder:
 				assert newcode[address].destination.location is not None
 				newcode[address] = newcode[address].destination.location
 		self.bytecode += newcode
-		return self.bytecode
+		self.error_link += newerrs
+		return ConstructedBytecode(self.bytecode[:], self.error_link[:])
 
 
 class CodeSegment:
@@ -232,7 +268,7 @@ class CodeSegment:
 			else:
 				self.bytecodeify(right, s, unsafe)
 				self.bytecodeify(left, s, unsafe)
-				self.push(OPERATOR_DICT[op])
+				self.push(OPERATOR_DICT[op], error = p['token']['source'])
 		elif node_type == 'not':
 			self.bytecodeify(p['expression'], s, unsafe)
 			self.push(I.UNR_NOT)

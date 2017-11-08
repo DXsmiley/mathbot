@@ -63,12 +63,11 @@ def print_token_parse_caret(to):
 
 
 def format_parse_error(message, string, position):
-	lines = [' '] + string.split('\n') + [' ']
+	lines = [''] + string.split('\n') + ['']
 	line = 1
 	while position > len(lines[line]):
 		position -= len(lines[line]) + 1
 		line += 1
-	length = len(string)
 	return ERROR_TEMPLATE.format(
 		prev = lines[line - 1],
 		cur = lines[line],
@@ -91,8 +90,10 @@ def interactive_terminal():
 	runtime = wrap_with_runtime(builder, None)
 	interpereter = Interpereter(runtime, builder = builder)
 	interpereter.run()
+	line_count = 0
 
 	while True:
+		line_count += 1
 		line = input('> ')
 		if line == '':
 			break
@@ -107,7 +108,7 @@ def interactive_terminal():
 				print('{:40} : {:20}'.format(str(key), str(value)))
 		else:
 			try:
-				tokens, ast = parser.parse(line)
+				tokens, ast = parser.parse(line, source_name = 'iterm_' + str(line_count))
 				if show_tree:
 					print(json.dumps(ast, indent = 4))
 				ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
@@ -117,13 +118,23 @@ def interactive_terminal():
 				})
 				# for index, byte in enumerate(bytes):
 				# 	print('{:3d} - {}'.format(index, byte))
-				print(run_with_timeout(interpereter.run_async(), 5))
+				result = run_with_timeout(interpereter.run_async(), 5)
+				if result is not None:
+					print(result)
 			except errors.EvaluationError as e:
+				dbg = e._linking
+				if dbg is None:
+					print('No debugging information available for this error.')
+					# print('You may wish to open an issue: github.com/DXsmiley/mathbot')
+				else:
+					print('Error in', dbg['name'], 'at position', dbg['position'])
+					print(dbg['code'])
+					print(' ' * dbg['position'] + '^')
 				print(str(e))
+				print('-' * len(str(e)), '\n')
 			except parser.ParseFailed as e:
 				print(format_parse_error('error', line, e.location))
 			except Exception as e:
 				traceback.print_exc()
-
 
 main()

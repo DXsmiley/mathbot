@@ -10,7 +10,9 @@ DROP_DELIMITERS = 2
 class ParseFailed(Exception):
 
 	def __init__(self, block):
-		self.position = block.root.rightmost + 1
+		r = block.root
+		self.position = min(len(r.original_tokens) - 1, r.rightmost)
+		self.location = r.original_tokens[self.position]['position']
 
 	def __str__(self):
 		return 'Failed to parse token at position {}'.format(self.position)
@@ -31,9 +33,10 @@ class TokenRoot:
 
 	''' Class that contains a list of tokens '''
 
-	def __init__(self, string, nested_tokens):
+	def __init__(self, string, original_tokens, nested_tokens):
 		self.string = string
 		self.rightmost = -1
+		self.original_tokens = original_tokens
 		self.tokens = self.process_nested_tokens(nested_tokens)
 
 	def update_rightmost(self, position):
@@ -72,11 +75,9 @@ class TokenBlock:
 	def eat_details(self):
 		self.place += 1
 		token = self.values[self.place - 1]
-		if isinstance(token, TokenBlock):
-			return token
-		else:
+		if not isinstance(token, TokenBlock):
 			self.root.update_rightmost(token['position'])
-			return token
+		return token
 
 	def details(self, index = 0):
 		if self.place + index < len(self.values):
@@ -88,10 +89,13 @@ class TokenBlock:
 			if isinstance(t, dict):
 				return t['#'] in valids
 
+	def is_complete(self):
+		return self.place >= len(self.values)
+
 
 def ensure_completed(function, tokens):
 	result = function(tokens)
-	if tokens[0] != None:
+	if not tokens.is_complete():
 		raise UnableToFinishParsing(tokens)
 	return result
 
@@ -99,7 +103,7 @@ def ensure_completed(function, tokens):
 def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, always_package = False):
 	def internal(tokens):
 		listing = []
-		if tokens[0] == None:
+		if tokens.is_complete():
 			if not allow_nothing:
 				raise UnexpectedLackOfToken(tokens)
 		else:
@@ -149,21 +153,17 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 
 def atom(tokens):
 	if tokens.peek(0, 'number', 'word'):
-		t = tokens.details()
-		tokens.eat()
-		return t
+		return tokens.eat_details()
 
 
 def word(tokens):
 	if tokens.peek(0, 'word'):
-		t = tokens.details()
-		tokens.eat()
-		return t
+		return tokens.eat_details()
 
 
 def wrapped_expression(tokens):
 	if isinstance(tokens[0], TokenBlock):
-		return expression(tokens.eat())
+		return ensure_completed(expression, tokens.eat())
 	return atom(tokens)
 
 
@@ -320,6 +320,8 @@ def comparison_list(tokens):
 
 def function_definition(tokens):
 	if tokens.peek(1, 'function_definition'):
+		if not isinstance(tokens[0], TokenBlock):
+			raise ParseFailed(tokens)
 		args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
 		kind = tokens.eat_details()
 		expr = expression(tokens)
@@ -431,7 +433,8 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 					'position': location,
 					'source': {
 						'name': source_name,
-						'code': original_string
+						'code': original_string,
+						'position': location
 					}
 				})
 			location += len(possible[0][1])
@@ -478,6 +481,6 @@ def parse(string, source_name = '__unknown__'):
 		source_name = source_name
 	)
 	nested = process_tokens(tokens)
-	package = TokenRoot(string, nested)
+	package = TokenRoot(string, tokens, nested)
 	result = ensure_completed(program, package.tokens)
 	return package, result
