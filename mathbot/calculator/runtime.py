@@ -189,24 +189,25 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 
 def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = False):
 	# ----- Declarations --------------------
+	elnk = {'name': '_system_base', 'position': 0, 'code': '?'}
 	s = builder.new_segment()
 	if protect_globals:
 		s.push(I.BEGIN_PROTECTED_GLOBAL_BLOCK)
 	def assignment(name, value):
-		s.push(I.CONSTANT)
+		s.push(I.CONSTANT, error = elnk)
 		s.push(value)
 		scope, depth, index = builder.globalscope.find_value(name)
 		assert(scope == builder.globalscope)
 		assert(depth == 0)
-		s.push(I.ASSIGNMENT)
+		s.push(I.ASSIGNMENT, error = elnk)
 		s.push(index)
 	def function(name, address, macro = False):
-		s.push(I.FUNCTION_MACRO if macro else I.FUNCTION_NORMAL)
+		s.push(I.FUNCTION_MACRO if macro else I.FUNCTION_NORMAL, error = elnk)
 		s.push(Pointer(address))
 		scope, depth, index = builder.globalscope.find_value(name)
 		assert(scope == builder.globalscope)
 		assert(depth == 0)
-		s.push(I.ASSIGNMENT)
+		s.push(I.ASSIGNMENT, error = elnk)
 		s.push(index)
 	# Mathematical constants
 	for name, value in FIXED_VALUES.items():
@@ -221,14 +222,14 @@ def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = Fal
 	# The essential things
 	# _, ast = parser.parse(BOILER_CODE)
 	# builder.bytecodeify(ast, unsafe = True)
-	_, ast = parser.parse(LIBRARY_CODE)
+	_, ast = parser.parse(LIBRARY_CODE, source_name = '_system_library')
 	builder.bytecodeify(ast, unsafe = True)
 	# ----- User Code -----------------------
 	if my_ast is not None:
 		builder.bytecodeify(my_ast)
 	if protect_globals:
-		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK)
-	builder.new_segment().push(I.END)
+		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK, error = elnk)
+	builder.new_segment().push(I.END, error = elnk)
 	# ----- Return the resulting bytecode -
 	return builder.dump()
 

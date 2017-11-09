@@ -30,10 +30,10 @@ def main():
 		args = parse_arguments()
 		filename = proc_filename(args.filename)
 		code = open(filename).read()
-		tokens, ast = parser.parse(code)
+		tokens, ast = parser.parse(code, source_name = filename)
 		btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
 		if args.compile:
-			print(bytecode.stringify(btc))
+			print(btc.dump())
 			return
 		interpereter = Interpereter(btc, trace = args.trace)
 		result = interpereter.run()

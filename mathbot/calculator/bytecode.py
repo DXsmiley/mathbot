@@ -143,8 +143,13 @@ class ConstructedBytecode:
 		self.bytecode = bytecode
 		self.error_link = error_link
 
-	def dump(self):
+	def dump(self, release = False):
+		''' Produces a representation of the bytecode that should,
+			in theory, be transferrable to another computer, or
+			be loaded by a different program.
+		'''
 		result = []
+		sources = {}
 		for i, e in zip(self.bytecode, self.error_link):
 			if i is None:
 				result.append(['nul'])
@@ -152,9 +157,11 @@ class ConstructedBytecode:
 				result.append([
 					'ist',
 					int(i),
-					'?' if e is None else e['position'],
-					'?' if e is None else e['name']
+					'?' if release or e is None else e['position'],
+					'?' if release or e is None else e['name']
 				])
+				if e is not None:
+					sources[e['name']] = e['code']
 			elif isinstance(i, str):
 				result.append(['str', i])
 			elif isinstance(i, int):
@@ -166,7 +173,11 @@ class ConstructedBytecode:
 			else:
 				raise Exception('Unknown bytecode item: {}'.format(str(i)))
 		toline = lambda items : ' '.join(map(str, items))
-		return '\n'.join(map(toline, result))
+		result = 'bytecode: 0 0 0 (unstable)\n' + '\n'.join(map(toline, result)) + '\n'
+		if not release:
+			for key, value in sources.items():
+				result += 'source: {} {} {}\n{}\n'.format(key, len(value), value.count('\n'), value)
+		return result
 
 
 class CodeBuilder:
