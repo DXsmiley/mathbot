@@ -47,7 +47,7 @@ class PurgeModule(core.module.Module):
 					if message.author == self.client.user:
 						try:
 							await self.client.delete_message(message)
-						except discord.Errors.NotFound:
+						except discord.errors.NotFound:
 							pass
 						await asyncio.sleep(1)
 			except discord.errors.Forbidden:
