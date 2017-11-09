@@ -251,20 +251,23 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 		'code': latex.strip(),
 	}
 	async with aiohttp.ClientSession() as session:
-		async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
-			loc_req.raise_for_status()
-			jdata = await loc_req.json()
-			# print('LOG:\n', jdata.get('log'))
-			# print(jdata.get('status'))
-			# print(jdata.get('description'))
-			if jdata['status'] == 'error':
-				raise RenderingError
-			filename = jdata['filename']
-		# Now actually get the image
-		async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
-			img_req.raise_for_status()
-			fo = io.BytesIO(await img_req.read())
-			image = PIL.Image.open(fo).convert('RGBA')
+		try:
+			async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
+				loc_req.raise_for_status()
+				jdata = await loc_req.json()
+				# print('LOG:\n', jdata.get('log'))
+				# print(jdata.get('status'))
+				# print(jdata.get('description'))
+				if jdata['status'] == 'error':
+					raise RenderingError
+				filename = jdata['filename']
+			# Now actually get the image
+			async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
+				img_req.raise_for_status()
+				fo = io.BytesIO(await img_req.read())
+				image = PIL.Image.open(fo).convert('RGBA')
+		except aiohttp.client_exceptions.ClientResponseError:
+			raise RenderingError
 	if colour_back is not None:
 		colour_back = imageutil.hex_to_tuple(colour_back)
 		back = imageutil.new_monocolour(image.size, colour_back)
