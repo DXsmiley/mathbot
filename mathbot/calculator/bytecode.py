@@ -104,6 +104,7 @@ COMPARATOR_DICT = {
 
 PROTECTED_NAMES = [
 	'if',
+	'ifelse',
 	'map',
 	'filter',
 	'reduce'
@@ -307,6 +308,22 @@ class CodeSegment:
 				self.push(Pointer(p_end))
 				self.push(p_false)
 				self.bytecodeify(args[2], s, unsafe)
+				self.push(p_end)
+			elif function_name == 'ifelse':
+				if len(args) < 3 or len(args) % 2 == 0:
+					raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
+				p_end = Destination()
+				p_false = Destination()
+				for condition, result in zip(args[::2], args[1::2]):
+					self.bytecodeify(condition, s, unsafe)
+					self.push(I.JUMP_IF_FALSE)
+					self.push(Pointer(p_false))
+					self.bytecodeify(result, s, unsafe)
+					self.push(I.JUMP)
+					self.push(Pointer(p_end))
+					self.push(p_false)
+					p_false = Destination()
+				self.bytecodeify(args[-1], s, unsafe)
 				self.push(p_end)
 			elif function_name == 'map':
 				if len(args) != 2:
