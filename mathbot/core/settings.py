@@ -114,6 +114,11 @@ async def get_server_prefix(server_id):
 	return value
 
 
+async def get_channel_prefix(channel):
+	if channel.is_private:
+		return '='
+	return await get_server_prefix(channel.server.id)
+
 
 async def set_server_prefix(server_id, prefix):
 	PREFIX_CACHE[server_id] = prefix
