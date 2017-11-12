@@ -1,35 +1,35 @@
 # So these look pretty weird, but they're actually required
 # for the language to function correctly
-if = (c, t, f) ~> if(c(), t(), f()),
-map = (f, a) -> map(f, a),
-reduce = (f, a) -> reduce(f, a),
-filter = (f, a) -> filter(f, a),
+if (c, t, f) ~> if(c(), t(), f()),
+map (f, a) -> map(f, a),
+reduce (f, a) -> reduce(f, a),
+filter (f, a) -> filter(f, a),
 
 # Kinda need this one
-array = (a.) -> a,
+array (a.) -> a,
 
 # Functions that wrap around the standard operators
-sum = (a, b) -> a + b,
-product = (a, b) -> a * b,
-difference = (a, b) -> a - b,
-quotient = (a, b) -> a / b,
-power = (a, b) -> a ^ b,
-modulo = (a, b) -> a % b,
+sum (a, b) -> a + b,
+product (a, b) -> a * b,
+difference (a, b) -> a - b,
+quotient (a, b) -> a / b,
+power (a, b) -> a ^ b,
+modulo (a, b) -> a % b,
 
 # Useful comparitive things
-max = (a, b) -> if(a > b, a, b),
-min = (a, b) -> if(a < b, a, b),
+max (a, b) -> if(a > b, a, b),
+min (a, b) -> if(a < b, a, b),
 
 # Like map but you get to iterate over two ranges at once
-zipmap = (f, a, b) -> map(
+zipmap (f, a, b) -> map(
 	(i) -> f(a(i), b(i)),
 	range(0, max(length(a), length(b)))
 ),
 
 # Operations to do things with mathematical vectors
-vadd = (u, v) -> zipmap(sum, u, v),
-vsub = (u, v) -> zipmap(difference, u, v),
-vdot = (u, v) -> reduce(sum, zipmap(product, u, v)),
+vadd (u, v) -> zipmap(sum, u, v),
+vsub (u, v) -> zipmap(difference, u, v),
+vdot (u, v) -> reduce(sum, zipmap(product, u, v)),
 
 # That series thing!
-series = (function, start, end) -> reduce(sum, map(function, range(start, end + 1)))
+series (function, start, end) -> reduce(sum, map(function, range(start, end + 1)))
