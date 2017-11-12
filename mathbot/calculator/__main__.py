@@ -14,7 +14,7 @@ from calculator.runtime import wrap_with_runtime
 
 
 ERROR_TEMPLATE = '''\
-Parse error on line {line_num} at position {position}
+On line {line_num} at position {position}
 {prev}
 {cur}
 {carat}
@@ -40,7 +40,7 @@ def main():
 		result = interpereter.run()
 		print(result)
 	except parser.ParseFailed as e:
-		print(format_parse_error('error', code, e.position))
+		print(format_error_place(code, e.position))
 
 
 def parse_arguments():
@@ -63,7 +63,7 @@ def print_token_parse_caret(to):
 	print((sum(map(len, to.tokens[:to.rightmost])) + to.rightmost) * ' ' + '^')
 
 
-def format_parse_error(message, string, position):
+def format_error_place(string, position):
 	lines = [''] + string.split('\n') + ['']
 	line = 1
 	while line < len(lines) - 2 and position > len(lines[line]):
@@ -130,13 +130,16 @@ def interactive_terminal():
 					print('No debugging information available for this error.')
 					# print('You may wish to open an issue: github.com/DXsmiley/mathbot')
 				else:
-					print('Error in', dbg['name'], 'at position', dbg['position'])
-					print(dbg['code'])
-					print(' ' * dbg['position'] + '^')
+					print('Runtime error in', dbg['name'])
+					print(format_error_place(dbg['code'], dbg['position']))
 				print(str(e))
 				print('-' * len(str(e)), '\n')
 			except parser.ParseFailed as e:
-				print(format_parse_error('error', line, e.position))
+				print('Parse error')
+				print(format_error_place(line, e.position))
+			except parser.TokenizationFailed as e:
+				print('Tokenization error')
+				print(format_error_place(line, e.position))
 			except Exception as e:
 				traceback.print_exc()
 
