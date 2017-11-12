@@ -94,20 +94,24 @@ class FunctionInspector:
 		self.address = self.function_object.address
 
 	@property
-	def num_parameters(self):
+	def name(self):
 		return self.bytes[self.address + 1]
 
 	@property
-	def is_variadic(self):
+	def num_parameters(self):
 		return self.bytes[self.address + 2]
 
 	@property
-	def is_macro(self):
+	def is_variadic(self):
 		return self.bytes[self.address + 3]
 
 	@property
+	def is_macro(self):
+		return self.bytes[self.address + 4]
+
+	@property
 	def code_address(self):
-		return self.address + 4
+		return self.address + 5
 
 
 class CallingCache:
@@ -429,7 +433,10 @@ class Interpereter:
 
 	def inst_function(self):
 		self.place += 1
-		self.push(Function(self.head, self.current_scope))
+		function = Function(self.head, self.current_scope, '?')
+		inspector = FunctionInspector(self, function)
+		function.name = inspector.name
+		self.push(function)
 
 	# def inst_function_normal(self):
 	# 	self.place += 1

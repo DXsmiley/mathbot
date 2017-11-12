@@ -486,6 +486,7 @@ class CodeSegment:
 		contents = self.new_segment(late = True)
 		start_address = Destination()
 		contents.push(start_address)
+		contents.push(p.get('name', '?').lower())
 		params = [i['string'].lower() for i in p['parameters']['items']]
 		for i in params:
 			if i in PROTECTED_NAMES:

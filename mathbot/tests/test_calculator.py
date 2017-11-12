@@ -149,6 +149,8 @@ def test_assignment():
 def test_functions():
 	doit('double = (x) -> x * 2, double(3)', 6)
 	doit('multiply = (x, y) -> x * y, multiply(4, 5)', 20)
+	doit('double (x) -> x * 2, double(3)', 6)
+	doit('multiply (x, y) -> x * y, multiply(4, 5)', 20)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(5)', 8)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(50)', 20365011074)
 	doit('if(0, 0, 0)', 0)

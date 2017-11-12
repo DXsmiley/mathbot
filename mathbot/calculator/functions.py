@@ -18,12 +18,16 @@ class BuiltinFunction:
 
 class Function:
 
-	def __init__(self, address, scope):
+	def __init__(self, address, scope, name):
+		# I'm not entirely happy about keeping the name in this thing.
 		self.address = address
 		self.scope = scope
+		self.name = name
 
 	def __repr__(self):
-		return 'f({})'.format(self.address)
+		if self.name == '?':
+			return 'Anonymous function @{}'.format(self.address)
+		return 'Function {} @{}'.format(self.name, self.address)
 
 
 class Array:

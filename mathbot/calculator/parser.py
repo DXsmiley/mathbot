@@ -100,6 +100,12 @@ class TokenBlock:
 			elif isinstance(t, dict):
 				return t['#'] in valids
 
+	def peek_sequence(self, index, *sequence):
+		for offset, item in enumerate(sequence):
+			if not self.peek(index + offset, item):
+				return False
+		return True
+
 	def peek_string(self, index, *valids):
 		if self.place + index < len(self.values):
 			t = self.values[self.place + index]
@@ -395,6 +401,15 @@ def statement(tokens):
 			'#': 'assignment',
 			'variable': name,
 			'value': value
+		}
+	elif tokens.peek_sequence(0, 'word', TokenBlock, 'function_definition'):
+		name = word(tokens)
+		function = function_definition(tokens)
+		function['name'] = name['string']
+		return {
+			'#': 'assignment',
+			'variable': name,
+			'value': function
 		}
 	return expression(tokens)
 
