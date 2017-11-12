@@ -81,22 +81,6 @@ class TokenBlock:
 		self.root = root
 		self.edge_tokens = edge_tokens
 
-	# def __getitem__(self, index):
-	# 	if self.place + index < len(self.values):
-	# 		token = self.values[self.place + index]
-	# 		if isinstance(token, TokenBlock):
-	# 			return token
-	# 		return token['string']
-
-	# def eat(self):
-	# 	self.place += 1
-	# 	token = self.values[self.place - 1]
-	# 	if isinstance(token, TokenBlock):
-	# 		return token
-	# 	else:
-	# 		self.root.update_rightmost(token['position'])
-	# 		return token['string']
-
 	def eat_details(self):
 		self.place += 1
 		token = self.values[self.place - 1]
@@ -300,7 +284,6 @@ def superscript(tokens):
 	result = dieroll(tokens)
 	while tokens.peek(0, 'superscript'):
 		tok = tokens.eat_details()
-		print(tok['string'], tok['string'].translate(SUPERSCRIPT_MAP))
 		result = {
 			'#': 'bin_op',
 			'operator': '^',
