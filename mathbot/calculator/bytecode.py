@@ -251,18 +251,21 @@ class CodeSegment:
 			op = p['operator']
 			left = p['left']
 			right = p['right']
+			er = p['token']['source']
 			if op == '&': # Logical and
 				end = Destination()
 				self.bytecodeify(left, s, unsafe)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_FALSE,
-					Pointer(end)
+					Pointer(end),
+					error = er
 				)
 				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_AND,
-					end
+					end,
+					error = er
 				)
 			elif op == '|': # Logical or
 				end = Destination()
@@ -270,12 +273,14 @@ class CodeSegment:
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_TRUE,
-					Pointer(end)
+					Pointer(end),
+					error = er
 				)
 				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_OR_,
-					end
+					end,
+					error = er
 				)
 			else:
 				self.bytecodeify(right, s, unsafe)
@@ -283,14 +288,14 @@ class CodeSegment:
 				self.push(OPERATOR_DICT[op], error = p['token']['source'])
 		elif node_type == 'not':
 			self.bytecodeify(p['expression'], s, unsafe)
-			self.push(I.UNR_NOT)
+			self.push(I.UNR_NOT, error = p['token']['source'])
 		elif node_type == 'die':
 			self.bytecodeify(p['faces'], s, unsafe)
 			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s, unsafe)
-			self.push(I.BIN_DIE)
+			self.push(I.BIN_DIE, error = p['token']['source'])
 		elif node_type == 'uminus':
 			self.bytecodeify(p['value'], s, unsafe)
-			self.push(I.UNR_MIN)
+			self.push(I.UNR_MIN, error = p['token']['source'])
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
 			function_name = p['function']['string'].lower() if p['function']['#'] == 'word' else None
@@ -330,9 +335,12 @@ class CodeSegment:
 					raise calculator.errors.CompilationError('Invalid number of argument for map function')
 				self.bytecodeify(args[0], s, unsafe)
 				self.bytecodeify(args[1], s, unsafe)
-				self.push(I.CONSTANT_EMPTY_ARRAY)
-				self.push(I.SPECIAL_MAP)
-				self.push(I.SPECIAL_MAP_STORE)
+				self.push(
+					I.CONSTANT_EMPTY_ARRAY,
+					I.SPECIAL_MAP,
+					I.SPECIAL_MAP_STORE,
+					error = p['function']['source']
+				)
 			elif function_name == 'filter':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
@@ -343,7 +351,8 @@ class CodeSegment:
 					I.CONSTANT, 0,
 					I.SPECIAL_FILTER,
 					# I.STORE_IN_CACHE,
-					I.SPECIAL_FILTER_STORE
+					I.SPECIAL_FILTER_STORE,
+					error = p['function']['source']
 				)
 			elif function_name == 'reduce':
 				if len(args) != 2:
@@ -354,12 +363,12 @@ class CodeSegment:
 				self.push(I.DUPLICATE)
 				self.push(I.CONSTANT)
 				self.push(0)
-				self.push(I.ACCESS_ARRAY_ELEMENT)
+				self.push(I.ACCESS_ARRAY_ELEMENT, error = p['function']['source'])
 				# Iterator
 				self.push(I.CONSTANT)
 				self.push(1)
 				# Stack now contains [function, array, result, index]
-				self.push(I.SPECIAL_REDUCE)
+				self.push(I.SPECIAL_REDUCE, error = p['function']['source'])
 				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
 				# IDEA: If the function contains only a small amount of code, we can also
@@ -407,7 +416,7 @@ class CodeSegment:
 				# so we only need the name for this one.
 				self.push(I.ACCESS_GLOBAL)
 				self.push(index)
-				self.push(p['string'])
+				self.push(p['string'], error = p['source'])
 			elif depth == 0:
 				self.push(I.ACCESS_LOCAL)
 				self.push(index)
@@ -417,7 +426,7 @@ class CodeSegment:
 				self.push(index)
 		elif node_type == 'factorial':
 			self.bytecodeify(p['value'], s, unsafe)
-			self.push(I.UNR_FAC)
+			self.push(I.UNR_FAC, error = p['token']['source'])
 		elif node_type == 'assignment':
 			self.bytecodeify(p['value'], s, unsafe)
 			name = p['variable']['string'].lower()
@@ -447,14 +456,14 @@ class CodeSegment:
 			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(I.FUNCTION_NORMAL)
 			self.push(start_pointer)
-			return 
 		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
 				self.bytecodeify(p['rest'][0]['value'], s, unsafe)
 				self.bytecodeify(p['first'], s, unsafe)
 				op = p['rest'][0]['operator']
-				self.push(OPERATOR_DICT[op])
+				er = p['rest'][0]['token']['source']
+				self.push(OPERATOR_DICT[op], error = er)
 			else:
 				bailed = Destination()
 				end = Destination()
@@ -470,7 +479,7 @@ class CodeSegment:
 							I.STACK_SWAP # Put the value back on top
 						)
 					self.bytecodeify(ast['value'], s, unsafe)
-					self.push(COMPARATOR_DICT[ast['operator']])
+					self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
 				self.push(
 					I.JUMP,
 					Pointer(end),

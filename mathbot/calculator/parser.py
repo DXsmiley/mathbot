@@ -14,6 +14,9 @@ class ParseFailed(Exception):
 
 	details = ''
 
+	def __init__(self, *args):
+		raise NotImplementedError("Should not be creating ParseFailed exceptions directly")
+
 	def __str__(self):
 		if self.details == '':
 			return 'Failed to parse token at position {}'.format(self.position)
@@ -138,7 +141,7 @@ def ensure_completed(function, tokens):
 def expect(tokens, rule):
 	result = rule(tokens)
 	if result is None:
-		raise ParseFailed(tokens)
+		raise UnableToFinishParsing(tokens)
 	return result
 
 
@@ -247,7 +250,7 @@ def factorial(tokens):
 		token = tokens.eat_details()
 		value = {
 			'#': 'factorial',
-			'tokens': token,
+			'token': token,
 			'value': value
 		}
 	return value
