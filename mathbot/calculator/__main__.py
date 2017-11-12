@@ -14,6 +14,7 @@ from calculator.runtime import wrap_with_runtime
 
 
 ERROR_TEMPLATE = '''\
+Parse error on line {line_num} at position {position}
 {prev}
 {cur}
 {carat}
@@ -65,14 +66,16 @@ def print_token_parse_caret(to):
 def format_parse_error(message, string, position):
 	lines = [''] + string.split('\n') + ['']
 	line = 1
-	while position > len(lines[line]):
+	while line < len(lines) - 2 and position > len(lines[line]):
 		position -= len(lines[line]) + 1
 		line += 1
 	return ERROR_TEMPLATE.format(
+		line_num = line,
+		position = position,
 		prev = lines[line - 1],
 		cur = lines[line],
 		next = lines[line + 1],
-		carat = ' ' * (position - 1) + '^'
+		carat = ' ' * position + '^'
 	)
 
 
@@ -133,7 +136,7 @@ def interactive_terminal():
 				print(str(e))
 				print('-' * len(str(e)), '\n')
 			except parser.ParseFailed as e:
-				print(format_parse_error('error', line, e.location))
+				print(format_parse_error('error', line, e.position))
 			except Exception as e:
 				traceback.print_exc()
 

@@ -12,19 +12,30 @@ class DelimitedBinding(enum.Enum):
 
 class ParseFailed(Exception):
 
-	def __init__(self, block):
-		r = block.root
-		self.root = r
-		self.index = min(len(r.original_tokens) - 1, r.rightmost)
-		self.position = r.original_tokens[self.index]['position']
+	details = ''
 
 	def __str__(self):
-		return 'Failed to parse token at position {}'.format(self.position)
+		if self.details == '':
+			return 'Failed to parse token at position {}'.format(self.position)
+		return 'Failed to parse token at position {} : details'.format(self.position, self.details)
 
 
-class UnableToFinishParsing(ParseFailed): pass
-class UnexpectedLackOfToken(ParseFailed): pass
-class ImbalancedBraces(Exception): pass
+class ParseFailedBlock(ParseFailed):
+
+	def __init__(self, block):
+		self.position = block.root.get_error_location()
+
+
+class UnableToFinishParsing(ParseFailedBlock): pass
+class UnexpectedLackOfToken(ParseFailedBlock): pass
+
+
+class ImbalancedBraces(ParseFailed):
+
+	details = 'Imbalanced braces'
+
+	def __init__(self, token):
+		self.position = token['position']
 
 
 class TokenizationFailed(Exception):
@@ -53,6 +64,13 @@ class TokenRoot:
 			if isinstance(tokens[i], list):
 				tokens[i] = self.process_nested_tokens(tokens[i])
 		return TokenBlock(self, tokens, (first, last))
+
+	def get_error_location(self):
+		place = self.rightmost + 1
+		# print(place)
+		# for i, v in enumerate(self.original_tokens):
+		# 	print('>>>' if i == place else '   ', v)
+		return self.original_tokens[place]['position']
 
 
 class TokenBlock:
@@ -83,7 +101,7 @@ class TokenBlock:
 		self.place += 1
 		token = self.values[self.place - 1]
 		if not isinstance(token, TokenBlock):
-			self.root.update_rightmost(token['position'])
+			self.root.update_rightmost(token['index'])
 		return token
 
 	def details(self, index = 0):
@@ -127,19 +145,27 @@ def ensure_completed(function, tokens):
 	return result
 
 
+def expect(tokens, rule):
+	result = rule(tokens)
+	if result is None:
+		raise ParseFailed(tokens)
+	return result
+
+
 def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, always_package = False):
 	if not isinstance(binding, DelimitedBinding):
 		raise ValueError('{} is not a valid rule for binding'.format(binding))
+
 	def internal(tokens):
 		listing = []
 		if tokens.is_complete():
 			if not allow_nothing:
 				raise UnexpectedLackOfToken(tokens)
 		else:
-			listing = [subrule(tokens)]
+			listing = [expect(tokens, subrule)]
 		while tokens.peek(0, *delimiters):
 			listing.append(tokens.eat_details())
-			listing.append(subrule(tokens))
+			listing.append(expect(tokens, subrule))
 		if len(listing) == 1 and not always_package:
 			return listing[0]
 		if binding == DelimitedBinding.DONT_PROCESS:
@@ -394,6 +420,7 @@ program = eat_delimited(statement, ['comma'], DelimitedBinding.DROP_AND_FLATTEN,
 
 
 def process_tokens(tokens):
+	tokens = tokens[::]
 	# Check that the brackets are balanced
 	depth = 0
 	for tok in tokens:
@@ -402,10 +429,12 @@ def process_tokens(tokens):
 		elif tok['string'] == ')':
 			depth -= 1
 			if depth < 0:
-				raise ImbalancedBraces
+				raise ImbalancedBraces(tok)
 	if depth > 0:
-		raise ImbalancedBraces
+		raise ImbalancedBraces(tokens[-1])
 	# Do the thing
+	p_start = tokens.pop(0)
+	p_end   = tokens.pop()
 	tokens = tokens[::-1]
 	def recurse(first_token):
 		result = [first_token]
@@ -419,7 +448,7 @@ def process_tokens(tokens):
 			else:
 				result.append(tok)
 		return result
-	return recurse(None) + [None]
+	return recurse(p_start) + [p_end]
 
 
 def run(string):
@@ -447,7 +476,11 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 	# print(string)
 	regexes = [x if len(x) == 3 else (x[0], x[1], None) for x in ttypes]
 	regexes = list(map(lambda x: (x[0], re.compile(x[1]), x[2]), regexes))
-	result = []
+	result = [{
+		'#': 'pseudotoken-start',
+		'string': '',
+		'position': 0,
+	}]
 	# Hard coded thing here, maybe remove it.
 	string = original_string.replace('\t', ' ')
 	location = 0
@@ -481,6 +514,13 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 				})
 			location += len(possible[0][1])
 			string = string[len(possible[0][1]):]
+	result.append({
+		'#': 'pseudotoken-end',
+		'string': '',
+		'position': len(original_string.rstrip()) + 1
+	})
+	for i, v in enumerate(result):
+		v['index'] = i
 	return result
 
 
