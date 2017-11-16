@@ -8,8 +8,8 @@ import safe
 import core.help
 import core.module
 import core.handles
+import core.settings
 import calculator
-import calculator.texify
 import calculator.parser
 import collections
 import traceback
@@ -75,6 +75,12 @@ Failed to parse equation: {message} at position {position}\n
 {string}
 {carat}
 ```
+'''
+
+SHORTCUT_HELP_CLARIFICATION = '''\
+The `==` prefix is a shortcut for the `{prefix}calc` command.
+For information on how to use the bot, type `{prefix}help`.
+For information on how to use the `{prefix}calc`, command, type `{prefix}help calc`.
 '''
 
 
@@ -152,6 +158,9 @@ class CalculatorModule(core.module.Module):
 			# If no equation was given, spit out the help.
 			if not message.content.startswith('=='):
 				await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
+		elif arg == 'help':
+			prefix = await core.settings.get_channel_prefix(message.channel)
+			await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 		else:
 			safe.sprint('Doing calculation:', arg)
 			if arg.count(':') > 1:
@@ -173,8 +182,10 @@ class CalculatorModule(core.module.Module):
 				except asyncio.TimeoutError:
 					result = 'Calculation took too long'
 				except calculator.EvaluationError as e:
-					traceback.print_exc()
+					# traceback.print_exc()
 					result = 'Error: ' + str(e)
+					if len(result) > 2000:
+						result = 'An error occurred, but it was too large to display.'
 				except calculator.parser.ImbalancedBraces as e:
 					result = 'Invalid syntax: Imbalanced braces'
 				except calculator.parser.TokenizationFailed as e:
@@ -192,5 +203,5 @@ class CalculatorModule(core.module.Module):
 						result = 'Result was too big :('
 					if len(result) < 1000 and await advertising.should_advertise_to(message.author, message.channel):
 						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-					safe.sprint(result)
+				safe.sprint(result)
 				await self.send_message(message.channel, result, blame = message.author)

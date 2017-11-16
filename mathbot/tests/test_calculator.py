@@ -1,6 +1,7 @@
 import calculator
 import pytest
 import math
+import cmath
 
 TIMEOUT = 100000
 
@@ -99,6 +100,7 @@ def test_unicode():
 	doit('3×2', 6)
 	doit('6÷2', 3)
 	doit('π', math.pi)
+	doit('τ', 2 * math.pi)
 	doit('5*0', 0)
 
 def test_dice_rolling():
@@ -304,3 +306,17 @@ def test_compile_failures():
 	compile_fail('map = 0')
 	compile_fail('reduce = 0')
 	compile_fail('filter = 0')
+
+def test_errors():
+	throws('e^900')
+	throws('sqrt(() -> 0)')
+	throws('10*2^6643')
+	throws('if (true, 8)')
+	throws('low(1, 1)')
+
+def test_trig():
+	doit('sin(0)', 0)
+	doit('cos(pi)', -1)
+	doit('sin(8)', math.sin(8))
+	doit('sin(8i+3)', cmath.sin(3+8j))
+	doit('atan(0.1)', math.atan(0.1))

@@ -41,7 +41,7 @@ def paste_to_background(image, colour = (255,255,255, 255), padding = 0):
 
 
 def trim_image(im):
-	bg = PIL.Image.new('RGBA', im.size, (255, 255, 255, 0))
+	bg = PIL.Image.new('RGBA', im.size, (255, 255, 255, 255))
 	diff = PIL.ImageChops.difference(im, bg)
 	# diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
 	bbox = diff.getbbox()

@@ -16,33 +16,26 @@ PMAP_COMMAND_ALLOW = {
 CL_SELF = ['self']
 CL_CHANNEL = ['channel', 'server']
 
+SN_STANDARD = {
+	'values': PMAP_COMMAND_ALLOW,
+	'contexts': CL_CHANNEL,
+	'default': True
+}
+
+SN_STANDARD_FALSE = {
+	'values': PMAP_COMMAND_ALLOW,
+	'contexts': CL_CHANNEL,
+	'default': False
+}
+
 
 SETTINGS = {
-	'c-tex': {
-		'values': PMAP_COMMAND_ALLOW,
-		'contexts': CL_CHANNEL,
-		'default': True
-	},
-	'c-calc': {
-		'values': PMAP_COMMAND_ALLOW,
-		'contexts': CL_CHANNEL,
-		'default': True
-	},
-	'c-wolf': {
-		'values': PMAP_COMMAND_ALLOW,
-		'contexts': CL_CHANNEL,
-		'default': True
-	},
-	'f-calc-shortcut': {
-		'values': PMAP_COMMAND_ALLOW,
-		'contexts': CL_CHANNEL,
-		'default': True
-	},
-	'f-wolf-filter': {
-		'values': PMAP_COMMAND_ALLOW,
-		'contexts': CL_CHANNEL,
-		'default': True
-	},
+	'c-tex': SN_STANDARD,
+	'c-calc': SN_STANDARD,
+	'c-wolf': SN_STANDARD,
+	'f-calc-shortcut': SN_STANDARD,
+	'f-wolf-filter': SN_STANDARD,
+	'f-inline-tex': SN_STANDARD_FALSE,
 	'p-tex-colour': { # This is now being used as a general 'theme' setting.
 		'values': {
 			'light': 'light',
@@ -120,6 +113,11 @@ async def get_server_prefix(server_id):
 	PREFIX_CACHE[server_id] = value
 	return value
 
+
+async def get_channel_prefix(channel):
+	if channel.is_private:
+		return '='
+	return await get_server_prefix(channel.server.id)
 
 
 async def set_server_prefix(server_id, prefix):

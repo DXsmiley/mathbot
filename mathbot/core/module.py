@@ -21,49 +21,50 @@ class Module:
 
 	# Functions used by the system
 
+	def collect_by_type(self, type):
+		items = []
+		for name, item in self.__class__.__dict__.items():
+			if isinstance(item, type):
+				items.append(item)
+		return items
+
+
 	def collect_background_tasks(self):
 		''' Returns a list of the module's background tasks. '''
-		tasks = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.BackgroundTask):
-				tasks.append(item)
-		return tasks
+		return self.collect_by_type(core.handles.BackgroundTask)
 
 	def collect_startup_tasks(self):
 		''' Returns a list of the module's startup tasks. '''
-		tasks = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.StartupTask):
-				tasks.append(item)
-		return tasks
+		return self.collect_by_type(core.handles.StartupTask)
 
 	def collect_command_handlers(self):
 		''' Returns a list of the module's command handlers. '''
 		commands = []
 		for name, item in self.__class__.__dict__.items():
 			if isinstance(item, core.handles.Command):
-				print('Registered command:', item.name, '(', item.format, ')')
-				if item.perm_setting:
-					print(' - Setting:', item.perm_setting)
-				if item.on_edit:
-					print(' - Has edit handler')
+				# print('Registered command:', item.name, '(', item.format, ')')
+				# if item.perm_setting:
+				# 	print(' - Setting:', item.perm_setting)
+				# if item.on_edit:
+				# 	print(' - Has edit handler')
 				commands.append(item)
 		return commands
 
 	def collect_message_handlers(self):
 		''' Returns a list of the module's message handlers. '''
-		handlers = []
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.OnMessage):
-				handlers.append(item)
-		return handlers
+		return self.collect_by_type(core.handles.OnMessage)
 
-	def collection_reaction_handlers(self):
+	def collect_edit_handlers(self):
+		''' Returns a list of the module's edit handlers. '''
+		return self.collect_by_type(core.handles.OnEdit)
+
+	def collect_reaction_handlers(self):
 		''' Returns a list of the module's reaction handlers. '''
-		for name, item in self.__class__.__dict__.items():
-			if isinstance(item, core.handles.ReactionHandler):
-				# print('Reaction handler', item.emoji.encode('utf-8'))
-				yield item
+		return self.collect_by_type(core.handles.ReactionHandler)
+
+	def collect_member_join_handlers(self):
+		''' Returns a list of the module's member join handlers. '''
+		return self.collect_by_type(core.handles.OnMemberJoined)
 
 	# Functions used by the end user
 

@@ -37,6 +37,8 @@ class Manager:
 		self.reaction_handlers = collections.defaultdict(lambda : [])
 		self.modules = []
 		self.raw_handlers_message = []
+		self.raw_handlers_edit = []
+		self.raw_handlers_member_joined = []
 		self.shard_id = shard_id
 		self.shard_count = shard_count
 		self.client = create_client(self, shard_id, shard_count)
@@ -70,12 +72,19 @@ class Manager:
 				command.module = module
 			# Get the message handlers
 			for handler in module.collect_message_handlers():
-				print('Raw message handler on', module)
 				self.raw_handlers_message.append(handler)
 				handler.module = module
+			# Get the edit handlers
+			for handler in module.collect_edit_handlers():
+				self.raw_handlers_edit.append(handler)
+				handler.module = module
 			# Get the reaction handlers
-			for handler in module.collection_reaction_handlers():
+			for handler in module.collect_reaction_handlers():
 				self.reaction_handlers[handler.emoji].append((module, handler))
+			# Get the join handlers
+			for handler in module.collect_member_join_handlers():
+				self.raw_handlers_member_joined.append(handler)
+				handler.module = module
 		self.done_setup = True
 
 	# Run the bot. Blocking command.
@@ -89,10 +98,11 @@ class Manager:
 		if not self.done_setup:
 			self.setup()
 		await self.client.start(self.token)
+		print('Shard', self.shard_id, 'has shutdown')
 
 	# Find the proper handler for a given command
 	def find_command_handler(self, cmd_string):
-		parts = cmd_string.split(' ')
+		parts = cmd_string.replace('\n', ' ').split(' ')
 		for num_parts in range(len(parts), 0, -1):
 			joined = ' '.join(parts[:num_parts])
 			command = self.commands.get(joined)
@@ -122,12 +132,14 @@ class Manager:
 	# Handle an incoming meddage edit event
 	async def handle_edit(self, before, after):
 		try:
+			for handler in self.raw_handlers_edit:
+				await handler.func(handler.module, before, after)
 			cmd_before = await self.check_prefixes(before)
 			cmd_after = await self.check_prefixes(after)
 			if cmd_after:
 				command, arguments = self.find_command_handler(cmd_after)
 				if command is not None and command.on_edit is not None:
-					await self.exec_edit_command(before, after, command, cmd_after)
+					await self.exec_edit_command(before, after, command, arguments)
 		except Exception as e:
 			traceback.print_exc()
 			await core.dreport.send(self.client, after.channel, after.content, extra = traceback.format_exc())
@@ -168,6 +180,11 @@ class Manager:
 			for command in module.collect_startup_tasks():
 				tasks.append(command.func(module))
 		asyncio.gather(*tasks)
+
+	async def handle_member_joined(self, member):
+		for handler in self.raw_handlers_member_joined:
+			if handler.servers is None or member.server.id in handler.servers:
+				await handler.func(handler.module, member)
 
 	# Actually execute a command! There's so many layers to this stuff...
 	async def exec_command(self, message, command, arguments):
@@ -275,5 +292,16 @@ def create_client(manager, shard_id, shard_count):
 		if client._core_ready and manager.master_filter(reaction.message.channel):
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
+
+	@client.event
+	async def on_member_join(member):
+		if client._core_ready:
+			await manager.handle_member_joined(member)
+
+	# @client.event
+	# async def on_error(event, *args, **kwargs):
+	# 	# If we get here, a RuntimeError has been raised and we need to restart.
+	# 	print('RuntimeError noticed. Will shut down in a moment...')
+	# 	await client.close()
 
 	return client
