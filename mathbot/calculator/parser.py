@@ -239,7 +239,7 @@ def logic_not(tokens):
 		return {
 			'#': 'not',
 			'token': token,
-			'expression': logic_not(tokens)
+			'expression': expect(tokens, logic_not)
 		}
 	return function_call(tokens)
 
@@ -331,7 +331,7 @@ def uminus2(tokens):
 		return {
 			'#': 'uminus',
 			'token': token,
-			'value': uminus2(tokens)
+			'value': expect(tokens, uminus2)
 		}
 	return superscript(tokens)
 
@@ -345,7 +345,7 @@ def uminus(tokens):
 		return {
 			'#': 'uminus',
 			'token': t,
-			'value': uminus(tokens)
+			'value': expect(tokens, uminus)
 		}
 	return power(tokens)
 
