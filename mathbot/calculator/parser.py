@@ -262,7 +262,7 @@ def dieroll(tokens):
 		return {
 			'#': 'die',
 			'token': token,
-			'faces': factorial(tokens)
+			'faces': expect(tokens, factorial)
 		}
 	left = factorial(tokens)
 	if tokens.peek(0, 'die_op'):
@@ -271,7 +271,7 @@ def dieroll(tokens):
 			'#': 'die',
 			'token': token,
 			'times': left,
-			'faces': factorial(tokens)
+			'faces': expect(tokens, factorial)
 		}
 	return left
 
