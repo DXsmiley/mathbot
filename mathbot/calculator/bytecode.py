@@ -431,7 +431,8 @@ class CodeSegment:
 			self.bytecodeify(p['value'], s, unsafe)
 			name = p['variable']['string'].lower()
 			if name in PROTECTED_NAMES and not unsafe:
-				raise calculator.errors.CompilationError('"{}" cannot be assigned to'.format(name))
+				m = 'Cannot assign to variable "{}"'.format(name)
+				raise calculator.errors.CompilationError(m, p['variable'])
 			scope, depth, index = s.find_value(name)
 			assert(scope == self.builder.globalscope)
 			# print(scope, depth, index)
@@ -497,9 +498,10 @@ class CodeSegment:
 		contents.push(start_address)
 		contents.push(p.get('name', '?').lower())
 		params = [i['string'].lower() for i in p['parameters']['items']]
-		for i in params:
-			if i in PROTECTED_NAMES:
-				raise calculator.errors.CompilationError('"{}" is not allowed as a funcation parameter'.format(i))
+		for n, i in zip(params, p['parameters']['items']):
+			if n in PROTECTED_NAMES:
+				m = '"{}" is not allowed as a funcation parameter'.format(n)
+				raise calculator.errors.CompilationError(m, i)
 		contents.push(len(params))
 		# for i in params:
 		# 	contents.push(i)

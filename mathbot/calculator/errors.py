@@ -44,8 +44,12 @@ class EvaluationError(Exception):
 class CompilationError(Exception):
 	''' Problem in the code found during compilation '''
 
-	def __init__(self, description):
+	def __init__(self, description, source = None):
 		self.description = description
+		if source is None:
+			self.position = None
+		else:
+			self.position = source['source']['position']
 
 	def __str__(self):
 		return self.description

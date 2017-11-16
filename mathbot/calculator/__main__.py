@@ -124,6 +124,11 @@ def interactive_terminal():
 				result = run_with_timeout(interpereter.run_async(), 5)
 				if result is not None:
 					print(result)
+			except errors.CompilationError as e:
+				print('Compilation error')
+				print(e.description)
+				if e.position is not None:
+					print(format_error_place(line, e.position))
 			except errors.EvaluationError as e:
 				dbg = e._linking
 				if dbg is None:
