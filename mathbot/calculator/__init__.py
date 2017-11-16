@@ -1,7 +1,11 @@
+import asyncio
 import calculator.interpereter
 import calculator.parser
 import calculator.runtime
 import calculator.bytecode
+import calculator.errors
+import calculator.runtime
+import calculator.blackbox
 
 def calculate(equation, tick_limit = None):
 	tokens, ast = calculator.parser.parse(equation)
