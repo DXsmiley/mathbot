@@ -311,7 +311,7 @@ def test_errors():
 	throws('e^900')
 	throws('sqrt(() -> 0)')
 	throws('10*2^6643')
-	throws('if (true, 8)')
+	compile_fail('if (true, 8)')
 	throws('low(1, 1)')
 
 def test_trig():
