@@ -8,6 +8,14 @@ import modules.help
 TEMPLATE = '''
 <!DOCTYPE html>
 <html>
+	<!--
+
+		WARNING!
+
+		This file is auto-generated. Do not edit it manualy.
+		See generate_docs_page.py for details on how it is created.
+
+	-->
 	<head>
 		<meta charset="utf-8">
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata|Josefin+Sans:300|Titillium+Web:300" rel="stylesheet">

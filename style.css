@@ -7,9 +7,12 @@ body {
 	padding: 0px;
 }
 
+div {
+	box-sizing: border-box;
+}
+
 div.banner {
 	font-family: 'Josefin Sans', sans-serif;
-	box-sizing: border-box;
 	width: 100vw;
 	height: 100vh;
 	max-height: 700px;
@@ -78,7 +81,7 @@ button:hover {
 }
 
 
-div.navbox {
+div.navbox, div.mobile-navbox {
 	text-align: right;
 	position: fixed;
 	top: 0px;
@@ -90,14 +93,42 @@ div.navbox {
 	font-size: 1.2em;
 }
 
-div.navbox a {
+div.navbox a, div.mobile-navbox a {
 	text-decoration: none;
 	color: rgb(28, 190, 233);
 	margin: 0px 10px;
 }
 
-div.navbox p {
+div.navbox p, div.mobile-navbox p {
 	margin: 0px;
+}
+
+div.mobile-navbox {
+	display: none;
+}
+
+#mobile-menu {
+	display: none;
+}
+
+#server-count-widgit {
+	position: relative;
+	top: 3px;
+}
+
+@media (max-width: 540px) {
+	#server-count-widgit {
+		display: none;
+	}
+}
+
+@media (max-width: 380px) {
+	div.navbox {
+		display: none;
+	}
+	div.mobile-navbox {
+		display: block;
+	}
 }
 
 @media (min-width: 400px) {
@@ -116,14 +147,6 @@ div.navbox p {
 
 }
 
-/*@media (min-width: 1300px) {
-
-	div.navbox {
-		background-color: transparent;
-	}
-
-}*/
-
 @media (min-width: 1600px) {
 
 	div.navbox {
@@ -132,19 +155,19 @@ div.navbox p {
 
 }
 
-div.navbox a:visited {
+div.navbox a:visited, div.mobile-navbox a:visited {
 	color: rgb(28, 190, 233);
 }
 
-div.navbox a.orange {
-	color: rgb(233, 127, 28);
+a.orange {
+	color: rgb(233, 127, 28) !important;
 }
 
-/*img {
+img {
 	width: auto;
 	height: auto;
 	max-width: calc(100vw - 20px);
-}*/
+}
 
 #downarrow {
 	width: 40px;
@@ -256,4 +279,8 @@ div.doc-body a {
 
 button::-moz-focus-inner {
 	border: 0;
+}
+
+p.float-left {
+	float: left;
 }

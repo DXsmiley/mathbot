@@ -13,7 +13,7 @@ official MathBot server: https://discord.gg/JbJbRZS
 """
 
 ERROR_MESSAGE_EXTRA = """\
-Something went wrong while handling the message:
+**(Shard {})** Something went wrong while handling the message:
 ```
 {}
 ```
@@ -22,6 +22,7 @@ Details:
 ```
 {}
 ```
+
 """
 
 async def send(client, origin, query, extra = ''):
@@ -34,7 +35,9 @@ async def send(client, origin, query, extra = ''):
 	message = ERROR_MESSAGE_EXCEPTION.format(query)
 	await client.send_message(origin, message)
 	# Send details to official error place
-	message = ERROR_MESSAGE_EXTRA.format(query, extra)
+	if len(extra) > 1500:
+		extra = '... ' + extra[-1500:]
+	message = ERROR_MESSAGE_EXTRA.format(client.shard_id, query, extra)
 	modules.reporter.enque(message)
 
 

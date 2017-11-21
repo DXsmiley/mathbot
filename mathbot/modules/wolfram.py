@@ -29,6 +29,7 @@ import wordfilter
 import discord
 import xml
 import re
+import itertools
 
 from imageutil import *
 
@@ -181,17 +182,6 @@ def retheme_images(strip, processor):
 		yield image
 
 
-# async def assumption_data(message):
-# 	mid = str(message.id)
-# 	data = await core.keystore.get_json('wolfram', 'message', mid)
-# 	if data is not None:
-# 		data['assumptions'] = wolfapi.Assumptions.from_json(data['assumptions'])
-# 	yield data
-# 	if data is not None:
-# 		data['assumptions'] = data['assumptions'].to_json()
-# 		await core.ksytore.set_json('wolfram', 'message', mid, data, expire = 60 * 60 * 30)
-
-
 class AssumptionDataScope:
 
 	def __init__(self, message, client):
@@ -214,15 +204,6 @@ class AssumptionDataScope:
 			self.data['assumptions'] = self.data['assumptions'].to_json()
 			del self.data['message']
 			await core.keystore.set_json('wolfram', 'message', self.message.id, self.data, expire = 60 * 60 * 30)
-	#
-	# def __getitem__(self, index):
-	# 	return self.data[index]
-	#
-	# def __setitem__(self, index, value):
-	# 	self.data[index] = value
-	#
-	# def __delitem__(self, index):
-	# 	del self.data[index]
 
 
 class WolframModule(core.module.Module):
@@ -237,15 +218,19 @@ class WolframModule(core.module.Module):
 			return core.handles.Redirect('help wolfram')
 		elif not message.channel.is_private and not has_required_perms(message.channel, message.server.me):
 			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
-		elif message.channel.is_private:
-			await self.lock_wolf(message.channel, message.author, query, dm_locks, message.author.id, IGNORE_MESSAGE_DM)
 		else:
-			await self.lock_wolf(message.channel, message.author, query, server_locks, message.server.id, IGNORE_MESSAGE_SERVER)
+			await self.lock_wolf(message.channel, message.author, query)
 
-	@core.handles.command('wolftest', '*')
-	async def command_wolf_test(self, message, query):
-		await self.answer_query(query, message.channel, message.author, debug = True)
-
+	@core.handles.command('pup', '*', perm_setting = 'c-wolf')
+	async def command_pup(self, message, query):
+		if api is None:
+			await self.send_message(message.channel, NO_API_ERROR, blame = message.author)
+		elif query in ['', 'help']:
+			return core.handles.Redirect('help wolfram')
+		elif not message.channel.is_private and not has_required_perms(message.channel, message.server.me):
+			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
+		else:
+			await self.lock_wolf(message.channel, message.author, query, pup = True)
 
 	@core.handles.add_reaction(RERUN_EMOJI)
 	async def rerun_rection(self, reaction, user):
@@ -272,14 +257,8 @@ class WolframModule(core.module.Module):
 					elif not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
 						await self.send_message(channel, PERMS_FAILURE, blame = user)
 						data['used'] = True
-					elif channel.is_private:
-						if await self.lock_wolf(channel, user, data['query'], dm_locks,
-							user.id, IGNORE_MESSAGE_DM, assumptions = assumptions_to_use):
-							data['used'] = True
-					else:
-						if await self.lock_wolf(channel, user, data['query'], server_locks,
-							reaction.message.server.id, IGNORE_MESSAGE_SERVER, assumptions = assumptions_to_use):
-							data['used'] = True
+					elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
+						data['used'] = True
 
 	@core.handles.add_reaction(EXPAND_EMOJI)
 	async def expand_assumptions(self, reaction, user):
@@ -291,19 +270,93 @@ class WolframModule(core.module.Module):
 				await self.client.edit_message(data['message'], text)
 				await self.add_reaction_emoji(data['message'], data['assumptions'])
 
-	async def lock_wolf(self, channel, blame, query, lock_set, lock_id, lock_message, assumptions = []):
+	async def lock_wolf(self, channel, blame, query, assumptions = [], pup = False):
+		lock_id = blame.id if channel.is_private else channel.server.id
+		lock_set = dm_locks if channel.is_private else server_locks
 		did_work = False
 		if lock_id not in lock_set:
 			lock_set.add(lock_id)
 			did_work = True
 			try:
-				await self.answer_query(query, channel, blame, assumptions = assumptions)
+				if pup:
+					await self.answer_query_short(query, channel, blame)
+				else:
+					await self.answer_query(query, channel, blame, assumptions = assumptions)
 			finally:
 				lock_set.remove(lock_id)
 				# A return statement in here swallows the exception.
 		else:
-			await self.send_message(channel, lock_message, blame = blame)
+			await self.send_message(
+				channel,
+				IGNORE_MESSAGE_DM if channel.is_private else IGNORE_MESSAGE_SERVER,
+				blame = blame
+			)
 		return did_work
+
+	async def answer_query_short(self, query, channel, blame):
+		safe.sprint('wolfram|alpha :', blame.name, ':', query)
+		await self.client.send_typing(channel)
+		images = []
+		text = []
+		error = 0
+		error_message = 'No details'
+		# Dummy message. This is a sign that I need to work on the settings module somewhat.
+		class Dummy:
+			def __init__(self, channel):
+				self.channel = channel
+				self.server = channel.server
+		enable_filter = False
+		if not channel.is_private:
+			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
+		if enable_filter and wordfilter.is_bad(query):
+			await self.send_message(channel, FILTER_FAILURE, blame = blame)
+			return
+		try:
+			print('Making request')
+			result = await api.request(query, [], debug = False)
+			print('Done?')
+		except asyncio.TimeoutError:
+			print('W|A timeout:', query)
+			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame = blame)
+		except aiohttp.ClientError as e:
+			print('Wolf: HTTP processing error:', e.message)
+			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
+		except xml.parsers.expat.ExpatError as e:
+			print('Wolf: XML processing error:', e.message)
+			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame = blame)
+		else:
+			# print(json.dumps(result.sections, indent = 4))
+			if len(result.sections) == 0:
+				await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame = blame)
+			elif result.did_fail:
+				m = 'Something went wrong: {}'.format(result.error_text)
+				await self.send_message(channel, m, blame = blame)
+			else:
+				# for i in result.sections:
+				# 	print(' -', i.title)
+				sections_reduced = list(cleanup_section_list(itertools.chain(
+					[find_first(section_is_input, result.sections, None)],
+					list(filter(section_is_important, result.sections))
+					or [find_first(section_is_not_input, result.sections, None)]
+				)))
+				is_dark = ((await core.keystore.get('p-tex-colour', blame.id)) == 'dark')
+				# Send the image results
+				background_colour = hex_to_tuple_a('36393EFF' if is_dark else 'FFFFFFFF')
+				strip = sections_to_image_strip(sections_reduced)
+				if is_dark:
+					strip = retheme_images(strip, image_recolour_to_dark_theme)
+				else:
+					strip = (i for i, _, _ in strip)
+				for img in conjoin_image_results(strip, background_colour):
+					img = paste_to_background(img, background_colour)
+					await self.send_image(channel, img, 'result.png', blame = blame)
+					await asyncio.sleep(1.05)
+				# Text section
+				url = urllib.parse.urlencode({'i': query})
+				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
+				adm += '\n**This command is in development.** Suggest improvements on the MathBot server (type `=about` for the link).'
+				posted = await self.send_message(channel, adm, blame = blame)
+				print('Done.')
 
 	async def answer_query(self, query, channel, blame, assumptions = [], debug = False):
 		safe.sprint('wolfram|alpha :', blame.name, ':', query)
@@ -337,7 +390,7 @@ class WolframModule(core.module.Module):
 			print('Wolf: HTTP processing error:', e.message)
 			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
 		except xml.parsers.expat.ExpatError as e:
-			print('Wolf: XML processing error:', e.message)
+			print('Wolf: XML processing error:', e)
 			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame = blame)
 		else:
 			if len(result.sections) == 0:
@@ -433,3 +486,46 @@ class WolframModule(core.module.Module):
 					await self.client.add_reaction(message, emoji)
 					await asyncio.sleep(0.3)
 		await self.client.add_reaction(message, RERUN_EMOJI)
+
+
+
+SHOULD_ERROR = object()
+
+def find_first(predicate, iterator, default = SHOULD_ERROR):
+	''' Return the first item from iterator that conforms to the predicate '''
+	for i in iterator:
+		if predicate(i):
+			return i
+	if default is SHOULD_ERROR:
+		raise ValueError
+	return default
+
+
+def section_is_input(s):
+	return s.title.lower() in [
+		'input',
+		'input interpretation'
+	]
+
+
+def section_is_not_input(s):
+	return not section_is_input(s)
+
+
+def section_is_important(s):
+	return s.title.lower() in [
+		'solution',
+		'result',
+		'biological properties',
+		'image',
+		'color swatch',
+		'related colors'
+	]
+
+
+def cleanup_section_list(items):
+	seen = set()
+	for i in items:
+		if i is not None and id(i) not in seen:
+			seen.add(id(i))
+			yield i

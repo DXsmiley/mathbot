@@ -8,6 +8,7 @@ import safe
 import core.help
 import core.module
 import core.handles
+import core.settings
 import calculator
 # import calculator.texify
 import calculator.attempt6
@@ -75,6 +76,12 @@ Failed to parse equation: {message} at position {position}\n
 {string}
 {carat}
 ```
+'''
+
+SHORTCUT_HELP_CLARIFICATION = '''\
+The `==` prefix is a shortcut for the `{prefix}calc` command.
+For information on how to use the bot, type `{prefix}help`.
+For information on how to use the `{prefix}calc`, command, type `{prefix}help calc`.
 '''
 
 
@@ -152,6 +159,9 @@ class CalculatorModule(core.module.Module):
 			# If no equation was given, spit out the help.
 			if not message.content.startswith('=='):
 				await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
+		elif arg == 'help':
+			prefix = await core.settings.get_channel_prefix(message.channel)
+			await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 		else:
 			safe.sprint('Doing calculation:', arg)
 			if arg.count(':') > 1:

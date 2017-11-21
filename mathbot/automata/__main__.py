@@ -100,6 +100,14 @@ async def wolfram_simple(interface):
 
 
 @auto.test()
+async def wolfram_pup_simple(interface):
+	await interface.send_message('=pup solve (x + 3)(2x - 5)')
+	assert (await interface.wait_for_message()).content == ''
+	assert (await interface.wait_for_message()).content != ''
+	await interface.ensure_silence()
+
+
+@auto.test()
 async def wolfram_no_data(interface):
 	await interface.send_message('=wolf cos(x^x) = sin(y^y)')
 	result = await interface.wait_for_message()

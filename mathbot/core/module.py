@@ -42,11 +42,11 @@ class Module:
 		commands = []
 		for name, item in self.__class__.__dict__.items():
 			if isinstance(item, core.handles.Command):
-				print('Registered command:', item.name, '(', item.format, ')')
-				if item.perm_setting:
-					print(' - Setting:', item.perm_setting)
-				if item.on_edit:
-					print(' - Has edit handler')
+				# print('Registered command:', item.name, '(', item.format, ')')
+				# if item.perm_setting:
+				# 	print(' - Setting:', item.perm_setting)
+				# if item.on_edit:
+				# 	print(' - Has edit handler')
 				commands.append(item)
 		return commands
 
@@ -54,13 +54,17 @@ class Module:
 		''' Returns a list of the module's message handlers. '''
 		return self.collect_by_type(core.handles.OnMessage)
 
-	def collection_edit_handlers(self):
+	def collect_edit_handlers(self):
 		''' Returns a list of the module's edit handlers. '''
 		return self.collect_by_type(core.handles.OnEdit)
 
-	def collection_reaction_handlers(self):
+	def collect_reaction_handlers(self):
 		''' Returns a list of the module's reaction handlers. '''
 		return self.collect_by_type(core.handles.ReactionHandler)
+
+	def collect_member_join_handlers(self):
+		''' Returns a list of the module's member join handlers. '''
+		return self.collect_by_type(core.handles.OnMemberJoined)
 
 	# Functions used by the end user
 

@@ -8,7 +8,7 @@ import datetime
 import core.help
 import core.module
 
-BOT_COLOUR = 1424337
+BOT_COLOUR = 0x19BAE5
 
 startup_time = datetime.datetime.now()
 
@@ -22,6 +22,7 @@ Uptime: {} days {} hours {} minutes {} seconds
 core.help.load_from_file('./help/help.md', topics = [''])
 core.help.load_from_file('./help/about.md')
 core.help.load_from_file('./help/management.md')
+core.help.load_from_file('./help/commands.md')
 
 
 async def get_bot_total_servers(id):
@@ -82,8 +83,8 @@ class AboutModule(core.module.Module):
 	@core.handles.background_task()
 	async def update_status_message(self):
 		while True:
-			# status = 'bit.ly/mathbot'
-			status = 'bit.ly/mb-code'
+			status = 'bit.ly/mathbot'
+			# status = 'bit.ly/mb-code'
 			game = discord.Game(name = status)
 			await self.client.change_presence(game = game)
 			await asyncio.sleep(60 * 5)
