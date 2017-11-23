@@ -21,10 +21,12 @@
 - 8 - Binary Logical And (a, b, -> c)
 - 9 - Binary Logical Or (a, b, -> c)
 - 10 - Binary Die roll (a, b, -> c)
+
 - 11 - Unary Not (t -> t)
 - 12 - Unary Minus (t -> t)
 - 13 - Unary Factorial (t -> t)
-- 14 - Jump if macro [destination] (f -> )
+
+- 14 - Jump if macro [destination] (f -> f)
 - 15 - Argument list end [number of arguments]
 - 54 - Argument list end disable cache [number of arguments]
 - 16 - Word (variable access) (DEAD)
@@ -54,7 +56,7 @@
 - 38 - Chain Comparison More Equal (x, l, r -> y, r)
 - 39 - Chain Comparison Equal (x, l, r -> y, r)
 - 40 - Chain Comparison Not Equal (x, l, r -> y, r)
-(where y = x and (l compare r))
+(where y = (x and (l compare r)))
 
 - 41 - Store in cache
 - 42 - Demacroify (DEAD)

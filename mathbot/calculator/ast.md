@@ -58,6 +58,7 @@ This does not differentiate between macros and normal functions.
 - `parameters`: Dictionary with key `items` being a list of `word`s
 - `kind`: Either the string `"->"` or `"~>"` depending if it's a normal function or a macro function.
 - `variadic`: Whether the last parameter is variadic or not.
+- `expression`: The body of the function.
 
 ## `comparison`
 
