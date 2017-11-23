@@ -94,20 +94,24 @@ class FunctionInspector:
 		self.address = self.function_object.address
 
 	@property
-	def num_parameters(self):
+	def name(self):
 		return self.bytes[self.address + 1]
 
 	@property
-	def is_variadic(self):
+	def num_parameters(self):
 		return self.bytes[self.address + 2]
 
 	@property
-	def is_macro(self):
+	def is_variadic(self):
 		return self.bytes[self.address + 3]
 
 	@property
+	def is_macro(self):
+		return self.bytes[self.address + 4]
+
+	@property
 	def code_address(self):
-		return self.address + 4
+		return self.address + 5
 
 
 class CallingCache:
@@ -134,11 +138,12 @@ class CallingCache:
 
 class Interpereter:
 
-	def __init__(self, bytes, trace = False, builder = None):
+	def __init__(self, code_constructed, trace = False, builder = None):
 		self.calling_cache = CallingCache()
 		self.builder = builder
 		self.trace = trace
-		self.bytes = bytes
+		self.bytes = code_constructed.bytecode
+		self.erlnk = code_constructed.error_link
 		self.place = 0
 		self.stack = [None]
 		self.root_scope = IndexedScope(None, 0, [])
@@ -214,7 +219,9 @@ class Interpereter:
 			self.place = len(self.bytes)
 			self.stack = [None]
 		self.builder.bytecodeify(ast)
-		self.bytes = self.builder.dump()
+		constructed = self.builder.dump()
+		self.bytes = constructed.bytecode
+		self.erlnk = constructed.error_link
 
 	@property
 	def head(self):
@@ -252,6 +259,7 @@ class Interpereter:
 					self.tick()
 					# print(self.place, self.stack)
 		except EvaluationError as e:
+			e._linking = self.erlnk[self.place]
 			raise e
 		except Exception as e:
 			raise e
@@ -425,7 +433,10 @@ class Interpereter:
 
 	def inst_function(self):
 		self.place += 1
-		self.push(Function(self.head, self.current_scope))
+		function = Function(self.head, self.current_scope, '?')
+		inspector = FunctionInspector(self, function)
+		function.name = inspector.name
+		self.push(function)
 
 	# def inst_function_normal(self):
 	# 	self.place += 1

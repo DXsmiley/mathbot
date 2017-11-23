@@ -43,6 +43,7 @@ The following constants exist:
     - `e`   : 2.178281...
     - `true`  : 1
     - `false` : 0
+    - `i` : The imaginary unit
 
 :::page-break
 
@@ -78,6 +79,8 @@ The following functions are available:
     - `gcd(a, b)` : computes the greatest common denominator or a and b
     - `lcm(a, b)` : computes the lowest common multiple of a and b
     - `choose(n, k)` : computes `n` choose `k`
+    - `re(x)` : get the real part of a complex number
+    - `im(x)` : get the imaginary part of a complex number
 
 :::page-break
 
@@ -100,5 +103,7 @@ in increasing order. `R` may not be greater than 50.
 `{{prefix}}calc round(10 / 3)`
 
 `{{prefix}}calc sin(pi / 2)`
+
+`{{prefix}}calc (4 + 3i) ^ 3`
 
 `{{prefix}}calc 8d6 : 10`

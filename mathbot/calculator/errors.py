@@ -1,3 +1,5 @@
+import re
+
 
 def wrap_if_plus(s):
 	if '+' in s or '-' in s:
@@ -42,8 +44,12 @@ class EvaluationError(Exception):
 class CompilationError(Exception):
 	''' Problem in the code found during compilation '''
 
-	def __init__(self, description):
+	def __init__(self, description, source = None):
 		self.description = description
+		if source is None:
+			self.position = None
+		else:
+			self.position = source['source']['position']
 
 	def __str__(self):
 		return self.description
@@ -52,8 +58,12 @@ class CompilationError(Exception):
 class SystemError(Exception):
 	''' Problem due to a bug in the system, not the user's code '''
 
-	def __init__(self, description):
-		self.description = description
+	def __init__(self, description, *values):
+		if len(values) == 0:
+			self.description = description
+		else:
+			formatted = list(map(format_value, values))
+			self.description = description.format(*formatted)
 
 	def __str__(self):
 		return self.description
@@ -67,6 +77,6 @@ class DomainError(EvaluationError):
 
 	def __str__(self):
 		return '{} cannot be applied to {}'.format(
-			function_name,
-			format_value(value)
+			self.function_name,
+			format_value(self.value)
 		)

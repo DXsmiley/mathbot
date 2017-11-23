@@ -104,6 +104,7 @@ COMPARATOR_DICT = {
 
 PROTECTED_NAMES = [
 	'if',
+	'ifelse',
 	'map',
 	'filter',
 	'reduce'
@@ -137,6 +138,49 @@ class Scope:
 		return self.superscope.find_value(name, depth + 1)
 
 
+class ConstructedBytecode:
+
+	def __init__(self, bytecode, error_link):
+		self.bytecode = bytecode
+		self.error_link = error_link
+
+	def dump(self, release = False):
+		''' Produces a representation of the bytecode that should,
+			in theory, be transferrable to another computer, or
+			be loaded by a different program.
+		'''
+		result = []
+		sources = {}
+		for i, e in zip(self.bytecode, self.error_link):
+			if i is None:
+				result.append(['nul'])
+			elif isinstance(i, I):
+				result.append([
+					'ist',
+					int(i),
+					'?' if release or e is None else e['position'],
+					'?' if release or e is None else e['name']
+				])
+				if e is not None:
+					sources[e['name']] = e['code']
+			elif isinstance(i, str):
+				result.append(['str', i])
+			elif isinstance(i, int):
+				result.append(['int', int(i)])
+			elif isinstance(i, float):
+				result.append(['flt', i])
+			elif isinstance(i, complex):
+				result.append(['cpx', i.real, i.imag])
+			else:
+				raise Exception('Unknown bytecode item: {}'.format(str(i)))
+		toline = lambda items : ' '.join(map(str, items))
+		result = 'bytecode: 0 0 0 (unstable)\n' + '\n'.join(map(toline, result)) + '\n'
+		if not release:
+			for key, value in sources.items():
+				result += 'source: {} {} {}\n{}\n'.format(key, len(value), value.count('\n'), value)
+		return result
+
+
 class CodeBuilder:
 
 	def __init__(self, offset = 0):
@@ -145,6 +189,7 @@ class CodeBuilder:
 		self.offset = offset
 		self.globalscope = Scope([])
 		self.bytecode = []
+		self.error_link = []
 
 	def new_segment(self, late = False):
 		seg = CodeSegment(self)
@@ -159,8 +204,10 @@ class CodeBuilder:
 
 	def dump(self):
 		newcode = []
+		newerrs = []
 		for i in itertools.chain(self.segments, self.segments_backend):
 			newcode += i.items
+			newerrs += i.error_link
 		self.segments = []
 		self.segments_backend = []
 		offset = self.offset + len(self.bytecode)
@@ -176,7 +223,8 @@ class CodeBuilder:
 				assert newcode[address].destination.location is not None
 				newcode[address] = newcode[address].destination.location
 		self.bytecode += newcode
-		return self.bytecode
+		self.error_link += newerrs
+		return ConstructedBytecode(self.bytecode[:], self.error_link[:])
 
 
 class CodeSegment:
@@ -185,12 +233,14 @@ class CodeSegment:
 		self.builder = builder
 		self.start_address = None
 		self.items = []
+		self.error_link = []
 
 	def new_segment(self, late = False):
 		return self.builder.new_segment(late = late)
 
-	def push(self, *items):
+	def push(self, *items, error = None):
 		self.items += items
+		self.error_link += [error] * len(items)
 
 	def bytecodeify(self, p, s, unsafe):
 		node_type = p['#']
@@ -201,18 +251,21 @@ class CodeSegment:
 			op = p['operator']
 			left = p['left']
 			right = p['right']
+			er = p['token']['source']
 			if op == '&': # Logical and
 				end = Destination()
 				self.bytecodeify(left, s, unsafe)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_FALSE,
-					Pointer(end)
+					Pointer(end),
+					error = er
 				)
 				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_AND,
-					end
+					end,
+					error = er
 				)
 			elif op == '|': # Logical or
 				end = Destination()
@@ -220,27 +273,29 @@ class CodeSegment:
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_TRUE,
-					Pointer(end)
+					Pointer(end),
+					error = er
 				)
 				self.bytecodeify(right, s, unsafe)
 				self.push(
 					I.BIN_OR_,
-					end
+					end,
+					error = er
 				)
 			else:
 				self.bytecodeify(right, s, unsafe)
 				self.bytecodeify(left, s, unsafe)
-				self.push(OPERATOR_DICT[op])
+				self.push(OPERATOR_DICT[op], error = p['token']['source'])
 		elif node_type == 'not':
 			self.bytecodeify(p['expression'], s, unsafe)
-			self.push(I.UNR_NOT)
+			self.push(I.UNR_NOT, error = p['token']['source'])
 		elif node_type == 'die':
 			self.bytecodeify(p['faces'], s, unsafe)
 			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s, unsafe)
-			self.push(I.BIN_DIE)
+			self.push(I.BIN_DIE, error = p['token']['source'])
 		elif node_type == 'uminus':
 			self.bytecodeify(p['value'], s, unsafe)
-			self.push(I.UNR_MIN)
+			self.push(I.UNR_MIN, error = p['token']['source'])
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
 			function_name = p['function']['string'].lower() if p['function']['#'] == 'word' else None
@@ -259,14 +314,33 @@ class CodeSegment:
 				self.push(p_false)
 				self.bytecodeify(args[2], s, unsafe)
 				self.push(p_end)
+			elif function_name == 'ifelse':
+				if len(args) < 3 or len(args) % 2 == 0:
+					raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
+				p_end = Destination()
+				p_false = Destination()
+				for condition, result in zip(args[::2], args[1::2]):
+					self.bytecodeify(condition, s, unsafe)
+					self.push(I.JUMP_IF_FALSE)
+					self.push(Pointer(p_false))
+					self.bytecodeify(result, s, unsafe)
+					self.push(I.JUMP)
+					self.push(Pointer(p_end))
+					self.push(p_false)
+					p_false = Destination()
+				self.bytecodeify(args[-1], s, unsafe)
+				self.push(p_end)
 			elif function_name == 'map':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for map function')
 				self.bytecodeify(args[0], s, unsafe)
 				self.bytecodeify(args[1], s, unsafe)
-				self.push(I.CONSTANT_EMPTY_ARRAY)
-				self.push(I.SPECIAL_MAP)
-				self.push(I.SPECIAL_MAP_STORE)
+				self.push(
+					I.CONSTANT_EMPTY_ARRAY,
+					I.SPECIAL_MAP,
+					I.SPECIAL_MAP_STORE,
+					error = p['function']['source']
+				)
 			elif function_name == 'filter':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
@@ -277,7 +351,8 @@ class CodeSegment:
 					I.CONSTANT, 0,
 					I.SPECIAL_FILTER,
 					# I.STORE_IN_CACHE,
-					I.SPECIAL_FILTER_STORE
+					I.SPECIAL_FILTER_STORE,
+					error = p['function']['source']
 				)
 			elif function_name == 'reduce':
 				if len(args) != 2:
@@ -288,12 +363,12 @@ class CodeSegment:
 				self.push(I.DUPLICATE)
 				self.push(I.CONSTANT)
 				self.push(0)
-				self.push(I.ACCESS_ARRAY_ELEMENT)
+				self.push(I.ACCESS_ARRAY_ELEMENT, error = p['function']['source'])
 				# Iterator
 				self.push(I.CONSTANT)
 				self.push(1)
 				# Stack now contains [function, array, result, index]
-				self.push(I.SPECIAL_REDUCE)
+				self.push(I.SPECIAL_REDUCE, error = p['function']['source'])
 				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
 				# IDEA: If the function contains only a small amount of code, we can also
@@ -341,7 +416,7 @@ class CodeSegment:
 				# so we only need the name for this one.
 				self.push(I.ACCESS_GLOBAL)
 				self.push(index)
-				self.push(p['string'])
+				self.push(p['string'], error = p['source'])
 			elif depth == 0:
 				self.push(I.ACCESS_LOCAL)
 				self.push(index)
@@ -351,12 +426,13 @@ class CodeSegment:
 				self.push(index)
 		elif node_type == 'factorial':
 			self.bytecodeify(p['value'], s, unsafe)
-			self.push(I.UNR_FAC)
+			self.push(I.UNR_FAC, error = p['token']['source'])
 		elif node_type == 'assignment':
 			self.bytecodeify(p['value'], s, unsafe)
 			name = p['variable']['string'].lower()
 			if name in PROTECTED_NAMES and not unsafe:
-				raise calculator.errors.CompilationError('"{}" cannot be assigned to'.format(name))
+				m = 'Cannot assign to variable "{}"'.format(name)
+				raise calculator.errors.CompilationError(m, p['variable'])
 			scope, depth, index = s.find_value(name)
 			assert(scope == self.builder.globalscope)
 			# print(scope, depth, index)
@@ -381,14 +457,14 @@ class CodeSegment:
 			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(I.FUNCTION_NORMAL)
 			self.push(start_pointer)
-			return 
 		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
 				self.bytecodeify(p['rest'][0]['value'], s, unsafe)
 				self.bytecodeify(p['first'], s, unsafe)
 				op = p['rest'][0]['operator']
-				self.push(OPERATOR_DICT[op])
+				er = p['rest'][0]['token']['source']
+				self.push(OPERATOR_DICT[op], error = er)
 			else:
 				bailed = Destination()
 				end = Destination()
@@ -404,7 +480,7 @@ class CodeSegment:
 							I.STACK_SWAP # Put the value back on top
 						)
 					self.bytecodeify(ast['value'], s, unsafe)
-					self.push(COMPARATOR_DICT[ast['operator']])
+					self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
 				self.push(
 					I.JUMP,
 					Pointer(end),
@@ -420,10 +496,12 @@ class CodeSegment:
 		contents = self.new_segment(late = True)
 		start_address = Destination()
 		contents.push(start_address)
+		contents.push(p.get('name', '?').lower())
 		params = [i['string'].lower() for i in p['parameters']['items']]
-		for i in params:
-			if i in PROTECTED_NAMES:
-				raise calculator.errors.CompilationError('"{}" is not allowed as a funcation parameter'.format(i))
+		for n, i in zip(params, p['parameters']['items']):
+			if n in PROTECTED_NAMES:
+				m = '"{}" is not allowed as a funcation parameter'.format(n)
+				raise calculator.errors.CompilationError(m, i)
 		contents.push(len(params))
 		# for i in params:
 		# 	contents.push(i)

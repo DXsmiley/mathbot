@@ -11,6 +11,8 @@ import core.help
 
 core.help.load_from_file('./help/blame.md')
 
+MESSAGE_NOTHING_RECENT_FOUND = "No recent message was found."
+
 MESSAGE_NOT_FOUND = "Couldn't find who was resposible for that :confused:"
 
 MESSAGE_INVALID_ID = "That doesn't look like a valid message ID :thinking:"
@@ -27,7 +29,14 @@ class BlameModule(core.module.Module):
 	@core.handles.command('blame', 'string')
 	async def command_blame(self, message, mid):
 		response = MESSAGE_INVALID_ID
-		if is_message_id(mid):
+		if mid == 'recent':
+			response = MESSAGE_NOTHING_RECENT_FOUND
+			async for m in self.client.logs_from(message.channel, limit = 50):
+				if m.author == self.client.user:
+					user = await core.keystore.get('blame', m.id)
+					if user is not None:
+						response = MESSAGE_BLAME.format(user)
+		elif is_message_id(mid):
 			user = await core.keystore.get('blame', mid)
 			response = MESSAGE_NOT_FOUND
 			if user is not None:
