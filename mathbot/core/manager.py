@@ -269,10 +269,13 @@ class Manager:
 			results.append('')
 		else:
 			results.append(await core.settings.get_server_prefix(message.server.id))
-		for p in results:
-			if not isinstance(p, str):
-				m = 'Non-string prefix detected: `{}`'.format(str(p))
-				dreport.custom_report(self.client, m)
+		for i, v in enumerate(results):
+			if not isinstance(v, str):
+				print('Non-string prefix detected')
+				print(v)
+				m = 'Non-string prefix detected: `{}`'.format(str(v))
+				await dreport.custom_report(self.client, m)
+				results[i] = str(v)
 		return results
 
 
