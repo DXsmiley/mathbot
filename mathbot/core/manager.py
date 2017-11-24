@@ -270,13 +270,13 @@ class Manager:
 		else:
 			results.append(await core.settings.get_server_prefix(message.server.id))
 		for i, v in enumerate(results):
-			if not isinstance(v, str):
+			if v is not None and not isinstance(v, str):
 				print('Non-string prefix detected')
 				print(v)
 				m = 'Non-string prefix detected: `{}`'.format(str(v))
-				await dreport.custom_report(self.client, m)
+				await core.dreport.custom_report(self.client, m)
 				results[i] = str(v)
-		return results
+		return [i for i in results if i is not None]
 
 
 def create_client(manager, shard_id, shard_count):
