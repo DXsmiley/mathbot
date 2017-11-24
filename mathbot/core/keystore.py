@@ -153,7 +153,7 @@ class Disk(Interface):
 		self.data[key]['value'].appendleft(value)
 		self.save()
 
-	async def rpop(self, key, value):
+	async def rpop(self, key):
 		if not isinstance(self.data[key]['value'], collections.deque):
 			await self.set(key, collections.deque())
 		if len(self.data[key]['value']) == 0:
