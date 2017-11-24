@@ -1,12 +1,14 @@
-:::topics wolfram wolf wolframalpha wolfram|alpha wa alpha
+:::topics wolfram wolf wolframalpha wolfram|alpha wa alpha pup
 
 # Wolfram|Alpha
 
 The `{{prefix}}wolf` command is used to query Wolfram|Alpha.
 
-This command can be very slow at times, so please be patient.
+The `{{prefix}}pup` command will produce fewer results.
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
+
+This command can be very slow at times, so please be patient.
 
 ## Examples
 

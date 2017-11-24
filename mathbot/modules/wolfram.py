@@ -354,7 +354,7 @@ class WolframModule(core.module.Module):
 				# Text section
 				url = urllib.parse.urlencode({'i': query})
 				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
-				adm += '\n**This command is in development.** Suggest improvements on the MathBot server (type `=about` for the link).'
+				adm += '**This command is in development.** Suggest improvements on the MathBot server (type `=about` for the link).'
 				posted = await self.send_message(channel, adm, blame = blame)
 				print('Done.')
 
@@ -442,6 +442,7 @@ class WolframModule(core.module.Module):
 				url = urllib.parse.urlencode({'i': query})
 				# Determine if the footer should be long or short
 				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
+				adm += '🐺 **Try out the new `=pup` command!** It\'s much more concise.'
 				if len(textout_joined) + len(adm) > 1950:
 					adm = FOOTER_MESSAGE_SHORT.format(mention = blame.mention)
 				# Send the result
