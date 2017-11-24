@@ -111,8 +111,21 @@ class Manager:
 				return command, arguments
 		return None, ''
 
+	async def catch_handler_exception(self, exception, message):
+		traceback.print_exc()
+		if message.author == self.client.user:
+			print('Error while looking at own message.')
+			if message.channel.id == core.parameters.get('error-reporting channel'):
+				print("IT'S IN THE REPORTING CHANNEL! THIS IS REALLY BAD!")
+			else:
+				text = 'Error while looking at own message. Not reported to end user.'
+				await core.dreport.custom_report(self.client, text)
+		else:
+			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
+
 	# Handle an incoming message
 	async def handle_message(self, message, redirect_count = 0):
+		# print(message.author, self.client.user)
 		try:
 			for handler in self.raw_handlers_message:
 				# print('Passing to handler...', handler)
@@ -126,8 +139,7 @@ class Manager:
 				if cmd_string:
 					await self.handle_redirect(message, cmd_string)
 		except Exception as e:
-			traceback.print_exc()
-			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
+			await self.catch_handler_exception(e, message)
 
 	# Handle an incoming meddage edit event
 	async def handle_edit(self, before, after):
@@ -141,8 +153,7 @@ class Manager:
 				if command is not None and command.on_edit is not None:
 					await self.exec_edit_command(before, after, command, arguments)
 		except Exception as e:
-			traceback.print_exc()
-			await core.dreport.send(self.client, after.channel, after.content, extra = traceback.format_exc())
+			await self.catch_handler_exception(e, after)
 
 	# Handle redirects. Command handlers are allowed to redirect to other command handlers.
 	async def handle_redirect(self, message, cmd_string, redirect_count = 0, is_edit = False):
@@ -258,6 +269,10 @@ class Manager:
 			results.append('')
 		else:
 			results.append(await core.settings.get_server_prefix(message.server.id))
+		for p in results:
+			if not isinstance(p, str):
+				m = 'Non-string prefix detected: `{}`'.format(str(p))
+				dreport.custom_report(self.client, m)
 		return results
 
 
