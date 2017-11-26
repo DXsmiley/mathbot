@@ -117,8 +117,7 @@ class FunctionInspector:
 class CallingCache:
 
 	def __init__(self, capacity = 10000):
-		self.values = {}
-		self.queue = collections.deque()
+		self.clear()
 		self.capacity = 10000
 
 	def __contains__(self, key):
@@ -134,6 +133,10 @@ class CallingCache:
 
 	def __getitem__(self, key):
 		return self.values[key]
+
+	def clear(self):
+		self.values = {}
+		self.queue = collections.deque()
 
 
 class Interpereter:
@@ -209,6 +212,9 @@ class Interpereter:
 			b.BEGIN_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_enable,
 			b.END_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_disable
 		}
+
+	def clear_cache(self):
+		self.calling_cache.clear()
 
 	def prepare_extra_code(self, ast, ready_to_run = True):
 		if self.builder is None:

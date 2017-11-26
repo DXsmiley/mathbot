@@ -16,7 +16,7 @@ On line {line_num} at position {position}
 
 class Terminal():
 
-    def __init__(self, allow_special_commands = False):
+    def __init__(self, allow_special_commands = False, retain_cache = True):
         self.show_tree = False
         self.show_parsepoint = False
         self.builder = calculator.bytecode.CodeBuilder()
@@ -25,6 +25,7 @@ class Terminal():
         self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder)
         self.interpereter.run()
         self.line_count = 0
+        self.retain_cache = retain_cache
 
     def execute(self, code):
         loop = asyncio.get_event_loop()
@@ -97,6 +98,8 @@ class Terminal():
             except Exception as e:
                 traceback.print_exc()
                 prt('Some other unknown error occurred')
+        if not self.retain_cache:
+            self.interpereter.clear_cache()
         return '\n'.join(output), worked
 
 
