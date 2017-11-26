@@ -130,8 +130,11 @@ class CalculatorModule(core.module.Module):
 
 	async def add_command_to_history(self, channel, new_command):
 		if self.allow_calc_history(channel):
-			commands = (await core.keystore.get('calculator', 'history', channel.id)) or ''
-			commands += COMMAND_DELIM + new_command
+			commands = await core.keystore.get('calculator', 'history', channel.id)
+			if commands == None:
+				commands = new_command
+			else:
+				commands += COMMAND_DELIM + new_command
 			await core.keystore.set('calculator', 'history', channel.id, commands, expire = EXPIRE_TIME)
 
 	def allow_calc_history(self, channel):
