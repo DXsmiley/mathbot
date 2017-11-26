@@ -30,7 +30,7 @@ class IndexedScope:
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		if index >= len(scope.values) or scope.values[index] == None:
+		if index >= len(scope.values) or scope.values[index][1] == None:
 			raise ScopeMissedError
 		return scope.values[index][1]
 
