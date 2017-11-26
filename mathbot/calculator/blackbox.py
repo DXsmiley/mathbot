@@ -108,7 +108,7 @@ def format_error_place(string, position):
         line += 1
     return ERROR_TEMPLATE.format(
         line_num = line,
-        position = position,
+        position = position + 1,
         prev = lines[line - 1],
         cur = lines[line],
         next = lines[line + 1],
