@@ -55,7 +55,7 @@ class Context:
 	def execute(self, p):
 		t = p['#']
 		if t == 'number':
-			return int(p['string'])
+			return sympy.Integer(int(p['string']))
 		elif t == 'word':
 			return self.variables.get(p['string'])
 		elif t == 'bin_op':
