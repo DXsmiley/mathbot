@@ -3,6 +3,7 @@ import calculator.parser as parser
 import calculator.errors
 import itertools
 import json
+import sympy
 
 
 @enum.unique
@@ -522,13 +523,14 @@ class CodeSegment:
 
 
 def convert_number(x):
-	try:
-		try:
-			return int(x)
-		except Exception:
-			return float(x)
-	except Exception:
-		return complex(x.replace('i', 'j'))
+	return sympy.Number(x)
+	# try:
+	# 	try:
+	# 		return int(x)
+	# 	except Exception:
+	# 		return float(x)
+	# except Exception:
+	# 	return complex(x.replace('i', 'j'))
 
 
 def build(ast, offset = 0):

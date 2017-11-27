@@ -5,6 +5,8 @@ import calculator.runtime
 import calculator.bytecode
 import calculator.errors
 import calculator.runtime
+import calculator.formatter
+import sympy
 
 
 ERROR_TEMPLATE = '''\
@@ -19,6 +21,7 @@ class Terminal():
     def __init__(self, allow_special_commands = False, retain_cache = True):
         self.show_tree = False
         self.show_parsepoint = False
+        self.show_result_type = False
         self.builder = calculator.bytecode.CodeBuilder()
         self.allow_special_commands = allow_special_commands
         runtime = calculator.runtime.wrap_with_runtime(self.builder, None)
@@ -42,6 +45,7 @@ class Terminal():
             The bool is True if nothing went wrong.
         '''
         output = []
+        details = {}
         def prt(*args):
             output.append(' '.join(map(str, args)))
         self.line_count += 1
@@ -52,6 +56,8 @@ class Terminal():
             show_parsepoint = not show_parsepoint
         elif self.allow_special_commands and line == ':trace':
             self.interpereter.trace = not self.interpereter.trace
+        elif self.allow_special_commands and line == ':type':
+            self.show_result_type = not self.show_result_type
         elif self.allow_special_commands and line == ':cache':
             for key, value in self.interpereter.calling_cache.values.items():
                 prt('{:40} : {:20}'.format(str(key), str(value)))
@@ -59,7 +65,6 @@ class Terminal():
             mem = self.interpereter.get_memory_usage()
             print(mem // 1024, 'KB')
         else:
-            worked = False
             try:
                 tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
@@ -72,9 +77,22 @@ class Terminal():
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
                 result = await asyncio.wait_for(self.interpereter.run_async(), 5)
-                if result is not None:
-                    prt(result)
                 worked = True
+                details['result'] = result
+                if result is not None:
+                    try:
+                        exact = result.evalf(10)
+                        details['exact'] = exact
+                        prt(result, '=', exact)
+                    except Exception:
+                        prt(result)
+                    try:
+                        details['latex'] = formatter.latex(result)
+                    except Exception:
+                        pass
+                    if self.show_result_type:
+                        prt(result.__class__)
+                        prt(result.__class__.__mro__)
             except calculator.errors.CompilationError as e:
                 prt('Compilation error')
                 prt(e.description)
@@ -103,7 +121,7 @@ class Terminal():
                 prt('Some other unknown error occurred')
         if not self.retain_cache:
             self.interpereter.clear_cache()
-        return '\n'.join(output), worked
+        return '\n'.join(output), worked, details
 
 
 def format_error_place(string, position):

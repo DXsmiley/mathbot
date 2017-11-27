@@ -6,6 +6,8 @@ import random
 import collections
 import numbers
 import sys
+import sympy
+import operator
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
@@ -165,7 +167,7 @@ class Interpereter:
 			b.BIN_DIV: self.inst_div,
 			b.BIN_MOD: self.inst_mod,
 			b.BIN_POW: self.inst_pow,
-			b.BIN_DIE: self.inst_bin_die,
+			# b.BIN_DIE: self.inst_bin_die,
 			b.BIN_AND: self.inst_and,
 			b.BIN_OR_: self.inst_or,
 			b.JUMP_IF_MACRO: self.inst_jump_if_macro,
@@ -324,19 +326,19 @@ class Interpereter:
 			self.push(op(self.pop(), self.pop()))
 		return internal
 
-	inst_add = binary_op(operators.operator_add)
-	inst_mul = binary_op(operators.operator_multiply)
-	inst_sub = binary_op(operators.operator_subtract)
-	inst_div = binary_op(operators.operator_division)
-	inst_mod = binary_op(operators.operator_modulo)
-	inst_pow = binary_op(operators.operator_power)
-	inst_bin_less = binary_op(operators.operator_less)
-	inst_bin_more = binary_op(operators.operator_more)
-	inst_bin_l_eq = binary_op(operators.operator_less_equal)
-	inst_bin_m_eq = binary_op(operators.operator_more_equal)
-	inst_bin_equl = binary_op(operators.operator_equal)
-	inst_bin_n_eq = binary_op(operators.operator_not_equal)
-	inst_bin_die = binary_op(rolldie)
+	inst_add = binary_op(operator.add)
+	inst_mul = binary_op(operator.mul)
+	inst_sub = binary_op(operator.sub)
+	inst_div = binary_op(operator.truediv)
+	inst_mod = binary_op(operator.mod)
+	inst_pow = binary_op(operator.pow)
+	inst_bin_less = binary_op(operator.lt)
+	inst_bin_more = binary_op(operator.gt)
+	inst_bin_l_eq = binary_op(operator.le)
+	inst_bin_m_eq = binary_op(operator.ge)
+	inst_bin_equl = binary_op(operator.eq)
+	inst_bin_n_eq = binary_op(operator.ne)
+	# inst_bin_die = binary_op(rolldie)
 	inst_and = binary_op(lambda a, b: int(bool(a) and bool(b)))
 	inst_or = binary_op(lambda a, b: int(bool(a) or bool(b)))
 

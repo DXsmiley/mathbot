@@ -1,4 +1,5 @@
 import calculator.functions
+import latex
 
 
 class TooMuchOutputError(Exception):
@@ -44,4 +45,25 @@ def f(v, c):
 def format(value, limit = None):
     col = Collector(limit = limit)
     f(value, col)
+    return str(col)
+
+
+def l(v, c):
+    if isinstance(v, calculator.functions.Array):
+        c.print(r'\left\[')
+        for i in v.items:
+            l(i, c)
+            c.print(', ')
+        c.drop()
+        c.print(r'\right\]')
+    else:
+        try:
+            c.print(sympy.latex(v))
+        except Exception:
+            c.print(str(v))
+
+
+def latex(value, limit = None):
+    col = Collector(limit = limit)
+    l(value, col)
     return str(col)

@@ -63,7 +63,7 @@ def interactive_terminal():
 		line = input('> ')
 		if line == '':
 			break
-		output, worked = terminal.execute(line)
+		output, worked, details = terminal.execute(line)
 		print(output)
 
 main()
