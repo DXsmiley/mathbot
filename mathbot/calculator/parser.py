@@ -341,18 +341,18 @@ def argument_list(tokens):
 	return result
 
 
-def uminus2(tokens):
-	if tokens.peek_string(0, '-'):
-		token = tokens.eat_details()
+def power(tokens):
+	left = superscript(tokens)
+	if tokens.peek(0, 'pow_op'):
+		t = tokens.eat_details()
 		return {
-			'#': 'uminus',
-			'token': token,
-			'value': expect(tokens, uminus2)
+			'#': 'bin_op',
+			'operator': '^',
+			'token': t,
+			'left': left,
+			'right': uminus(tokens)
 		}
-	return superscript(tokens)
-
-
-power     = eat_delimited(uminus2,    ['pow_op'],  DelimitedBinding.RIGHT_FIRST, 'bin_op')
+	return left
 
 
 def uminus(tokens):
