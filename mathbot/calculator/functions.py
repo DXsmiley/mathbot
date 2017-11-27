@@ -36,7 +36,10 @@ class Array:
 		self.items = items
 
 	def __call__(self, index):
-		return self.items[index]
+		try:
+			return self.items[index]
+		except Exception:
+			raise calculator.errors.EvaluationError('Invalid array index')
 
 	def __len__(self):
 		return len(self.items)
