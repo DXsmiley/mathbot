@@ -1,3 +1,4 @@
+import inspect
 import json
 import asyncio
 import math
@@ -627,24 +628,46 @@ def test(string):
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
 
 
-def deep_getsizeof(root):
-	"""Recursively iterate to sum size of object & members."""
-	seen = set()
-	def inner(obj):
-		if id(obj) in seen:
-			return 0
-		seen.add(id(obj))
-		size = sys.getsizeof(obj)
-		if isinstance(obj, (str, bytes, numbers.Number, range, bytearray)):
-			pass
-		elif isinstance(obj, (tuple, list, set, collections.Set, collections.deque)):
-			size += sum(inner(i) for i in obj)
-		elif isinstance(obj, collections.Mapping):
-			size += sum(inner(k) + inner(obj[k]) for k in obj)
-		# Check for custom object instances - may subclass above too
-		if hasattr(obj, '__dict__'):
-			size += inner(vars(obj))
-		if hasattr(obj, '__slots__'): # can have __slots__ with __dict__
-			size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
-		return size
-	return inner(root)
+# def deep_getsizeof(root):
+# 	"""Recursively iterate to sum size of object & members."""
+# 	seen = set()
+# 	def inner(obj):
+# 		if id(obj) in seen:
+# 			return 0
+# 		seen.add(id(obj))
+# 		size = sys.getsizeof(obj)
+# 		if isinstance(obj, (str, bytes, numbers.Number, range, bytearray)):
+# 			pass
+# 		elif isinstance(obj, (tuple, list, set, collections.Set, collections.deque)):
+# 			size += sum(inner(i) for i in obj)
+# 		elif isinstance(obj, collections.Mapping):
+# 			size += sum(inner(k) + inner(obj[k]) for k in obj)
+# 		# Check for custom object instances - may subclass above too
+# 		if hasattr(obj, '__dict__'):
+# 			size += inner(vars(obj))
+# 		if hasattr(obj, '__slots__'): # can have __slots__ with __dict__
+# 			size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+# 		return size
+# 	return inner(root)
+
+
+def deep_getsizeof(obj, seen = None):
+	"""Recursively finds size of objects in bytes"""
+	size = sys.getsizeof(obj)
+	seen = seen or set()
+	if id(obj) in seen:
+		return 0
+	seen.add(id(obj))
+	if hasattr(obj, '__dict__'):
+		for cls in obj.__class__.__mro__:
+			if '__dict__' in cls.__dict__:
+				d = cls.__dict__['__dict__']
+				if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+					size += deep_getsizeof(obj.__dict__, seen)
+				break
+	if isinstance(obj, dict):
+		size += sum((deep_getsizeof(v, seen) for v in obj.values()))
+		size += sum((deep_getsizeof(k, seen) for k in obj.keys()))
+	elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+		size += sum((deep_getsizeof(i, seen) for i in obj))
+	return size
