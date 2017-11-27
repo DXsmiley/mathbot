@@ -3,6 +3,8 @@ import asyncio
 import math
 import random
 import collections
+import numbers
+import sys
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
@@ -606,6 +608,9 @@ class Interpereter:
 			raise EvaluationError('{} is not a function'.format(function))
 		self.place -= 1 # Negate the +1 after this
 
+	def get_memory_usage(self):
+		return deep_getsizeof(self)
+
 
 def test(string):
 	# print('=========================================')
@@ -620,3 +625,26 @@ def test(string):
 	# 	print('{:3d} - {}'.format(index, byte))
 	vm = Interpereter(bytes, builder = builder, trace = True)
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
+
+
+def deep_getsizeof(root):
+	"""Recursively iterate to sum size of object & members."""
+	seen = set()
+	def inner(obj):
+		if id(obj) in seen:
+			return 0
+		seen.add(id(obj))
+		size = sys.getsizeof(obj)
+		if isinstance(obj, (str, bytes, numbers.Number, range, bytearray)):
+			pass
+		elif isinstance(obj, (tuple, list, set, collections.Set, collections.deque)):
+			size += sum(inner(i) for i in obj)
+		elif isinstance(obj, collections.Mapping):
+			size += sum(inner(k) + inner(obj[k]) for k in obj)
+		# Check for custom object instances - may subclass above too
+		if hasattr(obj, '__dict__'):
+			size += inner(vars(obj))
+		if hasattr(obj, '__slots__'): # can have __slots__ with __dict__
+			size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+		return size
+	return inner(root)

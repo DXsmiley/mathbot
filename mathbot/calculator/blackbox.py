@@ -55,6 +55,9 @@ class Terminal():
         elif self.allow_special_commands and line == ':cache':
             for key, value in self.interpereter.calling_cache.values.items():
                 prt('{:40} : {:20}'.format(str(key), str(value)))
+        elif self.allow_special_commands and line == ':memory':
+            mem = self.interpereter.get_memory_usage()
+            print(mem // 1024, 'KB')
         else:
             worked = False
             try:
