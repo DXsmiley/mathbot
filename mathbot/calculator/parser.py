@@ -84,6 +84,14 @@ class TokenBlock:
 		self.root = root
 		self.edge_tokens = edge_tokens
 
+	@property
+	def edge_start(self):
+	    return self.edge_tokens[0]
+
+	@property
+	def edge_end(self):
+	    return self.edge_tokens[1]
+
 	def eat_details(self):
 		self.place += 1
 		token = self.values[self.place - 1]
@@ -322,7 +330,15 @@ def parameter_list(tokens):
 	return params, is_variadic
 
 
-argument_list = eat_delimited(expression, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+_argument_list = eat_delimited(expression, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+def argument_list(tokens):
+	result = _argument_list(tokens)
+	if result is not None:
+		result['edges'] = {
+			'start': tokens.edge_start,
+			'end': tokens.edge_end
+		}
+	return result
 
 
 def uminus2(tokens):

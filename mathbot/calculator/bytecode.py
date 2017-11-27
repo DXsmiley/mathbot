@@ -299,6 +299,7 @@ class CodeSegment:
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
 			function_name = p['function']['string'].lower() if p['function']['#'] == 'word' else None
+			call_marker_errinfo = p['arguments']['edges']['start']['source']
 			if function_name == 'if':
 				# Optimisation for the 'if' function.
 				if len(args) != 3:
@@ -331,6 +332,7 @@ class CodeSegment:
 				self.bytecodeify(args[-1], s, unsafe)
 				self.push(p_end)
 			elif function_name == 'map':
+				# print(json.dumps(p, indent = 4))
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for map function')
 				self.bytecodeify(args[0], s, unsafe)
@@ -339,7 +341,7 @@ class CodeSegment:
 					I.CONSTANT_EMPTY_ARRAY,
 					I.SPECIAL_MAP,
 					I.SPECIAL_MAP_STORE,
-					error = p['function']['source']
+					error = call_marker_errinfo
 				)
 			elif function_name == 'filter':
 				if len(args) != 2:
@@ -395,7 +397,7 @@ class CodeSegment:
 					self.push(I.ARG_LIST_END_NO_CACHE)
 					self.push(0)
 				self.push(I.ARG_LIST_END)
-				self.push(len(args))
+				self.push(len(args), error = call_marker_errinfo)
 				self.push(I.JUMP)
 				self.push(Pointer(landing_end))
 				# Handle if macro function
@@ -403,7 +405,7 @@ class CodeSegment:
 				for i in argument_functions:
 					self.push(I.FUNCTION_NORMAL)
 					self.push(i)
-				self.push(I.ARG_LIST_END_NO_CACHE)
+				self.push(I.ARG_LIST_END_NO_CACHE, error = call_marker_errinfo)
 				self.push(len(args))
 				# Aaaaand we done here
 				self.push(landing_end)
