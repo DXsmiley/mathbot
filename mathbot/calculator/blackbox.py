@@ -81,8 +81,10 @@ class Terminal():
                 details['result'] = result
                 if result is not None:
                     try:
-                        exact = result.evalf(10)
+                        exact = result.evalf()
                         details['exact'] = exact
+                        if str(result) == str(exact) or isinstance(result, sympy.Integer):
+                            raise Exception
                         prt(result, '=', exact)
                     except Exception:
                         prt(result)

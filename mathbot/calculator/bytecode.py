@@ -27,6 +27,7 @@ class I(enum.IntEnum):
 	ARG_LIST_END_NO_CACHE = 54
 	WORD = 16
 	ASSIGNMENT = 17
+	DECLARE_SYMBOL = 59
 	STACK_SWAP = 18
 	END = 19
 	# FUNCTION_MACRO = 20
@@ -72,7 +73,7 @@ class I(enum.IntEnum):
 	BEGIN_PROTECTED_GLOBAL_BLOCK = 57
 	END_PROTECTED_GLOBAL_BLOCK = 58
 
-	# Next to use: 59
+	# Next to use: 60
 
 
 OPERATOR_DICT = {
@@ -443,6 +444,16 @@ class CodeSegment:
 			self.push(index)
 			# self.push(I.ASSIGNMENT)
 			# self.push(p['variable']['string'].lower())
+		elif node_type == 'declare_symbol':
+			name = p['name']['string'].lower()
+			if name in PROTECTED_NAMES and not unsafe:
+				m = 'Cannot assign to variable "{}"'.format(name)
+				raise calculator.errors.CompilationError(m, p['name'])
+			scope, depth, index = s.find_value(name)
+			assert(scope == self.builder.globalscope)
+			self.push(I.DECLARE_SYMBOL)
+			self.push(index)
+			self.push(name)
 		elif node_type == 'statement_list':
 			self.bytecodeify(p['statement'], s, unsafe)
 			if p['next'] is not None:

@@ -421,6 +421,13 @@ def statement(tokens):
 			'variable': name,
 			'value': value
 		}
+	elif tokens.peek(0, 'kw_symbol'):
+		tokens.eat_details()
+		name = word(tokens)
+		return {
+			'#': 'declare_symbol',
+			'name': name
+		}
 	elif tokens.peek_sequence(0, 'word', TokenBlock, 'function_definition'):
 		name = word(tokens)
 		function = function_definition(tokens)
@@ -546,6 +553,7 @@ def parse(string, source_name = '__unknown__'):
 		string,
 		[
 			('__remove__', r'#.*'),
+			('kw_symbol', r'symbol'),
 			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
 			# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 			('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),

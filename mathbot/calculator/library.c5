@@ -32,4 +32,7 @@ vsub (u, v) -> zipmap(difference, u, v),
 vdot (u, v) -> reduce(sum, zipmap(product, u, v)),
 
 # That series thing!
-series (function, start, end) -> reduce(sum, map(function, range(start, end + 1)))
+series (function, start, end) -> reduce(sum, map(function, range(start, end + 1))),
+
+# Stuff that's useful for sympy
+fdiff (function) -> diff(function(new_symbol()))

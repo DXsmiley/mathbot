@@ -1,5 +1,5 @@
 import calculator.functions
-import latex
+import sympy
 
 
 class TooMuchOutputError(Exception):
@@ -25,7 +25,7 @@ class Collector:
 
     def __str__(self):
         output = ''.join(self.parts)
-        if self.limit and len(output) > self.limit
+        if self.limit and len(output) > self.limit:
             output = output[:self.limit - 3] + '...'
         return output
 
@@ -38,7 +38,7 @@ def f(v, c):
             c.print(', ')
         c.drop()
         c.print(']')
-    elif:
+    else:
         c.print(str(v))
 
 

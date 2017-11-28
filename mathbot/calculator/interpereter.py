@@ -176,6 +176,7 @@ class Interpereter:
 			b.ARG_LIST_END: self.inst_arg_list_end,
 			b.ARG_LIST_END_NO_CACHE: self.inst_arg_list_end_no_cache,
 			b.ASSIGNMENT: self.inst_assignment,
+			b.DECLARE_SYMBOL: self.inst_declare_symbol,
 			b.WORD: self.inst_word,
 			b.ACCESS_LOCAL: self.inst_access_local,
 			b.ACCESS_GLOBAL: self.inst_access_gobal,
@@ -410,7 +411,10 @@ class Interpereter:
 		try:
 			self.push(self.root_scope.get(index, 0))
 		except ScopeMissedError:
-			raise EvaluationError('Failed to access variable "{}"'.format(self.head))
+			symbol = sympy.symbols(self.head)
+			self.push(symbol)
+			# self.root_scope.set(index, 0, symbol)
+			# raise EvaluationError('Failed to access variable "{}"'.format(self.head))
 
 	def inst_access_local(self):
 		self.place += 1
@@ -439,8 +443,16 @@ class Interpereter:
 	def inst_assignment(self):
 		value = self.pop()
 		self.place += 1
+		index = self.head
+		self.root_scope.set(index, 0, value, protected = self.protected_assignment_mode)
+
+	def inst_declare_symbol(self):
+		self.place += 1
+		index = self.head
+		self.place += 1
 		name = self.head
-		self.root_scope.set(name, 0, value, protected = self.protected_assignment_mode)
+		value = sympy.symbols(name)
+		self.root_scope.set(index, 0, value, protected = self.protected_assignment_mode)
 
 	def inst_function(self):
 		self.place += 1

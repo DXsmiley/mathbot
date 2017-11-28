@@ -6,6 +6,7 @@ import cmath
 import itertools
 import os
 import sympy
+import types
 
 from calculator.bytecode import *
 from calculator.functions import *
@@ -166,7 +167,8 @@ BUILTIN_FUNCTIONS = {
 	'splice': array_splice,
 	'expand': array_expand,
 	'range': make_range,
-	'int': sympy.Integer
+	'int': sympy.Integer,
+	'subs': lambda expr, symbol, value: expr.subs(symbol, value)
 }
 
 # FIXED_VALUES = {
@@ -190,12 +192,17 @@ FIXED_VALUES = {
 }
 
 
-EXTRACT_FROM_SYMPY = 're im sign Abs arg conjugate polar_lift periodic_argument principal_branch sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac exp log root sqrt diff integrate pi E I'
+EXTRACT_FROM_SYMPY = '''
+	re im sign Abs arg conjugate polar_lift periodic_argument principal_branch
+	sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
+	tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
+	exp log root sqrt diff integrate pi E I
+'''
 
 for i in EXTRACT_FROM_SYMPY.split():
 	value = getattr(sympy, i)
 	name = i.lower()
-	if isinstance(value, sympy.FunctionClass):
+	if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
 		BUILTIN_FUNCTIONS[name] = value
 	else:
 		FIXED_VALUES[name] = value
