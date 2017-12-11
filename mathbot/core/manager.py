@@ -261,7 +261,10 @@ class Manager:
 		results = [
 			'<@172240092331507712>',
 			'<@134073775925886976>',
-			'<@325886099937558528>'
+			'<@325886099937558528>',
+			'<@!172240092331507712>',
+			'<@!134073775925886976>',
+			'<@!325886099937558528>'
 		]
 		if message.channel.is_private:
 			results.append(await core.keystore.get('last-seen-prefix', message.author.id))
