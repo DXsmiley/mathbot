@@ -211,7 +211,7 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 
 
 def atom(tokens):
-	if tokens.peek(0, 'number', 'word'):
+	if tokens.peek(0, 'number', 'word', 'period'):
 		return tokens.eat_details()
 
 
@@ -241,6 +241,24 @@ def function_call(tokens):
 	return value
 
 
+def operator_list_extract(tokens):
+	if tokens.peek(0, 'head_op'):
+		token = tokens.eat_details()
+		return {
+			'#': 'head',
+			'token': token,
+			'expression': expect(tokens, operator_list_extract)
+		}
+	if tokens.peek(0, 'tail_op'):
+		token = tokens.eat_details()
+		return {
+			'#': 'tail',
+			'token': token,
+			'expression': expect(tokens, operator_list_extract)
+		}
+	return function_call(tokens)
+
+
 def logic_not(tokens):
 	if tokens.peek(0, 'bang'):
 		token = tokens.eat_details()
@@ -249,7 +267,7 @@ def logic_not(tokens):
 			'token': token,
 			'expression': expect(tokens, logic_not)
 		}
-	return function_call(tokens)
+	return operator_list_extract(tokens)
 
 
 def factorial(tokens):
@@ -393,6 +411,9 @@ def comparison_list(tokens):
 	return result
 
 
+prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIGHT_FIRST, 'bin_op')
+
+
 def function_definition(tokens):
 	if tokens.peek(1, 'function_definition'):
 		if not tokens.peek(0, TokenBlock):
@@ -408,7 +429,7 @@ def function_definition(tokens):
 			'variadic': is_variadic,
 			'token': kind
 		}
-	return comparison_list(tokens)
+	return prepend_op(tokens)
 
 
 def statement(tokens):
@@ -572,7 +593,11 @@ def parse(string, source_name = '__unknown__'):
 			('land_op', r'&'),
 			('lor_op', r'\|'),
 			('bang', r'!'),
-			('period', r'\.')
+			('period', r'\.'),
+			('head_op', r'\''),
+			('tail_op', r'\\'),
+			('prepend_op', r':'),
+			('concat_op', r'\+\+')
 		],
 		source_name = source_name
 	)

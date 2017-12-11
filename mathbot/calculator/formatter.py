@@ -29,7 +29,6 @@ class Collector:
             output = output[:self.limit - 3] + '...'
         return output
 
-
 def f(v, c):
     if isinstance(v, calculator.functions.Array):
         c.print('[')

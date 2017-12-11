@@ -54,6 +54,52 @@ class Array:
 		return str(self)
 
 
+class ListBase:
+	pass
+
+
+class List(ListBase):
+
+	def __init__(self, head, rest):
+		self.head = head
+		self.rest = rest
+		self.size = len(rest) + 1
+
+	def __len__(self):
+		return self.size
+
+	def __bool__(self):
+		return True
+
+	def __str__(self):
+		parts = []
+		cur = self
+		while not isinstance(cur, EmptyList):
+			parts.append(str(cur.head))
+			cur = cur.rest
+		return 'list(' + ', '.join(parts) + ')'
+
+
+class EmptyList(ListBase):
+
+	def __len__(self):
+		return 0
+
+	def __bool__(self):
+		return False
+
+	@property
+	def head(self):
+		raise calculator.errors.EvaluationError('Attempt to get head of empty list')
+
+	@property
+	def rest(self):
+		raise calculator.errors.EvaluationError('Attempted to get the rest of an empty list')
+
+	def __str__(self):
+		return '.'
+
+
 class SingularValue:
 
 	def __init__(self, item):

@@ -7,6 +7,7 @@ import calculator.errors
 import calculator.runtime
 import calculator.formatter
 import sympy
+import json
 
 
 ERROR_TEMPLATE = '''\
@@ -51,7 +52,7 @@ class Terminal():
         self.line_count += 1
         worked = True
         if self.allow_special_commands and line == ':tree':
-            show_tree = not show_tree
+            self.show_tree = not self.show_tree
         elif self.allow_special_commands and line == ':parsepoint':
             show_parsepoint = not show_parsepoint
         elif self.allow_special_commands and line == ':trace':

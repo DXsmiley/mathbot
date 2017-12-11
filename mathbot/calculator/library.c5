@@ -35,4 +35,23 @@ vdot (u, v) -> reduce(sum, zipmap(product, u, v)),
 series (function, start, end) -> reduce(sum, map(function, range(start, end + 1))),
 
 # Stuff that's useful for sympy
-fdiff (function) -> diff(function(new_symbol()))
+fdiff (function) -> diff(function(new_symbol())),
+
+# Operators on lists
+
+lrange(start, end) -> if (start > end, ., start:lrange(start + 1, end)),
+
+lmap(func, list) -> if (list, func('list):lmap(func, \list) ,.),
+
+lfilter(func, list) -> if (list,
+	if (
+		func('list),
+		'list:lfilter(func, \list),
+		lfilter(func, \list)
+	)
+,.),
+
+lreduce(func, list) -> if (
+	length(list) == 1, 'list,
+	func('list, lreduce(func, \list))
+)

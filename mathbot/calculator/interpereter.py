@@ -216,7 +216,11 @@ class Interpereter:
 			b.DUPLICATE: self.inst_duplicate,
 			b.STACK_SWAP: self.inst_stack_swap,
 			b.BEGIN_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_enable,
-			b.END_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_disable
+			b.END_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_disable,
+			b.LIST_CREATE_EMPTY: self.inst_list_create_empty,
+			b.LIST_EXTRACT_FIRST: self.inst_list_extract_first,
+			b.LIST_EXTRACT_REST: self.inst_list_extract_rest,
+			b.LIST_PREPEND: self.inst_list_prepend
 		}
 
 	def clear_cache(self):
@@ -574,6 +578,28 @@ class Interpereter:
 		self.stack[-2] = result
 		self.stack[-1] += 1
 		self.place -= 1 + 1
+
+	def inst_list_create_empty(self):
+		self.push(calculator.functions.EmptyList())
+
+	def inst_list_extract_first(self):
+		value = self.pop()
+		if not isinstance(value, calculator.functions.ListBase):
+			raise EvaluationError('Attempted to extract head of non-list')
+		self.push(value.head)
+
+	def inst_list_extract_rest(self):
+		value = self.pop()
+		if not isinstance(value, calculator.functions.ListBase):
+			raise EvaluationError('Attempted to extract tail of non-list')
+		self.push(value.rest)
+
+	def inst_list_prepend(self):
+		new = self.pop()
+		lst = self.pop()
+		if not isinstance(lst, calculator.functions.ListBase):
+			raise EvaluationError('Attempt to prepend to start of non-list')
+		self.push(calculator.functions.List(new, lst))
 
 	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):

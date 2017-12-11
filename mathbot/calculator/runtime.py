@@ -82,7 +82,7 @@ def is_complex(x):
 
 
 def array_length(x):
-	if not isinstance(x, (Array, Interval)):
+	if not isinstance(x, (Array, Interval, ListBase)):
 		raise EvaluationError('Cannot get the length of non-array object')
 	return len(x)
 

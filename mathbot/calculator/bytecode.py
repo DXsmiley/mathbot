@@ -73,7 +73,13 @@ class I(enum.IntEnum):
 	BEGIN_PROTECTED_GLOBAL_BLOCK = 57
 	END_PROTECTED_GLOBAL_BLOCK = 58
 
-	# Next to use: 60
+	LIST_CREATE_EMPTY = 60
+	LIST_EXTRACT_FIRST = 61
+	LIST_EXTRACT_REST = 62
+	LIST_PREPEND = 63
+	LIST_CONCAT = 64
+
+	# Next to use: 65
 
 
 OPERATOR_DICT = {
@@ -90,7 +96,8 @@ OPERATOR_DICT = {
 	'<=': I.BIN_L_EQ,
 	'>=': I.BIN_M_EQ,
 	'==': I.BIN_EQUL,
-	'!=': I.BIN_N_EQ
+	'!=': I.BIN_N_EQ,
+	':': I.LIST_PREPEND
 }
 
 
@@ -503,6 +510,14 @@ class CodeSegment:
 					end,
 					I.DISCARD,
 				)
+		elif node_type == 'period':
+			self.push(I.LIST_CREATE_EMPTY)
+		elif node_type == 'head':
+			self.bytecodeify(p['expression'], s, unsafe)
+			self.push(I.LIST_EXTRACT_FIRST, error = p['token']['source'])
+		elif node_type == 'tail':
+			self.bytecodeify(p['expression'], s, unsafe)
+			self.push(I.LIST_EXTRACT_REST, error = p['token']['source'])
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
 
