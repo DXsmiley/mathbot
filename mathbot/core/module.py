@@ -79,14 +79,18 @@ class Module:
 	async def send_private_fallback(self, to, fallback, message, blame = None, supress_warning = False):
 		''' Try and send a private message to a user. If it fails,
 			post it publicly with a warning.
+
+			Return true if it posted privately.
 		'''
 		blame = blame or to
 		try:
 			await self.send_message(to, message, blame = blame)
+			return True
 		except discord.errors.Forbidden:
 			if not supress_warning:
 				await self.send_message(fallback, PM_PRIVACY_ERROR, blame = blame)
 			await self.send_message(fallback, message, blame = blame)
+			return False
 
 	async def send_file(self, *args, blame = None, **kwargs):
 		''' Send a file and assign a blame to the message.
