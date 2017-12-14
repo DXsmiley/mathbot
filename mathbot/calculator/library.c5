@@ -54,4 +54,7 @@ lfilter(func, list) -> if (list,
 lreduce(func, list) -> if (
 	length(list) == 1, 'list,
 	func('list, lreduce(func, \list))
-)
+),
+
+_list(a, i) -> if (i == length(a), ., a(i):_list(a, i + 1)),
+list(x.) -> _list(x, 0)

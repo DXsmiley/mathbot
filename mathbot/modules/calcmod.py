@@ -77,26 +77,23 @@ class CalculatorModule(core.module.Module):
 			await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 		else:
 			safe.sprint('Doing calculation:', arg)
-			if arg.count(':') > 0:
-				await self.send_message(message.channel, 'The `:` operator has been removed from the language.', blame = message.author)
-			else:
-				scope = SCOPES[message.channel.id]
-				result, worked, details = await scope.execute_async(arg)
-				if result.count('\n') > 0:
-					result = '```\n{}\n```'.format(result)
-				if result == '':
-					result = ':thumbsup:'
-				elif len(result) > 2000:
-					result = 'Result was too large to display.'
-				elif worked and len(result) < 1000:
-					if await advertising.should_advertise_to(message.author, message.channel):
-						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-				await self.send_message(message.channel, result, blame = message.author)
-				if worked:
-					# This is a hack. The only way a command is actually 'important' is
-					# if it assignes a variable. Variables are assigned through the = or -> operators.
-					if '=' or '->' in arg:
-						await self.add_command_to_history(message.channel, arg)
+			scope = SCOPES[message.channel.id]
+			result, worked, details = await scope.execute_async(arg)
+			if result.count('\n') > 0:
+				result = '```\n{}\n```'.format(result)
+			if result == '':
+				result = ':thumbsup:'
+			elif len(result) > 2000:
+				result = 'Result was too large to display.'
+			elif worked and len(result) < 1000:
+				if await advertising.should_advertise_to(message.author, message.channel):
+					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
+			await self.send_message(message.channel, result, blame = message.author)
+			if worked:
+				# This is a hack. The only way a command is actually 'important' is
+				# if it assignes a variable. Variables are assigned through the = or -> operators.
+				if '=' or '->' in arg:
+					await self.add_command_to_history(message.channel, arg)
 
 	async def replay_commands(self, channel, blame):
 		if self.allow_calc_history(channel):
