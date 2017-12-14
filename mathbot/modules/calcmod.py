@@ -81,7 +81,7 @@ class CalculatorModule(core.module.Module):
 				await self.send_message(message.channel, 'The `:` operator has been removed from the language.', blame = message.author)
 			else:
 				scope = SCOPES[message.channel.id]
-				result, worked = await scope.execute_async(arg)
+				result, worked, details = await scope.execute_async(arg)
 				if result.count('\n') > 0:
 					result = '```\n{}\n```'.format(result)
 				if result == '':
@@ -116,7 +116,7 @@ class CalculatorModule(core.module.Module):
 						for c in commands:
 							print('>>>', c)
 							scope = SCOPES[channel.id]
-							result, worked = await scope.execute_async(c)
+							result, worked, details = await scope.execute_async(c)
 							if worked:
 								new_commands.append(c)
 							else:
