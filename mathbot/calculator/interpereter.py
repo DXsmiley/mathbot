@@ -328,7 +328,12 @@ class Interpereter:
 
 	def binary_op(op):
 		def internal(self):
-			self.push(op(self.pop(), self.pop()))
+			left = self.pop()
+			right = self.pop()
+			try:
+				self.push(op(left, right))
+			except Exception:
+				raise EvaluationError('Operation failed on {} and {}'.format(left, right))
 		return internal
 
 	inst_add = binary_op(operator.add)
