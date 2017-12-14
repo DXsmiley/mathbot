@@ -116,6 +116,8 @@ def array_expand(*arrays):
 
 
 def make_range(start, end):
+	start = int(start)
+	end = int(end)
 	if not isinstance(start, int):
 		raise EvaluationError('Cannot create range on non-int')
 	if not isinstance(end, int):
@@ -158,9 +160,14 @@ def make_range(start, end):
 # 	'choose': m_choose
 # }
 
+def mylog(e, b = 10):
+	return sympy.log(e, b)
+
 BUILTIN_FUNCTIONS = {
-	'is_real': is_real,
-	'is_complex': is_complex,
+	# 'is_real': is_real,
+	# 'is_complex': is_complex,
+	'log': mylog,
+	'ln': sympy.log,
 	'is_function': is_function,
 	'length': array_length,
 	'join': array_join,
@@ -196,7 +203,7 @@ EXTRACT_FROM_SYMPY = '''
 	re im sign Abs arg conjugate polar_lift periodic_argument principal_branch
 	sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 	tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
-	exp log root sqrt diff integrate pi E I
+	exp root sqrt diff integrate pi E I gcd lcm gamma factorial
 '''
 
 for i in EXTRACT_FROM_SYMPY.split():

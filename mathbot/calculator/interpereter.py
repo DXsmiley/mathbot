@@ -353,15 +353,17 @@ class Interpereter:
 	inst_or = binary_op(lambda a, b: int(bool(a) or bool(b)))
 
 	def inst_unr_min(self):
-		self.push(
-			operators.operator_subtract(
-				0,
-				self.pop()
-			)
-		)
+		self.push(-self.pop())
 
 	def inst_unr_fac(self):
-		self.push(operators.function_factorial(self.pop()))
+		try:
+			result = sympy.factorial(self.pop())
+			if result is sympy.zoo:
+				raise TypeError
+		except Exception:
+			raise EvaluationError('Cannot run factorial function on {}'.format(result))
+		self.push(result)
+		# self.push(operators.function_factorial(self.pop()))
 
 	def inst_unr_not(self):
 		self.push(int(not bool(self.pop())))
@@ -370,17 +372,17 @@ class Interpereter:
 		def internal(self):
 			r = self.pop()
 			l = self.pop()
-			x = int(comparator(l, r))
+			x = int(bool(comparator(l, r)))
 			self.stack[-1] &= x
 			self.push(r)
 		return internal
 
-	inst_cmp_less = inst_comparison(operators.operator_less)
-	inst_cmp_more = inst_comparison(operators.operator_more)
-	inst_cmp_l_eq = inst_comparison(operators.operator_less_equal)
-	inst_cmp_m_eq = inst_comparison(operators.operator_more_equal)
-	inst_cmp_equl = inst_comparison(operators.operator_equal)
-	inst_cmp_n_eq = inst_comparison(operators.operator_not_equal)
+	inst_cmp_less = inst_comparison(operator.lt)
+	inst_cmp_more = inst_comparison(operator.gt)
+	inst_cmp_l_eq = inst_comparison(operator.le)
+	inst_cmp_m_eq = inst_comparison(operator.ge)
+	inst_cmp_equl = inst_comparison(operator.eq)
+	inst_cmp_n_eq = inst_comparison(operator.ne)
 
 	def inst_discard(self):
 		self.pop()
@@ -420,10 +422,10 @@ class Interpereter:
 		try:
 			self.push(self.root_scope.get(index, 0))
 		except ScopeMissedError:
-			symbol = sympy.symbols(self.head)
-			self.push(symbol)
+			# symbol = sympy.symbols(self.head)
+			# self.push(symbol)
 			# self.root_scope.set(index, 0, symbol)
-			# raise EvaluationError('Failed to access variable "{}"'.format(self.head))
+			raise EvaluationError('Failed to access variable "{}"'.format(self.head))
 
 	def inst_access_local(self):
 		self.place += 1
@@ -608,7 +610,10 @@ class Interpereter:
 
 	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
-			result = function(*arguments)
+			try:
+				result = function(*arguments)
+			except Exception:
+				raise EvaluationError('Faled to call {} on {}'.format(function, arguments))
 			self.push(result)
 			self.place = return_to
 		elif isinstance(function, Function):

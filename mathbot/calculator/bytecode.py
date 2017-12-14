@@ -147,6 +147,35 @@ class Scope:
 		return self.superscope.find_value(name, depth + 1)
 
 
+class Keys:
+
+	names = [
+		'scope',
+		'unsafe',
+		'allow_tco'
+	]
+
+	def __init__(self, **kwargs):
+		self.checknames(kwargs)
+		for i in Keys.names:
+			if i not in kwargs:
+				raise NameError('Property {} not specified for Keys'.format(i))
+		self.values = kwargs
+
+	def __call__(self, **kwargs):
+		self.checknames(kwargs)
+		d = {k:kwargs.get(k, self.values.get(k)) for k in Keys.names}
+		return Keys(**d)
+
+	def __getitem__(self, k):
+		return self.values[k]
+
+	def checknames(self, dct):
+		for i in dct:
+			if i not in Keys.names:
+				raise NameError('{} is not a valid property for Keys'.format(i))
+
+
 class ConstructedBytecode:
 
 	def __init__(self, bytecode, error_link):
@@ -209,7 +238,8 @@ class CodeBuilder:
 		return seg
 
 	def bytecodeify(self, ast, late = False, unsafe = False):
-		self.new_segment().bytecodeify(ast, self.globalscope, unsafe)
+		keys = Keys(unsafe = unsafe, scope = self.globalscope, allow_tco = False)
+		self.new_segment().bytecodeify(ast, keys)
 
 	def dump(self):
 		newcode = []
@@ -251,7 +281,12 @@ class CodeSegment:
 		self.items += items
 		self.error_link += [error] * len(items)
 
-	def bytecodeify(self, p, s, unsafe):
+	def bytecodeify(self, p, keys):
+		# TCO not allowed in most cirumstances. Get the value and then set it.
+		# Can re-assign it later if it's *actually* allowed
+		allow_tco = keys['allow_tco']
+		keys = keys(allow_tco = False)
+		# Branch by the current node type
 		node_type = p['#']
 		if node_type == 'number':
 			self.push(I.CONSTANT)
@@ -263,14 +298,14 @@ class CodeSegment:
 			er = p['token']['source']
 			if op == '&': # Logical and
 				end = Destination()
-				self.bytecodeify(left, s, unsafe)
+				self.bytecodeify(left, keys)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_FALSE,
 					Pointer(end),
 					error = er
 				)
-				self.bytecodeify(right, s, unsafe)
+				self.bytecodeify(right, keys)
 				self.push(
 					I.BIN_AND,
 					end,
@@ -278,32 +313,32 @@ class CodeSegment:
 				)
 			elif op == '|': # Logical or
 				end = Destination()
-				self.bytecodeify(left, s, unsafe)
+				self.bytecodeify(left, keys)
 				self.push(
 					I.DUPLICATE,
 					I.JUMP_IF_TRUE,
 					Pointer(end),
 					error = er
 				)
-				self.bytecodeify(right, s, unsafe)
+				self.bytecodeify(right, keys)
 				self.push(
 					I.BIN_OR_,
 					end,
 					error = er
 				)
 			else:
-				self.bytecodeify(right, s, unsafe)
-				self.bytecodeify(left, s, unsafe)
+				self.bytecodeify(right, keys)
+				self.bytecodeify(left, keys)
 				self.push(OPERATOR_DICT[op], error = p['token']['source'])
 		elif node_type == 'not':
-			self.bytecodeify(p['expression'], s, unsafe)
+			self.bytecodeify(p['expression'], keys)
 			self.push(I.UNR_NOT, error = p['token']['source'])
 		elif node_type == 'die':
-			self.bytecodeify(p['faces'], s, unsafe)
-			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), s, unsafe)
+			self.bytecodeify(p['faces'], keys)
+			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), keys)
 			self.push(I.BIN_DIE, error = p['token']['source'])
 		elif node_type == 'uminus':
-			self.bytecodeify(p['value'], s, unsafe)
+			self.bytecodeify(p['value'], keys)
 			self.push(I.UNR_MIN, error = p['token']['source'])
 		elif node_type == 'function_call':
 			args = p.get('arguments', {'items': []})['items']
@@ -315,14 +350,14 @@ class CodeSegment:
 					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
 				p_end = Destination()
 				p_false = Destination()
-				self.bytecodeify(args[0], s, unsafe)
+				self.bytecodeify(args[0], keys())
 				self.push(I.JUMP_IF_FALSE)
 				self.push(Pointer(p_false))
-				self.bytecodeify(args[1], s, unsafe)
+				self.bytecodeify(args[1], keys(allow_tco = allow_tco))
 				self.push(I.JUMP)
 				self.push(Pointer(p_end))
 				self.push(p_false)
-				self.bytecodeify(args[2], s, unsafe)
+				self.bytecodeify(args[2], keys(allow_tco = allow_tco))
 				self.push(p_end)
 			elif function_name == 'ifelse':
 				if len(args) < 3 or len(args) % 2 == 0:
@@ -330,22 +365,22 @@ class CodeSegment:
 				p_end = Destination()
 				p_false = Destination()
 				for condition, result in zip(args[::2], args[1::2]):
-					self.bytecodeify(condition, s, unsafe)
+					self.bytecodeify(condition, keys)
 					self.push(I.JUMP_IF_FALSE)
 					self.push(Pointer(p_false))
-					self.bytecodeify(result, s, unsafe)
+					self.bytecodeify(result, keys)
 					self.push(I.JUMP)
 					self.push(Pointer(p_end))
 					self.push(p_false)
 					p_false = Destination()
-				self.bytecodeify(args[-1], s, unsafe)
+				self.bytecodeify(args[-1], keys)
 				self.push(p_end)
 			elif function_name == 'map':
 				# print(json.dumps(p, indent = 4))
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for map function')
-				self.bytecodeify(args[0], s, unsafe)
-				self.bytecodeify(args[1], s, unsafe)
+				self.bytecodeify(args[0], keys)
+				self.bytecodeify(args[1], keys)
 				self.push(
 					I.CONSTANT_EMPTY_ARRAY,
 					I.SPECIAL_MAP,
@@ -355,8 +390,8 @@ class CodeSegment:
 			elif function_name == 'filter':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
-				self.bytecodeify(args[0], s, unsafe)
-				self.bytecodeify(args[1], s, unsafe)
+				self.bytecodeify(args[0], keys)
+				self.bytecodeify(args[1], keys)
 				self.push(
 					I.CONSTANT_EMPTY_ARRAY,
 					I.CONSTANT, 0,
@@ -368,8 +403,8 @@ class CodeSegment:
 			elif function_name == 'reduce':
 				if len(args) != 2:
 					raise calculator.errors.CompilationError('Invalid number of argument for reduce function')
-				self.bytecodeify(args[0], s, unsafe)
-				self.bytecodeify(args[1], s, unsafe)
+				self.bytecodeify(args[0], keys)
+				self.bytecodeify(args[1], keys)
 				# Get the first element of the array
 				self.push(I.DUPLICATE)
 				self.push(I.CONSTANT)
@@ -391,9 +426,9 @@ class CodeSegment:
 						'parameters': {'items': []},
 						'kind': '->',
 						'expression': i
-					}, s, unsafe) for i in args[::-1]
+					}, keys) for i in args[::-1]
 				]
-				self.bytecodeify(p['function'], s, unsafe)
+				self.bytecodeify(p['function'], keys)
 				landing_macro = Destination()
 				landing_end = Destination()
 				# Need to jump because normal functions and macros are handled differently
@@ -421,7 +456,7 @@ class CodeSegment:
 		elif node_type == 'word':
 			# self.push(I.WORD)
 			# self.push(p['string'].lower())
-			scope, depth, index = s.find_value(p['string'].lower())
+			scope, depth, index = keys['scope'].find_value(p['string'].lower())
 			if scope == self.builder.globalscope:
 				# NOTE: Only global variables can fail to be found,
 				# so we only need the name for this one.
@@ -436,15 +471,15 @@ class CodeSegment:
 				self.push(depth)
 				self.push(index)
 		elif node_type == 'factorial':
-			self.bytecodeify(p['value'], s, unsafe)
+			self.bytecodeify(p['value'], keys)
 			self.push(I.UNR_FAC, error = p['token']['source'])
 		elif node_type == 'assignment':
-			self.bytecodeify(p['value'], s, unsafe)
+			self.bytecodeify(p['value'], keys)
 			name = p['variable']['string'].lower()
-			if name in PROTECTED_NAMES and not unsafe:
+			if name in PROTECTED_NAMES and not keys['unsafe']:
 				m = 'Cannot assign to variable "{}"'.format(name)
 				raise calculator.errors.CompilationError(m, p['variable'])
-			scope, depth, index = s.find_value(name)
+			scope, depth, index = keys['scope'].find_value(name)
 			assert(scope == self.builder.globalscope)
 			# print(scope, depth, index)
 			self.push(I.ASSIGNMENT)
@@ -453,27 +488,27 @@ class CodeSegment:
 			# self.push(p['variable']['string'].lower())
 		elif node_type == 'declare_symbol':
 			name = p['name']['string'].lower()
-			if name in PROTECTED_NAMES and not unsafe:
+			if name in PROTECTED_NAMES and not keys['unsafe']:
 				m = 'Cannot assign to variable "{}"'.format(name)
 				raise calculator.errors.CompilationError(m, p['name'])
-			scope, depth, index = s.find_value(name)
+			scope, depth, index = keys['scope'].find_value(name)
 			assert(scope == self.builder.globalscope)
 			self.push(I.DECLARE_SYMBOL)
 			self.push(index)
 			self.push(name)
 		elif node_type == 'statement_list':
-			self.bytecodeify(p['statement'], s, unsafe)
+			self.bytecodeify(p['statement'], keys)
 			if p['next'] is not None:
-				self.bytecodeify(p['next'], s, unsafe)
+				self.bytecodeify(p['next'], keys)
 		elif node_type == 'program':
 			for i in p['items']:
-				self.bytecodeify(i, s, unsafe)
+				self.bytecodeify(i, keys)
 			# self.push(I.END)
 		elif node_type == 'end':
 			self.push(I.END)
 		elif node_type == 'function_definition':
 			# Create the function itself
-			start_pointer = self.define_function(p, s, unsafe)
+			start_pointer = self.define_function(p, keys)
 			# Create the bytecode for the current scope
 			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
 			self.push(I.FUNCTION_NORMAL)
@@ -481,8 +516,8 @@ class CodeSegment:
 		elif node_type == 'comparison':
 			if len(p['rest']) == 1:
 				# Can get away with a simple binary operator like the others
-				self.bytecodeify(p['rest'][0]['value'], s, unsafe)
-				self.bytecodeify(p['first'], s, unsafe)
+				self.bytecodeify(p['rest'][0]['value'], keys)
+				self.bytecodeify(p['first'], keys)
 				op = p['rest'][0]['operator']
 				er = p['rest'][0]['token']['source']
 				self.push(OPERATOR_DICT[op], error = er)
@@ -490,7 +525,7 @@ class CodeSegment:
 				bailed = Destination()
 				end = Destination()
 				self.push(I.CONSTANT, 1)
-				self.bytecodeify(p['first'], s, unsafe)
+				self.bytecodeify(p['first'], keys)
 				for index, ast in enumerate(p['rest']):
 					if index > 0:
 						self.push(
@@ -500,7 +535,7 @@ class CodeSegment:
 							Pointer(bailed),
 							I.STACK_SWAP # Put the value back on top
 						)
-					self.bytecodeify(ast['value'], s, unsafe)
+					self.bytecodeify(ast['value'], keys)
 					self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
 				self.push(
 					I.JUMP,
@@ -513,15 +548,15 @@ class CodeSegment:
 		elif node_type == 'period':
 			self.push(I.LIST_CREATE_EMPTY)
 		elif node_type == 'head':
-			self.bytecodeify(p['expression'], s, unsafe)
+			self.bytecodeify(p['expression'], keys)
 			self.push(I.LIST_EXTRACT_FIRST, error = p['token']['source'])
 		elif node_type == 'tail':
-			self.bytecodeify(p['expression'], s, unsafe)
+			self.bytecodeify(p['expression'], keys)
 			self.push(I.LIST_EXTRACT_REST, error = p['token']['source'])
 		else:
 			raise Exception('Unknown AST node type: {}'.format(node_type))
 
-	def define_function(self, p, s, unsafe):
+	def define_function(self, p, keys):
 		contents = self.new_segment(late = True)
 		start_address = Destination()
 		contents.push(start_address)
@@ -538,10 +573,10 @@ class CodeSegment:
 		is_macro = int(p.get('kind') == '~>')
 		contents.push(is_macro)
 		if len(params) == 0:
-			contents.bytecodeify(p['expression'], s, unsafe)
+			contents.bytecodeify(p['expression'], keys(allow_tco = True))
 		else:
-			subscope = Scope(params, superscope = s)
-			contents.bytecodeify(p['expression'], subscope, unsafe)
+			subscope = Scope(params, superscope = keys['scope'])
+			contents.bytecodeify(p['expression'], keys(allow_tco = True, scope = subscope))
 		if not is_macro:
 			contents.push(I.STORE_IN_CACHE)
 		contents.push(I.RETURN)
@@ -549,6 +584,8 @@ class CodeSegment:
 
 
 def convert_number(x):
+	if (x[-1] in 'iI'):
+		return sympy.I * sympy.Number(x[:-1])
 	return sympy.Number(x)
 	# try:
 	# 	try:
