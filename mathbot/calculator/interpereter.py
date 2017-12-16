@@ -175,6 +175,7 @@ class Interpereter:
 			# b.STORE_DEMACROD: self.inst_store_demacrod,
 			b.ARG_LIST_END: self.inst_arg_list_end,
 			b.ARG_LIST_END_NO_CACHE: self.inst_arg_list_end_no_cache,
+			b.ARG_LIST_END_WITH_TCO: self.inst_arg_list_end_with_tco,
 			b.ASSIGNMENT: self.inst_assignment,
 			b.DECLARE_SYMBOL: self.inst_declare_symbol,
 			b.WORD: self.inst_word,
@@ -392,7 +393,7 @@ class Interpereter:
 		if isinstance(self.top, Function) and FunctionInspector(self, self.top).is_macro:
 			self.place = self.head - 1 # Is now -1 for flexibility
 
-	def inst_arg_list_end(self, disable_cache = False):
+	def inst_arg_list_end(self, disable_cache = False, do_tco = False):
 		# Look at the number of arguments
 		self.place += 1
 		stack_arg_count = self.head
@@ -405,10 +406,13 @@ class Interpereter:
 			else:
 				arguments.append(arg)
 		function = self.pop()
-		self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache)
+		self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache, do_tco = do_tco)
 
 	def inst_arg_list_end_no_cache(self):
 		self.inst_arg_list_end(disable_cache = True)
+
+	def inst_arg_list_end_with_tco(self):
+		self.inst_arg_list_end(do_tco = True)
 
 	def inst_word(self):
 		assert(False)
@@ -608,7 +612,7 @@ class Interpereter:
 			raise EvaluationError('Attempt to prepend to start of non-list')
 		self.push(calculator.functions.List(new, lst))
 
-	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False):
+	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False, do_tco = False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
 			try:
 				result = function(*arguments)
@@ -646,12 +650,12 @@ class Interpereter:
 					else:
 						new_scope = IndexedScope(function.scope, num_parameters, arguments)
 				# Remember the current scope
-				self.push(return_to)
-				self.push(self.current_scope)
-				# For normal functions, the last thing that happens is that the result is
-				# stored in a cache. Need the key in order to do that.
-				if not inspector.is_macro:
-					self.push(None if disable_cache else cache_key)
+				if not do_tco:
+					self.push(return_to)
+					self.push(self.current_scope)
+					# For normal functions, the last thing that happens is that the result is
+					# stored in a cache. Need the key in order to do that.
+					self.push(None if disable_cache or inspector.is_macro else cache_key)
 				# Enter the function
 				self.current_scope = new_scope
 				self.place = inspector.code_address

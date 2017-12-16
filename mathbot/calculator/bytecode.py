@@ -25,6 +25,7 @@ class I(enum.IntEnum):
 	JUMP_IF_MACRO = 14
 	ARG_LIST_END = 15
 	ARG_LIST_END_NO_CACHE = 54
+	ARG_LIST_END_WITH_TCO = 65
 	WORD = 16
 	ASSIGNMENT = 17
 	DECLARE_SYMBOL = 59
@@ -79,7 +80,7 @@ class I(enum.IntEnum):
 	LIST_PREPEND = 63
 	LIST_CONCAT = 64
 
-	# Next to use: 65
+	# Next to use: 66
 
 
 OPERATOR_DICT = {
@@ -440,7 +441,10 @@ class CodeSegment:
 					self.push(i)
 					self.push(I.ARG_LIST_END_NO_CACHE)
 					self.push(0)
-				self.push(I.ARG_LIST_END)
+				if allow_tco:
+					self.push(I.ARG_LIST_END_WITH_TCO)
+				else:
+					self.push(I.ARG_LIST_END)
 				self.push(len(args), error = call_marker_errinfo)
 				self.push(I.JUMP)
 				self.push(Pointer(landing_end))
@@ -577,8 +581,9 @@ class CodeSegment:
 		else:
 			subscope = Scope(params, superscope = keys['scope'])
 			contents.bytecodeify(p['expression'], keys(allow_tco = True, scope = subscope))
-		if not is_macro:
-			contents.push(I.STORE_IN_CACHE)
+		# if not is_macro:
+		# 	contents.push(I.STORE_IN_CACHE)
+		contents.push(I.STORE_IN_CACHE)
 		contents.push(I.RETURN)
 		return Pointer(start_address)
 
