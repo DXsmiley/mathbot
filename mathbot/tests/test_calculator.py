@@ -258,23 +258,23 @@ def test_if_statement():
 	doit('x = if, x(2, 3, 4)', 3)
 
 def test_map():
-	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
-	doit('map((x) -> x * 2, array(0, 1, 2, 3, 4, 5))(4)', 8)
-	doit('map((x) ~> x() * 2, array(0, 1, 2, 3, 4, 5))(1)', 2)
-	doit('map(sin, array(0, 1, 2, 3, 4))(3)', sympy.sin(3))
-	doit('map((x) -> x * 2, range(0, 6))(1)', 2)
-	doit('map((x) -> x * 2, range(0, 6))(4)', 8)
-	throws('map((a, b) -> a + b, array(0, 1, 2, 3, 4, 5))(4)')
-	doit('length(array(1, 2, 3))', 3)
-	doit('f = (x) -> x * 2, length(map(f, array()))', 0)
+	doit("' \ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	doit("' \ \ \ \ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 8)
+	doit("' \ map((x) ~> x() * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	doit("' \ \ \ map(sin, list(0, 1, 2, 3, 4))", sympy.sin(3))
+	doit("' \ map((x) -> x * 2, range(0, 6))", 2)
+	doit("' \ \ \ \ map((x) -> x * 2, range(0, 6))", 8)
+	throws("' \ \ \ \ map((a, b) -> a + b, list(0, 1, 2, 3, 4, 5))")
+	doit("length(list(1, 2, 3))", 3)
+	doit("f = (x) -> x * 2, length(map(f, list()))", 0)
 
 def test_reduce():
-	doit('reduce((a, b) -> a + b, array(0, 1, 2, 3, 4))', 10)
+	doit('reduce((a, b) -> a + b, list(0, 1, 2, 3, 4))', 10)
 	doit('reduce(sum, range(0, 5))', 10)
-	throws('reduce((a, b) -> a + b, array())')
+	throws('reduce((a, b) -> a + b, list())')
 	throws('reduce(3, 4)')
-	throws('reduce(() -> f, array(1, 2))')
-	doit('msum = (x, y) ~> x() + y(), reduce(msum, array(1, 2, 3, 4))', 10)
+	throws('reduce(() -> f, list(1, 2))')
+	doit('msum = (x, y) ~> x() + y(), reduce(msum, list(1, 2, 3, 4))', 10)
 
 def test_filter():
 	doit('''
@@ -287,13 +287,13 @@ def test_filter():
 	''', 5)
 
 def test_range():
-	for i in range(0, 5):
-		doit('range(0, 5)({})'.format(i), i)
-		doit('range(10, 20)({})'.format(i), i + 10)
+	# for i in range(0, 5):
+	# 	doit('range(0, 5)({})'.format(i), i)
+	# 	doit('range(10, 20)({})'.format(i), i + 10)
 	doit('length(range(0, 5))', 5)
 	doit('length(range(8, 10))', 2)
 	doit('length(range(7, 7))', 0)
-	throws('range(5, 4)')
+	# throws('range(5, 4)')
 
 def test_invalid_syntax():
 	parse_fail('= == =')

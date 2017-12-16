@@ -79,6 +79,9 @@ class List(ListBase):
 			cur = cur.rest
 		return 'list(' + ', '.join(parts) + ')'
 
+	def __repr__(self):
+		return 'List-{}'.format(self.size)
+
 
 class EmptyList(ListBase):
 
@@ -98,6 +101,9 @@ class EmptyList(ListBase):
 
 	def __str__(self):
 		return '.'
+
+	def __repr__(self):
+		return 'List-0'
 
 
 class SingularValue:

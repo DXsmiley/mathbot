@@ -173,7 +173,7 @@ BUILTIN_FUNCTIONS = {
 	'join': array_join,
 	'splice': array_splice,
 	'expand': array_expand,
-	'range': make_range,
+	# 'range': make_range,
 	'int': sympy.Integer,
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value)
 }

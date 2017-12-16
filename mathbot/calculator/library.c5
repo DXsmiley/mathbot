@@ -1,11 +1,11 @@
-# So these look pretty weird, but they're actually required
-# for the language to function correctly
+# This is actually required for the if function to be
+# passed around as a 'function'.
+# Unfortunately there's no way to implement a nice equivilent
+# for ifelse
 if (c, t, f) ~> if(c(), t(), f()),
-map (f, a) -> map(f, a),
-reduce (f, a) -> reduce(f, a),
-filter (f, a) -> filter(f, a),
 
-# Kinda need this one
+# Kind of needed but might be dissapearing soon in favour
+# of lists
 array (a.) -> a,
 
 # Functions that wrap around the standard operators
@@ -20,16 +20,14 @@ modulo (a, b) -> a % b,
 max (a, b) -> if(a > b, a, b),
 min (a, b) -> if(a < b, a, b),
 
+_zip(a, b, r) -> if (!a | !b, r, _zip(\a, \b, ('a:'b:.):r)),
+zip(a, b) -> reverse(_zip(a, b, .)),
+
 # Like map but you get to iterate over two ranges at once
 zipmap (f, a, b) -> map(
-	(i) -> f(a(i), b(i)),
-	range(0, max(length(a), length(b)))
+	(x) -> f('x, '\x),
+	zip(a, b)
 ),
-
-# Operations to do things with mathematical vectors
-vadd (u, v) -> zipmap(sum, u, v),
-vsub (u, v) -> zipmap(difference, u, v),
-vdot (u, v) -> reduce(sum, zipmap(product, u, v)),
 
 # That series thing!
 series (function, start, end) -> reduce(sum, map(function, range(start, end + 1))),
@@ -37,24 +35,32 @@ series (function, start, end) -> reduce(sum, map(function, range(start, end + 1)
 # Stuff that's useful for sympy
 fdiff (function) -> diff(function(new_symbol())),
 
-# Operators on lists
+# Bread and butter list mapipulation functions
 
-lrange(start, end) -> if (start > end, ., start:lrange(start + 1, end)),
+_repeat(item, times, result) -> if (times <= 0, result, _repeat(item, times - 1, item : result)),
+repeat(item, times) -> _repeat(item, times, .),
 
-lmap(func, list) -> if (list, func('list):lmap(func, \list) ,.),
+_reverse(i, o) -> if(!i, o, _reverse(\i, 'i:o)),
+reverse(l) -> _reverse(l, .),
 
-lfilter(func, list) -> if (list,
-	if (
-		func('list),
-		'list:lfilter(func, \list),
-		lfilter(func, \list)
-	)
-,.),
+_map(f, l, r) -> if(!l, r, _map(f, \l, f('l):r)),
+map(f, l) -> reverse(_map(f, l, .)),
 
-lreduce(func, list) -> if (
-	length(list) == 1, 'list,
-	func('list, lreduce(func, \list))
+_filter(f, l, r) -> ifelse(
+	!l,    r,
+	f('l), _filter(f, \l, 'l:r),
+           _filter(f, \l, r)
 ),
+filter(f, l) -> reverse(_filter(f, l, .)),
 
-_list(a, i) -> if (i == length(a), ., a(i):_list(a, i + 1)),
-list(x.) -> _list(x, 0)
+_reduce(f, l, r) -> if(
+    !l, r,
+    _reduce(f, \l, f('l, r))
+),
+reduce(f, l) -> _reduce(f, \l, 'l),
+
+_list(a, i, r) -> if (i < 0, r, _list(a, i - 1, a(i):r)),
+list(x.) -> _list(x, length(x) - 1, .),
+
+_range(a, b, r) -> if (a == b, r, _range(a, b - 1, (b - 1):r)),
+range(a, b) -> _range(a, b, .)

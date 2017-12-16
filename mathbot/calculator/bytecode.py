@@ -376,47 +376,6 @@ class CodeSegment:
 					p_false = Destination()
 				self.bytecodeify(args[-1], keys)
 				self.push(p_end)
-			elif function_name == 'map':
-				# print(json.dumps(p, indent = 4))
-				if len(args) != 2:
-					raise calculator.errors.CompilationError('Invalid number of argument for map function')
-				self.bytecodeify(args[0], keys)
-				self.bytecodeify(args[1], keys)
-				self.push(
-					I.CONSTANT_EMPTY_ARRAY,
-					I.SPECIAL_MAP,
-					I.SPECIAL_MAP_STORE,
-					error = call_marker_errinfo
-				)
-			elif function_name == 'filter':
-				if len(args) != 2:
-					raise calculator.errors.CompilationError('Invalid number of argument for filter function')
-				self.bytecodeify(args[0], keys)
-				self.bytecodeify(args[1], keys)
-				self.push(
-					I.CONSTANT_EMPTY_ARRAY,
-					I.CONSTANT, 0,
-					I.SPECIAL_FILTER,
-					# I.STORE_IN_CACHE,
-					I.SPECIAL_FILTER_STORE,
-					error = p['function']['source']
-				)
-			elif function_name == 'reduce':
-				if len(args) != 2:
-					raise calculator.errors.CompilationError('Invalid number of argument for reduce function')
-				self.bytecodeify(args[0], keys)
-				self.bytecodeify(args[1], keys)
-				# Get the first element of the array
-				self.push(I.DUPLICATE)
-				self.push(I.CONSTANT)
-				self.push(0)
-				self.push(I.ACCESS_ARRAY_ELEMENT, error = p['function']['source'])
-				# Iterator
-				self.push(I.CONSTANT)
-				self.push(1)
-				# Stack now contains [function, array, result, index]
-				self.push(I.SPECIAL_REDUCE, error = p['function']['source'])
-				self.push(I.SPECIAL_REDUCE_STORE)
 			else:
 				# IDEA: If the function contains only a small amount of code, we can also
 				# inline it (for normal function calls). Cannot inline everything since
