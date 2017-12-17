@@ -16,6 +16,7 @@ import re
 import imageutil
 import core.help
 import advertising
+import discord
 
 
 core.help.load_from_file('./help/latex.md')
@@ -91,6 +92,11 @@ LATEX_TIMEOUT_MESSAGE = 'The renderer took too long to respond.'
 PERMS_FAILURE = '''\
 I don't have permission to upload images here :frowning:
 The owner of this server should be able to fix this issue.
+'''
+
+DELETE_PERMS_FAILURE = '''\
+The bot has been set up to delete `=tex` command inputs.
+It requires the **manage messages** permission in order to do this.
 '''
 
 TEX_REPLACEMENTS = {
@@ -172,6 +178,14 @@ class LatexModule(core.module.Module):
 		else:
 			# print('Handling command:', latex)
 			await self.handle(message, latex, 'normal')
+			if await core.settings.get_setting(message, 'f-delete-tex'):
+				await asyncio.sleep(10)
+				try:
+					await self.client.delete_message(message)
+				except discord.errors.NotFound:
+					pass
+				except discord.errors.Forbidden:
+					await self.send_message(message.channel, DELETE_PERMS_FAILURE, blame = message.author)
 
 	@command_latex.edit(require_before = False, require_after = True)
 	async def handle_edit(self, before, after, latex):

@@ -36,6 +36,7 @@ SETTINGS = {
 	'f-calc-shortcut': SN_STANDARD,
 	'f-wolf-filter': SN_STANDARD,
 	'f-inline-tex': SN_STANDARD_FALSE,
+	'f-delete-tex': SN_STANDARD_FALSE,
 	'p-tex-colour': { # This is now being used as a general 'theme' setting.
 		'values': {
 			'light': 'light',
