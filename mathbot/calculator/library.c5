@@ -63,4 +63,9 @@ _list(a, i, r) -> if (i < 0, r, _list(a, i - 1, a(i):r)),
 list(x.) -> _list(x, length(x) - 1, .),
 
 _range(a, b, r) -> if (a == b, r, _range(a, b - 1, (b - 1):r)),
-range(a, b) -> _range(a, b, .)
+range(a, b) -> _range(a, b, .),
+
+toarray(l) -> array(expand(l)),
+
+_tolist(a, o) -> if (a, _tolist(\a, 'a:o), o),
+tolist(a) -> reverse(_tolist(a, .))
