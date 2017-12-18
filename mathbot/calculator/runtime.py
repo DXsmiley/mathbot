@@ -110,8 +110,8 @@ def array_join(*items):
 
 def array_expand(*arrays):
 	for i in arrays:
-		if not isinstance(i, Array):
-			raise EvaluationError('Cannot expand non-array')
+		if not isinstance(i, (Array, ListBase)):
+			raise EvaluationError('Cannot expand something that\'s not an array or list')
 	return Expanded(arrays)
 
 

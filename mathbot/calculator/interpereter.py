@@ -401,8 +401,8 @@ class Interpereter:
 		for i in range(stack_arg_count):
 			arg = self.pop()
 			if isinstance(arg, Expanded):
-				for i in arg.arrays:
-					arguments += i.items
+				for i in arg:
+					arguments.append(i)
 			else:
 				arguments.append(arg)
 		function = self.pop()
@@ -595,13 +595,13 @@ class Interpereter:
 
 	def inst_list_extract_first(self):
 		value = self.pop()
-		if not isinstance(value, calculator.functions.ListBase):
+		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
 			raise EvaluationError('Attempted to extract head of non-list')
 		self.push(value.head)
 
 	def inst_list_extract_rest(self):
 		value = self.pop()
-		if not isinstance(value, calculator.functions.ListBase):
+		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
 			raise EvaluationError('Attempted to extract tail of non-list')
 		self.push(value.rest)
 
@@ -617,7 +617,7 @@ class Interpereter:
 			try:
 				result = function(*arguments)
 			except Exception:
-				raise EvaluationError('Faled to call {} on {}'.format(function, arguments))
+				raise EvaluationError('Failed to call {} on {}'.format(function, arguments))
 			self.push(result)
 			self.place = return_to
 		elif isinstance(function, Function):
