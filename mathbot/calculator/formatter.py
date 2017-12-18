@@ -1,13 +1,9 @@
 import calculator.functions
+import calculator.errors
 import sympy
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
-
-
-class TooMuchOutputError(Exception):
-
-    pass
 
 
 class Collector:
@@ -21,7 +17,7 @@ class Collector:
         self.parts += args
         self.length += sum(map(len, args))
         if self.limit and self.length > self.limit:
-            raise TooMuchOutputError
+            raise calculator.errors.TooMuchOutputError
 
     def drop(self):
         self.parts.pop()
@@ -38,8 +34,8 @@ def format_iterable(function, iterable, collector):
     while iterable:
         function(iterable.head, collector)
         iterable = iterable.rest
-        collector.print(', ')
-    collector.drop()
+        if iterable:
+            collector.print(', ')
 
 
 def f(v, c):

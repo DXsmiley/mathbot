@@ -32,13 +32,17 @@ def format_value(x):
 	return '"{}"'.format(str(x))
 
 
+class TooMuchOutputError(Exception):
+    pass
+
+
 class FormattedError(Exception):
 
 	def __init__(self, description, *values):
 		if len(values) == 0:
 			self.description = description
 		else:
-			formatted = list(map(calculator.formatter.format, values))
+			formatted = list(map(lambda x: calculator.formatter.format(x, limit = 2000), values))
 			self.description = description.format(*formatted)
 
 	def __str__(self):

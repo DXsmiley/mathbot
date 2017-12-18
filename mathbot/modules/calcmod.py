@@ -30,7 +30,9 @@ For information on how to use the `{prefix}calc`, command, type `{prefix}help ca
 '''
 
 
-SCOPES = collections.defaultdict(lambda : calculator.blackbox.Terminal(retain_cache = False))
+SCOPES = collections.defaultdict(lambda :
+	calculator.blackbox.Terminal(retain_cache = False, output_limit = 1950)
+)
 
 
 COMMAND_DELIM = '####'

@@ -20,7 +20,7 @@ On line {line_num} at position {position}
 
 class Terminal():
 
-    def __init__(self, allow_special_commands = False, retain_cache = True):
+    def __init__(self, allow_special_commands = False, retain_cache = True, output_limit = None):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
@@ -31,6 +31,7 @@ class Terminal():
         self.interpereter.run()
         self.line_count = 0
         self.retain_cache = retain_cache
+        self.output_limit = output_limit
 
     def execute(self, code):
         loop = asyncio.get_event_loop()
@@ -52,7 +53,7 @@ class Terminal():
             args = list(args)
             for i, v in enumerate(args):
                 try:
-                    args[i] = calculator.formatter.format(v)
+                    args[i] = calculator.formatter.format(v, limit = self.output_limit)
                 except Exception:
                     print(e)
             output.append(' '.join(map(str, args)))
@@ -89,11 +90,11 @@ class Terminal():
                 details['result'] = result
                 if result is not None:
                     # Note: This is handled with a try / except because 
-                    f_res = calculator.formatter.format(result)
+                    f_res = calculator.formatter.format(result, limit = self.output_limit)
                     try:
                         exact = result.evalf()
                         details['exact'] = exact
-                        f_ext = calculator.formatter.format(exact)
+                        f_ext = calculator.formatter.format(exact, limit = self.output_limit)
                         if f_res == f_ext or isinstance(result, sympy.Integer):
                             raise Exception
                         prt(f_res, '=', f_ext)
@@ -127,6 +128,8 @@ class Terminal():
             except calculator.parser.TokenizationFailed as e:
                 prt('Tokenization error')
                 prt(format_error_place(line, e.position))
+            except calculator.errors.TooMuchOutputError:
+                prt('Output was too large to display')
             except asyncio.TimeoutError:
                 prt('Operation timed out')
             except Exception as e:
