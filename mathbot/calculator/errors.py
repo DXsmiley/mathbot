@@ -1,4 +1,5 @@
 import re
+import calculator.formatter
 
 
 def wrap_if_plus(s):
@@ -31,11 +32,14 @@ def format_value(x):
 	return '"{}"'.format(str(x))
 
 
-class EvaluationError(Exception):
-	''' Things that go wrong at runtime '''
+class FormattedError(Exception):
 
-	def __init__(self, description):
-		self.description = description
+	def __init__(self, description, *values):
+		if len(values) == 0:
+			self.description = description
+		else:
+			formatted = list(map(calculator.formatter.format, values))
+			self.description = description.format(*formatted)
 
 	def __str__(self):
 		return self.description
@@ -55,28 +59,8 @@ class CompilationError(Exception):
 		return self.description
 
 
-class SystemError(Exception):
+class EvaluationError(FormattedError):
+	''' Things that go wrong at runtime '''
+
+class SystemError(FormattedError):
 	''' Problem due to a bug in the system, not the user's code '''
-
-	def __init__(self, description, *values):
-		if len(values) == 0:
-			self.description = description
-		else:
-			formatted = list(map(format_value, values))
-			self.description = description.format(*formatted)
-
-	def __str__(self):
-		return self.description
-
-
-class DomainError(EvaluationError):
-
-	def __init__(self, function_name, value):
-		self.function_name = function_name
-		self.value = value
-
-	def __str__(self):
-		return '{} cannot be applied to {}'.format(
-			self.function_name,
-			format_value(self.value)
-		)

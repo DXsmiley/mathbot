@@ -49,6 +49,12 @@ class Terminal():
         output = []
         details = {}
         def prt(*args):
+            args = list(args)
+            for i, v in enumerate(args):
+                try:
+                    args[i] = calculator.formatter.format(v)
+                except Exception:
+                    print(e)
             output.append(' '.join(map(str, args)))
         self.line_count += 1
         worked = True
@@ -82,14 +88,17 @@ class Terminal():
                 worked = True
                 details['result'] = result
                 if result is not None:
+                    # Note: This is handled with a try / except because 
+                    f_res = calculator.formatter.format(result)
                     try:
                         exact = result.evalf()
                         details['exact'] = exact
-                        if str(result) == str(exact) or isinstance(result, sympy.Integer):
+                        f_ext = calculator.formatter.format(exact)
+                        if f_res == f_ext or isinstance(result, sympy.Integer):
                             raise Exception
-                        prt(result, '=', exact)
-                    except Exception:
-                        prt(result)
+                        prt(f_res, '=', f_ext)
+                    except Exception as e:
+                        prt(f_res)
                     try:
                         details['latex'] = formatter.latex(result)
                     except Exception:

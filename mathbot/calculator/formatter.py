@@ -2,6 +2,9 @@ import calculator.functions
 import sympy
 
 
+ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
+
+
 class TooMuchOutputError(Exception):
 
     pass
@@ -29,14 +32,27 @@ class Collector:
             output = output[:self.limit - 3] + '...'
         return output
 
+
+# Format an iterable object that supports .head and .rest
+def format_iterable(function, iterable, collector):
+    while iterable:
+        function(iterable.head, collector)
+        iterable = iterable.rest
+        collector.print(', ')
+    collector.drop()
+
+
 def f(v, c):
-    if isinstance(v, calculator.functions.Array):
-        c.print('[')
-        for i in v.items:
-            f(i, c)
-            c.print(', ')
-        c.drop()
-        c.print(']')
+    if v is None:
+        c.print('null')
+    elif isinstance(v, calculator.functions.Array):
+        c.print('array(')
+        format_iterable(f, v, c)
+        c.print(')')
+    elif isinstance(v, calculator.functions.ListBase):
+        c.print('list(')
+        format_iterable(f, v, c)
+        c.print(')')
     else:
         c.print(str(v))
 
@@ -48,18 +64,14 @@ def format(value, limit = None):
 
 
 def l(v, c):
-    if isinstance(v, calculator.functions.Array):
+    if isinstance(v, (calculator.functions.Array, calculator.functions.ListBase)):
         c.print(r'\left\[')
-        for i in v.items:
-            l(i, c)
-            c.print(', ')
-        c.drop()
+        format_iterable(l, v, c)
         c.print(r'\right\]')
+    elif isinstance(v, ALL_SYMPY_CLASSES):
+        c.print(sympy.latex(c))
     else:
-        try:
-            c.print(sympy.latex(v))
-        except Exception:
-            c.print(str(v))
+        c.print(str(v))
 
 
 def latex(value, limit = None):
