@@ -34,6 +34,8 @@ META_TEMPLATE = r'''
 \usepackage{mathrsfs}
 \usepackage{chemfig}
 \usepackage{tikz}
+\usepackage{mhchem}
+\usepackage{tikz-cd}
 \usepackage{color}
 \usepackage{xcolor}
 \usepackage{cancel}
@@ -67,6 +69,8 @@ META_TEMPLATE = r'''
 \newcommand{\bbD}{\mathbb{D}}
 \newcommand{\bbO}{\mathbb{O}}
 \newcommand{\bigO}{\mathcal{O}}
+\newcommand{\ceil}[1]{\left\lceil{#1}\right\rceil}
+\newcommand{\floor}[1]{\left\lfloor{#1}\right\rfloor}
 
 \begin{document}
 
