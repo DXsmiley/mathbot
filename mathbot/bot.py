@@ -80,8 +80,12 @@ async def run_shard(shard_id, shard_count):
 			# Will only trigger stats if supplied with tokens
 			modules.analytics.AnalyticsModule(),
 			modules.reporter.ReporterModule(),
-			modules.greeter.GreeterModule()
 		)
+
+		if RELEASE == 'production':
+			modules.add_modules(
+				modules.greeter.GreeterModule()
+			)
 
 		if RELEASE == 'development':
 			manager.add_modules(
