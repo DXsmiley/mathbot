@@ -17,6 +17,8 @@ import imageutil
 import core.help
 import advertising
 import discord
+import json
+from open_relative import *
 
 
 core.help.load_from_file('./help/latex.md')
@@ -24,70 +26,16 @@ core.help.load_from_file('./help/latex.md')
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
-META_TEMPLATE = r'''
-\documentclass{article}
 
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{mathrsfs}
-\usepackage{chemfig}
-\usepackage{tikz}
-\usepackage{mhchem}
-\usepackage{tikz-cd}
-\usepackage{color}
-\usepackage{xcolor}
-\usepackage{cancel}
-\usepackage[a5paper]{geometry}
+# Load data from external files
 
-\newfam\hebfam
-\font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
-\font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
-\font\tmp=rcjhbltx at5pt  \scriptscriptfont\hebfam=\tmp
-\edef\declfam{\ifcase\hebfam 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
-\mathchardef\shin   = "0\declfam 98
-\mathchardef\aleph  = "0\declfam 27
-\mathchardef\beth   = "0\declfam 62
-\mathchardef\gimel  = "0\declfam 67
-\mathchardef\daleth = "0\declfam 64
-\mathchardef\ayin   = "0\declfam 60
-\mathchardef\tsadi  = "0\declfam 76
-\mathchardef\qof    = "0\declfam 72
-\mathchardef\lamed  = "0\declfam 6C
-\mathchardef\mim    = "0\declfam 6D
-\newcommand{\bbR}{\mathbb{R}}
-\newcommand{\bbQ}{\mathbb{Q}}
-\newcommand{\bbC}{\mathbb{C}}
-\newcommand{\bbZ}{\mathbb{Z}}
-\newcommand{\bbN}{\mathbb{N}}
-\newcommand{\bbH}{\mathbb{H}}
-\newcommand{\bbK}{\mathbb{K}}
-\newcommand{\bbG}{\mathbb{G}}
-\newcommand{\bbP}{\mathbb{P}}
-\newcommand{\bbX}{\mathbb{X}}
-\newcommand{\bbD}{\mathbb{D}}
-\newcommand{\bbO}{\mathbb{O}}
-\newcommand{\bigO}{\mathcal{O}}
-\newcommand{\ceil}[1]{\left\lceil{#1}\right\rceil}
-\newcommand{\floor}[1]{\left\lfloor{#1}\right\rfloor}
-
-\begin{document}
-
-\pagenumbering{gobble}
-
-\definecolor{my_colour}{HTML}{#COLOUR}
-\color{my_colour}
-
-\begin{#BLOCK}
-#CONTENT
-\end{#BLOCK}
-
-\end{document}
-'''
-
+META_TEMPLATE = open_relative('template.tex', encoding = 'utf-8').read()
 TEMPLATE = META_TEMPLATE.replace('#BLOCK', 'gather*')
 TEMPLATE_INLINE = META_TEMPLATE.replace('#BLOCK', 'flushleft')
+
+repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
+TEX_REPLACEMENTS = json.loads(repl_json)
+
 
 # Error messages
 
@@ -103,65 +51,6 @@ The bot has been set up to delete `=tex` command inputs.
 It requires the **manage messages** permission in order to do this.
 '''
 
-TEX_REPLACEMENTS = {
-	# Capital greek letters
-	'Γ': r' \Gamma ',
-	'Δ': r' \Delta ',
-	'Θ': r' \Theta ',
-	'Λ': r' \Lambda ',
-	'Ξ': r' \Xi ',
-	'Π': r' \Pi ',
-	'Σ': r' \Sigma',
-	'Υ': r' \Upsilon',
-	'Φ': r' \Phi ',
-	'Ψ': r' \Psi ',
-	'Ω': r' \Omega',
-	# Lower case greek letters
-	'α': r' \alpha ',
-	'β': r' \beta ',
-	'γ': r' \gamma ',
-	'δ': r' \delta ',
-	'ε': r' \epsilon ',
-	'ζ': r' \zeta ',
-	'η': r' \eta ',
-	'θ': r' \theta ',
-	'ι': r' \iota ',
-	'κ': r' \kappa ',
-	'λ': r' \lambda ',
-	'μ': r' \mu ',
-	'ν': r' \nu ',
-	'ξ': r' \xi ',
-	'π': r' \pi ',
-	'ρ': r' \rho ',
-	'ς': r' \varsigma ',
-	'σ': r' \sigma ',
-	'τ': r' \tau ',
-	'υ': r' \upsilon ',
-	'φ': r' \phi ',
-	'χ': r' \chi ',
-	'ψ': r' \psi ',
-	'ω': r' \omega ',
-	# Cyrillic
-	# Mathematical symbols
-	'×': r' \times ',
-	'÷': r' \div ',
-	# Hebrew
-	'ש': r' \shin ',
-	'א': r' \alef ',
-	'ב': r' \beth ',
-	'ג': r' \gimel ',
-	'ד': r' \daleth ',
-	'ל': r' \lamed ',
-	'מ': r' \mim ',
-	'ם': r' \mim ',
-	'ע': r' \ayin ',
-	'צ': r' \tsadi ',
-	'ץ': r' \tsadi ',
-	'ק': r' \qof ',
-	'·': r' \cdot ',
-	'•': r' \cdot '
-}
-
 
 class RenderingError(Exception):
 	pass
@@ -170,7 +59,12 @@ class RenderingError(Exception):
 class LatexModule(core.module.Module):
 
 	def __init__(self):
-		# IDEA: Store this in redis
+		# Keep track of recently fulfilled requests
+		# Holds dictionaries of
+		# {
+		# 	'template': (either 'normal' or 'inline', depending on what was used),
+		# 	'message': the ID of the _output_ message
+		# }
 		self.connections = {}
 
 	@core.handles.command('tex latex rtex', '*', perm_setting = 'c-tex')
