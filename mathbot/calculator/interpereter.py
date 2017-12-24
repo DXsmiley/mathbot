@@ -208,13 +208,7 @@ class Interpereter:
 			b.UNR_FAC: self.inst_unr_fac,
 			b.UNR_NOT: self.inst_unr_not,
 			b.STORE_IN_CACHE: self.inst_store_in_cache,
-			b.SPECIAL_MAP: self.inst_special_map,
-			b.SPECIAL_MAP_STORE: self.inst_special_map_store,
 			b.CONSTANT_EMPTY_ARRAY: self.inst_constant_empty_array,
-			b.SPECIAL_REDUCE: self.inst_special_reduce,
-			b.SPECIAL_REDUCE_STORE: self.inst_special_reduce_store,
-			b.SPECIAL_FILTER: self.inst_special_filter,
-			b.SPECIAL_FILTER_STORE: self.inst_special_filter_store,
 			b.DUPLICATE: self.inst_duplicate,
 			b.STACK_SWAP: self.inst_stack_swap,
 			b.BEGIN_PROTECTED_GLOBAL_BLOCK: self.inst_protected_mode_enable,
@@ -559,78 +553,6 @@ class Interpereter:
 		if cache_key is not None:
 			self.calling_cache[cache_key] = value
 		self.push(value)
-
-	def inst_special_map(self):
-		function = self.stack[-3]
-		source = self.stack[-2]
-		dest = self.stack[-1]
-		if not isinstance(function, (Function, BuiltinFunction)):
-			raise EvaluationError('map function requires a function as its first arguments')
-		if not isinstance(source, (Array, Interval)):
-			raise EvaluationError('Cannot run map function on something that is not an array or an interval')
-		if len(dest) < len(source):
-			value = source(len(dest))
-			self.call_function(function, [value], self.place + 1, macro_unprepped = True)
-		else:
-			# Cleanup the stack and push the result
-			self.pop_n(3)
-			self.push(dest)
-			# Skip the map store instruction
-			self.place += 1
-
-	def inst_special_map_store(self):
-		result = self.pop()
-		self.top.items.append(result)
-		self.place -= 1 + 1 # Go to previous instruction, cancel advancement
-
-	def inst_special_filter(self):
-		function = self.stack[-4]
-		source = self.stack[-3]
-		dest = self.stack[-2]
-		iterator = self.stack[-1]
-		if not isinstance(function, (Function, BuiltinFunction)):
-			raise EvaluationError('filter function requires a function as its first argument')
-		if not isinstance(source, (Array, Interval)):
-			raise EvaluationError('filter function requres an array or interval as its second argument')
-		if iterator < len(source):
-			value = source(iterator)
-			self.call_function(function, [value], self.place + 1, macro_unprepped = True)
-		else:
-			# Cleanup the stack and push the result
-			self.pop_n(4)
-			self.push(dest)
-			# Skip the filter store instruction
-			self.place += 1
-
-	def inst_special_filter_store(self):
-		# function, source, dest, iterator, resut <- top of stack
-		result = self.pop()
-		source = self.stack[-3]
-		dest = self.stack[-2]
-		iterator = self.stack[-1]
-		if result:
-			dest.items.append(source(iterator))
-		self.stack[-1] += 1 # Advance iterator
-		self.place -= 1 + 1 # Go to previous instruction, cancel advancement
-
-	def inst_special_reduce(self):
-		function = self.stack[-4]
-		array = self.stack[-3]
-		value = self.stack[-2]
-		index = self.stack[-1]
-		# Assumes datatypes are correct. Might want to add friendly errors later.
-		if not isinstance(function, (Function, BuiltinFunction)):
-			raise EvaluationError('reduce function expects a function as its first argument')
-		if not isinstance(array, (Array, Interval)):
-			raise EvaluationError('reduce function expects an array as its second argument')
-		if index < len(array):
-			next_item = array(index)
-			self.call_function(function, [value, next_item], self.place + 1, macro_unprepped = True)
-		else:
-			self.pop_n(4)
-			self.push(value)
-			# Skip the second reduce instruction
-			self.place += 1
 
 	def inst_special_reduce_store(self):
 		result = self.pop()
