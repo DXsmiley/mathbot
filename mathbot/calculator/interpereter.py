@@ -8,6 +8,7 @@ import numbers
 import sys
 import sympy
 import operator
+import warnings
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
@@ -245,6 +246,11 @@ class Interpereter:
 		'''Return the instruction under the playhead'''
 		return self.bytes[self.place]
 
+	def next(self):
+		''' Advance the playhead and result the new instruction '''
+		self.place += 1
+		return self.bytes[self.place]
+
 	@property
 	def top(self):
 		'''Return the item on the top of the stack'''
@@ -265,6 +271,13 @@ class Interpereter:
 		self.stack.append(item)
 
 	def run(self, tick_limit = None, error_if_exhausted = False, expect_complete = False):
+		''' Run some number of ticks.
+			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
+			error_if_exhausted - If True, an error will be thrown if execution is not finished in the specified number of ticks.
+			expect_complete    - Deprecated
+		'''
+		if expect_complete:
+			warnings.warn('expect_complete is deprecated', DeprecationWarning)
 		try:
 			if tick_limit is None:
 				while self.head != bytecode.I.END:
@@ -278,9 +291,6 @@ class Interpereter:
 		except EvaluationError as e:
 			e._linking = self.erlnk[self.place]
 			raise e
-		except Exception as e:
-			raise e
-		# print(self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
 		if expect_complete:
@@ -289,12 +299,15 @@ class Interpereter:
 		return self.top
 
 	async def run_async(self):
+		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
 			self.run(100)
+			# Yield so that other coroutines may run
 			await asyncio.sleep(0)
 		return self.top
 
 	def tick(self):
+		''' Run a single tick '''
 		if self.trace:
 			print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
@@ -306,28 +319,38 @@ class Interpereter:
 		self.place += 1
 
 	def inst_constant(self):
+		''' Push a constant to the stack '''
 		self.place += 1
 		self.push(self.head)
 
 	def inst_constant_empty_array(self):
+		''' Push an empty array to the stack '''
+		warnings.warn('Instruction CONSTANT_EMPTY_ARRAY is deprecated', DeprecationWarning)
 		self.push(Array([]))
 
 	def inst_duplicate(self):
+		''' Duplicate the top item of the stack '''
 		self.push(self.top)
 
 	def inst_stack_swap(self):
+		''' Swap the top two items of the stack '''
 		a = self.pop()
 		b = self.pop()
 		self.push(a)
 		self.push(b)
 
 	def inst_protected_mode_enable(self):
+		''' Specify that any assignments from now on should be protected '''
+		warnings.warn('Instruction BEGIN_PROTECTED_GLOBAL_BLOCK is deprecated', DeprecationWarning)
 		self.protected_assignment_mode = True
 
 	def inst_protected_mode_disable(self):
+		''' Specify that any assignments from now on should not be protected '''
+		warnings.warn('Instruction END_PROTECTED_GLOBAL_BLOCK is deprecated', DeprecationWarning)
 		self.protected_assignment_mode = False
 
 	def binary_op(op):
+		''' Create a handler for a binary operator instruction '''
 		def internal(self):
 			left = self.pop()
 			right = self.pop()
@@ -357,9 +380,11 @@ class Interpereter:
 		self.push(-self.pop())
 
 	def inst_unr_fac(self):
+		''' Factorial operator '''
 		try:
 			original_value = self.pop()
 			argument = original_value
+			# Prevent a burning attack from happening
 			if argument < -2000 or argument > 2000:
 				argument = sympy.Number(float(argument))
 			result = sympy.factorial(argument)
@@ -371,9 +396,11 @@ class Interpereter:
 		# self.push(operators.function_factorial(self.pop()))
 
 	def inst_unr_not(self):
+		''' Unary not operator '''
 		self.push(int(not bool(self.pop())))
 
 	def inst_comparison(comparator):
+		''' Create a handler for a binary comparison instruction '''
 		def internal(self):
 			r = self.pop()
 			l = self.pop()
@@ -390,14 +417,21 @@ class Interpereter:
 	inst_cmp_n_eq = inst_comparison(operator.ne)
 
 	def inst_discard(self):
+		''' Discard the top item of the stack '''
 		self.pop()
 
 	def inst_jump_if_macro(self):
+		''' Jumps to a place specified by the next instruction IFF the thing on the
+			top of the stack is both a function and a macro.
+		'''
 		self.place += 1
 		if isinstance(self.top, Function) and FunctionInspector(self, self.top).is_macro:
 			self.place = self.head - 1 # Is now -1 for flexibility
 
 	def inst_arg_list_end(self, disable_cache = False, do_tco = False):
+		''' Specify the end of an argument list.
+			Pop the arguments off the stack and call the function.
+		'''
 		# Look at the number of arguments
 		self.place += 1
 		stack_arg_count = self.head
@@ -413,17 +447,24 @@ class Interpereter:
 		self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache, do_tco = do_tco)
 
 	def inst_arg_list_end_no_cache(self):
+		''' Specify the end of an argument list, but explicitly disable the cache. '''
 		self.inst_arg_list_end(disable_cache = True)
 
 	def inst_arg_list_end_with_tco(self):
+		''' Specify the end of an argument list, but specify that tail call optimation can be employed.
+			An implementation of the interpereter _should_ be able to treat this as a normal ARG_LIST_END
+			with no penalty.
+		'''
 		self.inst_arg_list_end(do_tco = True)
 
 	def inst_word(self):
+		''' This is very deprecated '''
 		assert(False)
 		self.place += 1
 		self.push(self.current_scope[self.head])
 
 	def inst_access_gobal(self):
+		''' Retreive a global variable and push it to the top of the stack '''
 		self.place += 1
 		index = self.head
 		self.place += 1
@@ -436,17 +477,20 @@ class Interpereter:
 			raise EvaluationError('Failed to access variable "{}"'.format(self.head))
 
 	def inst_access_local(self):
+		''' Access a local variable '''
 		self.place += 1
 		self.push(self.current_scope.get(self.head, 0))
 
 	def inst_access_semi(self):
+		''' Access a variable from a scope above this one '''
+		depth = self.next()
+		index = self.next()
 		self.push(
 			self.current_scope.get(
-				self.bytes[self.place + 2],
-				self.bytes[self.place + 1]
+				index,
+				depth
 			)
 		)
-		self.place += 2
 
 	def inst_access_array_element(self):
 		index = self.pop()

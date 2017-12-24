@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
+import warnings
+warnings.simplefilter('default')
+
 import sys
 import os
 import asyncio
@@ -26,6 +29,7 @@ import modules.greeter
 import core.manager
 import core.keystore
 import core.parameters
+
 
 keystore_mode = core.parameters.get('keystore mode')
 if keystore_mode == 'redis':
