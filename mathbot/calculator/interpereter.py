@@ -358,11 +358,15 @@ class Interpereter:
 
 	def inst_unr_fac(self):
 		try:
-			result = sympy.factorial(self.pop())
-			if result is sympy.zoo:
+			original_value = self.pop()
+			argument = original_value
+			if argument < -2000 or argument > 2000:
+				argument = sympy.Number(float(argument))
+			result = sympy.factorial(argument)
+			if result is sympy.zoo or result is sympy.oo:
 				raise TypeError
 		except Exception:
-			raise EvaluationError('Cannot run factorial function on {}'.format(result))
+			raise EvaluationError('Cannot run factorial function on {}'.format(original_value))
 		self.push(result)
 		# self.push(operators.function_factorial(self.pop()))
 
