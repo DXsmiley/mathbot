@@ -199,6 +199,16 @@ FIXED_VALUES = {
 }
 
 
+FIXED_VALUES_EXPORTABLE = {
+	'π': math.pi,
+	'τ': math.pi * 2,
+	'pi': math.pi,
+	'tau': math.pi * 2,
+	'true': 1,
+	'false': 0
+}
+
+
 EXTRACT_FROM_SYMPY = '''
 	re im sign Abs arg conjugate polar_lift periodic_argument principal_branch
 	sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
@@ -243,8 +253,12 @@ def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = Fal
 		s.push(I.ASSIGNMENT, error = elnk)
 		s.push(index)
 	# Mathematical constants
-	for name, value in FIXED_VALUES.items():
-		assignment(name, value)
+	if exportable:
+		for name, value in FIXED_VALUES_EXPORTABLE.items():
+			assignment(name, value)
+	else:
+		for name, value in FIXED_VALUES.items():
+			assignment(name, value)
 	# Builtin functions
 	if not exportable:
 		# for name, func in BUILTIN_MATH_FUNCTIONS.items():

@@ -191,26 +191,26 @@ class ConstructedBytecode:
 				result.append([
 					'ist',
 					int(i),
-					'?' if release or e is None else e['position'],
+					'0' if release or e is None else e['position'],
 					'?' if release or e is None else e['name']
 				])
 				if e is not None:
 					sources[e['name']] = e['code']
 			elif isinstance(i, str):
 				result.append(['str', i])
-			elif isinstance(i, int):
+			elif isinstance(i, (int, sympy.Integer)):
 				result.append(['int', int(i)])
-			elif isinstance(i, float):
+			elif isinstance(i, (float, sympy.Number)):
 				result.append(['flt', i])
 			elif isinstance(i, complex):
 				result.append(['cpx', i.real, i.imag])
 			else:
-				raise Exception('Unknown bytecode item: {}'.format(str(i)))
+				raise Exception('Unknown bytecode item: {} ({})'.format(str(i), i.__class__))
 		toline = lambda items : ' '.join(map(str, items))
-		result = 'bytecode: 0 0 0 (unstable)\n' + '\n'.join(map(toline, result)) + '\n'
+		result = 'bytecode 0 0 0 (unstable)\n' + '\n'.join(map(toline, result)) + '\n'
 		if not release:
 			for key, value in sources.items():
-				result += 'source: {} {} {}\n{}\n'.format(key, len(value), value.count('\n'), value)
+				result += 'source {} {} {}\n{}\n'.format(key, len(value), value.count('\n'), value)
 		return result
 
 
@@ -582,7 +582,7 @@ def stringify(bytecode):
 			result.append(i.real)
 			result.append(i.imag)
 		else:
-			raise Exception('Unknown bytecode item: {}'.format(str(i)))
+			raise Exception('Unknown bytecode item: {} ({})'.format(str(i), i.__type__))
 	return ' '.join(map(str, result))
 
 

@@ -5,7 +5,6 @@ import asyncio
 import traceback
 import sys
 
-import calculator
 from calculator.interpereter import Interpereter
 import calculator.parser as parser
 import calculator.bytecode as bytecode
