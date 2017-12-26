@@ -94,7 +94,7 @@ class CalculatorModule(core.module.Module):
 			if worked:
 				# This is a hack. The only way a command is actually 'important' is
 				# if it assignes a variable. Variables are assigned through the = or -> operators.
-				if '=' or '->' in arg:
+				if '=' in arg or '->' in arg:
 					await self.add_command_to_history(message.channel, arg)
 
 	async def replay_commands(self, channel, blame):
