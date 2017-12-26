@@ -20,6 +20,7 @@ import aiohttp
 
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
+core.help.load_from_file('./help/calculator_history.md')
 core.help.load_from_file('./help/turing.md')
 
 
