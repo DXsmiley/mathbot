@@ -23,6 +23,9 @@ for user, rank in core.parameters.get('patrons').items():
 	if numeric == -1:
 		raise Exception('"{}" is an invalid patreon rank'.format(rank))
 	PATRONS[user] = numeric
+	# print('Patron:', user, numeric)
 
 def tier(uid):
+	if not isinstance(uid, str):
+		raise TypeError('User IDs must be of type str')
 	return PATRONS.get(uid, TIER_NONE)

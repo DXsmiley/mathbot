@@ -63,7 +63,7 @@ def event_filter(message):
 		return True
 	if message.channel.id == '325908974648164352':
 		return True
-	if message.channel.is_private and patrons.tier(message.author.id) != patrons.TEIR_NONE:
+	if message.channel.is_private and patrons.tier(message.author.id) != patrons.TIER_NONE:
 		return True
 	return False
 
