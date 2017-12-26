@@ -49,7 +49,7 @@ class HelpModule(core.module.Module):
 					# await self.send_message(message.channel, page, blame = message.author)
 					if not await self.send_private_fallback(message.author, message.channel, page, supress_warning = index > 0):
 						was_private = False
-				if was_private:
+				if was_private and not message.channel.is_private:
 					if topic:
 						m = "Information on '{}' has been send to you privately.".format(topic)
 					else:
