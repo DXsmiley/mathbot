@@ -83,7 +83,7 @@ async def run_shard(shard_id, shard_count):
 		)
 
 		if RELEASE == 'production':
-			modules.add_modules(
+			manager.add_modules(
 				modules.greeter.GreeterModule()
 			)
 
