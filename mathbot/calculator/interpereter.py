@@ -147,7 +147,7 @@ class CallingCache:
 
 class Interpereter:
 
-	def __init__(self, code_constructed, trace = False, builder = None):
+	def __init__(self, code_constructed, trace = False, builder = None, yield_rate = 100):
 		self.calling_cache = CallingCache()
 		self.builder = builder
 		self.trace = trace
@@ -155,6 +155,7 @@ class Interpereter:
 		self.erlnk = code_constructed.error_link
 		self.place = 0
 		self.stack = [None]
+		self.yield_rate = yield_rate
 		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
 		self.protected_assignment_mode = False
@@ -295,7 +296,7 @@ class Interpereter:
 	async def run_async(self):
 		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
-			self.run(100)
+			self.run(self.yield_rate)
 			# Yield so that other coroutines may run
 			await asyncio.sleep(0)
 		return self.top

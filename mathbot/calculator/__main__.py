@@ -11,6 +11,7 @@ import calculator.bytecode as bytecode
 import calculator.runtime as runtime
 import calculator.errors as errors
 from calculator.runtime import wrap_with_runtime
+from calculator.blackbox import Terminal
 
 
 def main():
@@ -56,7 +57,7 @@ def print_token_parse_caret(to):
 
 def interactive_terminal():
 
-	terminal = calculator.blackbox.Terminal(allow_special_commands = True)
+	terminal = Terminal(allow_special_commands = True, yield_rate = 1)
 
 	while True:
 		line = input('> ')

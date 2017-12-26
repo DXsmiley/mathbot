@@ -31,7 +31,7 @@ For information on how to use the `{prefix}calc`, command, type `{prefix}help ca
 
 
 SCOPES = collections.defaultdict(lambda :
-	calculator.blackbox.Terminal(retain_cache = False, output_limit = 1950)
+	calculator.blackbox.Terminal(retain_cache = False, output_limit = 1950, yield_rate = 1)
 )
 
 
@@ -91,14 +91,15 @@ class CalculatorModule(core.module.Module):
 				if await advertising.should_advertise_to(message.author, message.channel):
 					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
 			await self.send_message(message.channel, result, blame = message.author)
-			if worked:
-				# This is a hack. The only way a command is actually 'important' is
-				# if it assignes a variable. Variables are assigned through the = or -> operators.
-				if '=' in arg or '->' in arg:
-					await self.add_command_to_history(message.channel, arg)
+			if worked and self.expression_has_side_effect(arg):
+				await self.add_command_to_history(message.channel, arg)
 
 	async def replay_commands(self, channel, blame):
+		# If command were previously run in this channel, re-run them
+		# in order to re-load any functions that were defined
 		if self.allow_calc_history(channel):
+			# Ensure that only one coroutine is allowed to execute the code
+			# in this block at once.
 			async with self.replay_state[channel.id]['semaphore']:
 				if self.replay_state[channel.id]['loaded'] == False:
 					print('Replaying calculator commands for', channel)
@@ -116,14 +117,14 @@ class CalculatorModule(core.module.Module):
 							print('>>>', c)
 							scope = SCOPES[channel.id]
 							result, worked, details = await scope.execute_async(c)
-							if worked:
+							was_error = was_error or not worked
+							if worked and self.expression_has_side_effect(c):
 								new_commands.append(c)
-							else:
-								was_error = True
 						if was_error:
 							await self.send_message(channel, 'Catchup complete. Some errors occurred.', blame = blame)
 						else:
 							await self.send_message(channel, 'Catchup complete.', blame = blame)
+						# Store the list of commands that worked back into storage for use next time
 						joined = COMMAND_DELIM.join(new_commands)
 						await core.keystore.set('calculator', 'history', channel.id, joined, expire = EXPIRE_TIME)
 
@@ -141,4 +142,10 @@ class CalculatorModule(core.module.Module):
 			return patrons.tier(channel.user.id) >= patrons.TIER_QUADRATIC
 		else:
 			return patrons.tier(channel.server.owner.id) >= patrons.TIER_QUADRATIC
+
+	def expression_has_side_effect(self, expr):
+		# This is a hack. The only way a command is actually 'important' is
+		# if it assignes a variable. Variables are assigned through the = or -> operators.
+		# This can safely return a false positive, but should never return a false negitive
+		return '=' in expr or '->' in expr or '~>' in expr
 

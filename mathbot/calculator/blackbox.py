@@ -20,14 +20,14 @@ On line {line_num} at position {position}
 
 class Terminal():
 
-    def __init__(self, allow_special_commands = False, retain_cache = True, output_limit = None):
+    def __init__(self, allow_special_commands = False, retain_cache = True, output_limit = None, yield_rate = 100):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
         self.builder = calculator.bytecode.CodeBuilder()
         self.allow_special_commands = allow_special_commands
         runtime = calculator.runtime.wrap_with_runtime(self.builder, None)
-        self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder)
+        self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder, yield_rate = yield_rate)
         self.interpereter.run()
         self.line_count = 0
         self.retain_cache = retain_cache
