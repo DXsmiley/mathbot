@@ -276,7 +276,7 @@ def create_client(manager, shard_id, shard_count):
 	async def on_message(message):
 		# print('Received message', message.id)
 		# print(message.content)
-		if client._core_ready and manager.master_filter(message.channel):
+		if client._core_ready and manager.master_filter(message):
 			# print('Handling message')
 			await manager.handle_message(message)
 		# else:
@@ -284,12 +284,12 @@ def create_client(manager, shard_id, shard_count):
 
 	@client.event
 	async def on_message_edit(before, after):
-		if client._core_ready and manager.master_filter(before.channel):
+		if client._core_ready and manager.master_filter(before):
 			await manager.handle_edit(before, after)
 
 	@client.event
 	async def on_reaction_add(reaction, user):
-		if client._core_ready and manager.master_filter(reaction.message.channel):
+		if client._core_ready and manager.master_filter(reaction.message):
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
 

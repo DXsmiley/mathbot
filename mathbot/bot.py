@@ -58,12 +58,12 @@ logging.basicConfig(level = logging.WARNING)
 
 
 # Used to ensure the beta bot only replies in the channel that it is supposed to
-def event_filter(channel):
+def event_filter(message):
 	if RELEASE != 'beta':
 		return True
-	if channel.id == '325908974648164352':
+	if message.channel.id == '325908974648164352':
 		return True
-	if channel.is_private and patrons.tier(channel.id) != patrons.TEIR_NONE:
+	if message.channel.is_private and patrons.tier(message.author.id) != patrons.TEIR_NONE:
 		return True
 	return False
 
