@@ -29,6 +29,15 @@ For information on how to use the bot, type `{prefix}help`.
 For information on how to use the `{prefix}calc`, command, type `{prefix}help calc`.
 '''
 
+HISTORY_DISABLED = '''\
+Command history is not avaiable on this server.
+'''
+
+HISTORY_DISABLED_PRIVATE = '''\
+Command history is only avaiable to quadratic Patreon supporters: https://www.patreon.com/dxsmiley
+A support teir of **quadratic** or higher is required.
+'''
+
 
 SCOPES = collections.defaultdict(lambda :
 	calculator.blackbox.Terminal(retain_cache = False, output_limit = 1950, yield_rate = 1)
@@ -57,6 +66,21 @@ class CalculatorModule(core.module.Module):
 	@core.handles.command('sort csort', '*', perm_setting = 'c-calc')
 	async def hande_calc_sorted(self, message, arg):
 		await self.perform_calculation(arg.strip(), message, should_sort = True)
+
+	@core.handles.command('calchistory', '', perm_setting = 'c-calc')
+	async def handle_view_history(self, message):
+		if not self.allow_calc_history(message.channel):
+			if message.channel.is_private:
+				await self.send_message(HISTORY_DISABLED_PRIVATE, blame = message.author)
+			else:
+				await self.send_message(HISTORY_DISABLED, blame = message.author)
+		else:
+			commands = await core.keystore.get('calculator', 'history', message.channel.id)
+			if commands is None:
+				await self.send_message('No persistent commands have been run in this channel.', blame = message.author)
+			else:
+				for i in history_grouping(commands.split(COMMAND_DELIM)):
+					await self.send_message(message.channel, i, blame = message.author)
 
 	# Trigger the calculator when the message is prefixed by "=="
 	@core.handles.on_message()
@@ -91,7 +115,7 @@ class CalculatorModule(core.module.Module):
 				if await advertising.should_advertise_to(message.author, message.channel):
 					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
 			await self.send_message(message.channel, result, blame = message.author)
-			if worked and self.expression_has_side_effect(arg):
+			if worked and expression_has_side_effect(arg):
 				await self.add_command_to_history(message.channel, arg)
 
 	async def replay_commands(self, channel, blame):
@@ -118,7 +142,7 @@ class CalculatorModule(core.module.Module):
 							scope = SCOPES[channel.id]
 							result, worked, details = await scope.execute_async(c)
 							was_error = was_error or not worked
-							if worked and self.expression_has_side_effect(c):
+							if worked and expression_has_side_effect(c):
 								new_commands.append(c)
 						if was_error:
 							await self.send_message(channel, 'Catchup complete. Some errors occurred.', blame = blame)
@@ -143,9 +167,23 @@ class CalculatorModule(core.module.Module):
 		else:
 			return patrons.tier(channel.server.owner.id) >= patrons.TIER_QUADRATIC
 
-	def expression_has_side_effect(self, expr):
-		# This is a hack. The only way a command is actually 'important' is
-		# if it assignes a variable. Variables are assigned through the = or -> operators.
-		# This can safely return a false positive, but should never return a false negitive
-		return '=' in expr or '->' in expr or '~>' in expr
 
+def expression_has_side_effect(expr):
+	# This is a hack. The only way a command is actually 'important' is
+	# if it assignes a variable. Variables are assigned through the = or -> operators.
+	# This can safely return a false positive, but should never return a false negitive
+	return '=' in expr or '->' in expr or '~>' in expr
+
+
+def history_grouping(commands):
+	current = []
+	current_size = 0
+	for i in commands:
+		i_size = len(i) + 12 # Length of string: '```\n{}\n```\n'
+		if i_size + current_size > 1800:
+			yield '```\n{}\n```'.format(''.join(current))
+			current = []
+			current_size = 0
+		current.append(i + '\n\n')
+		current_size += i_size
+	yield '```\n{}\n```'.format(''.join(current))
