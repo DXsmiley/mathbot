@@ -32,3 +32,9 @@ A server admin can be manually disable the filter in a channel by running `{{pre
 It can be re-enabled again with `{{prefix}}set channel f-wolf-filter enable`.
 
 See `{{prefix}}help settings` for more details on managing settings.
+
+## Mention
+
+By default, the bot will mention the person who invoked the command. The `f-wolf-mention` setting can be modified to change this.
+
+Use `{{prefix}}set server f-wolf-mention disable` to prevent the bot from mentioning people on the whole server, and `{{prefix}}set server f-wolf-mention enable` to re-enable it.
