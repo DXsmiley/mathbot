@@ -30,6 +30,8 @@ import core.manager
 import core.keystore
 import core.parameters
 
+import patrons
+
 
 keystore_mode = core.parameters.get('keystore mode')
 if keystore_mode == 'redis':
@@ -57,7 +59,13 @@ logging.basicConfig(level = logging.WARNING)
 
 # Used to ensure the beta bot only replies in the channel that it is supposed to
 def event_filter(channel):
-	return (RELEASE != 'beta') or ((not channel.is_private) and channel.id == '325908974648164352')
+	if RELEASE != 'beta':
+		return True
+	if channel.id == '325908974648164352':
+		return True
+	if channel.is_private and patrons.tier(channel.id) != patrons.TEIR_NONE:
+		return True
+	return False
 
 async def run_shard(shard_id, shard_count):
 
