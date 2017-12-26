@@ -60,17 +60,9 @@ You should report this error to DXsmiley on the official MathBot \
 server: https://discord.gg/JbJbRZS
 """
 
-FOOTER_MESSAGE = """\
-Query made by {mention}
+FOOTER_LINK = """\
 Data sourced from Wolfram|Alpha: <http://www.wolframalpha.com/input/?{query}>
 Do more with Wolfram|Alpha Pro: <http://www.wolframalpha.com/pro/>
-🐺 **Try out the new `=pup` command!** It\'s much more concise.
-"""
-
-FOOTER_MESSAGE_SHORT = """\
-Query made by {mention}
-Data sourced from Wolfram|Alpha: <http://www.wolframalpha.com>
-**Do more with Wolfram|Alpha Pro**: <http://www.wolframalpha.com/pro/>
 """
 
 IGNORE_MESSAGE_SERVER = """\
@@ -212,6 +204,13 @@ class AssumptionDataScope:
 			await core.keystore.set_json('wolfram', 'message', self.message.id, self.data, expire = 60 * 60 * 30)
 
 
+# Dummy message. This is a sign that I need to work on the settings module somewhat.
+class Dummy:
+	def __init__(self, channel):
+		self.channel = channel
+		self.server = channel.server
+
+
 class WolframModule(core.module.Module):
 
 	# sent_footer_messages = {}
@@ -306,11 +305,6 @@ class WolframModule(core.module.Module):
 		text = []
 		error = 0
 		error_message = 'No details'
-		# Dummy message. This is a sign that I need to work on the settings module somewhat.
-		class Dummy:
-			def __init__(self, channel):
-				self.channel = channel
-				self.server = channel.server
 		enable_filter = False
 		if not channel.is_private:
 			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
@@ -358,9 +352,7 @@ class WolframModule(core.module.Module):
 					await self.send_image(channel, img, 'result.png', blame = blame)
 					await asyncio.sleep(1.05)
 				# Text section
-				url = urllib.parse.urlencode({'i': query})
-				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
-				adm += '**This command is in development.** Suggest improvements on the MathBot server (type `=about` for the link).'
+				adm = await self.format_adm(channel, blame, query, is_pup = True)
 				posted = await self.send_message(channel, adm, blame = blame)
 				print('Done.')
 
@@ -449,7 +441,7 @@ class WolframModule(core.module.Module):
 				textout_joined = ''.join(textitems)
 				url = urllib.parse.urlencode({'i': query})
 				# Determine if the footer should be long or short
-				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
+				adm = await self.format_adm(channel, blame, query, False)
 				output = textout_joined + adm
 				too_long = False
 				if len(output) >= 2000:
@@ -481,6 +473,17 @@ class WolframModule(core.module.Module):
 						await self.send_message(channel, REACTION_PERM_FAILURE, blame = blame)
 				# Complete!
 				print('Done.')
+
+	async def format_adm(self, channel, blame, query, is_pup = False):
+		result = []
+		url = urllib.parse.urlencode({'i': query})
+		if not channel.is_private and await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-mention'):
+			result.append('Query made by {}\n'.format(blame.mention))
+		url = urllib.parse.urlencode({'i': query})
+		result.append(FOOTER_LINK.format(query = url))
+		if not is_pup:
+			result.append('🐺 **Try out the new `=pup` command!** It\'s much more concise.\n')
+		return ''.join(result)
 
 	def get_assumption_text(self, assumptions):
 		if assumptions.count == 0:
