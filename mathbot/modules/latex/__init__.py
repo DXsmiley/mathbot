@@ -29,9 +29,16 @@ LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
 # Load data from external files
 
-META_TEMPLATE = open_relative('template.tex', encoding = 'utf-8').read()
-TEMPLATE = META_TEMPLATE.replace('#BLOCK', 'gather*')
-TEMPLATE_INLINE = META_TEMPLATE.replace('#BLOCK', 'flushleft')
+def load_templates():
+	raw = open_relative('template.tex', encoding = 'utf-8').read()
+	# Remove any comments from the template
+	cleaned = re.sub(r'%.*\n', '', raw)
+	template = cleaned.replace('#BLOCK', 'gather*')
+	t_inline = cleaned.replace('#BLOCK', 'flushleft')
+	return template, t_inline
+
+TEMPLATE, TEMPLATE_INLINE = load_templates()
+print(TEMPLATE)
 
 repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
 TEX_REPLACEMENTS = json.loads(repl_json)
@@ -171,6 +178,7 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 				# print(jdata.get('status'))
 				# print(jdata.get('description'))
 				if jdata['status'] == 'error':
+					print(json.dumps(jdata))
 					raise RenderingError
 				filename = jdata['filename']
 			# Now actually get the image
