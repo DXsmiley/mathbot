@@ -38,7 +38,6 @@ def load_templates():
 	return template, t_inline
 
 TEMPLATE, TEMPLATE_INLINE = load_templates()
-print(TEMPLATE)
 
 repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
 TEX_REPLACEMENTS = json.loads(repl_json)
