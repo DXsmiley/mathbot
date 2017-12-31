@@ -177,7 +177,7 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 				# print(jdata.get('status'))
 				# print(jdata.get('description'))
 				if jdata['status'] == 'error':
-					print(json.dumps(jdata))
+					# print(json.dumps(jdata))
 					raise RenderingError
 				filename = jdata['filename']
 			# Now actually get the image
