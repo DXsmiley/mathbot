@@ -104,7 +104,9 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_message()
 	async def inline_latex(self, message):
-		if not message.author.bot and not message.content.startswith('=') and message.content.count('$$') >= 2:
+		# The testing bot should not be ignored
+		ignore = message.author.bot and message.author.id != '309967930269892608'
+		if not ignore and not message.content.startswith('=') and message.content.count('$$') >= 2:
 			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':

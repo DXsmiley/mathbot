@@ -5,6 +5,16 @@ import core.parameters
 auto = automata.Automata()
 
 
+@auto.setup()
+async def setup(interface):
+	await interface.wait_for_reply('=set channel f-delete-tex original')
+	await interface.wait_for_reply('=set server  f-delete-tex original')
+	await interface.wait_for_reply('=set channel f-inline-tex original')
+	await interface.wait_for_reply('=set server  f-inline-tex original')
+	await interface.wait_for_reply('=set channel f-calc-shortcut original')
+	await interface.wait_for_reply('=set server  f-calc-shortcut original')
+
+
 @auto.test()
 async def sample(interface):
 	assert True
@@ -12,16 +22,12 @@ async def sample(interface):
 
 @auto.test()
 async def addition(interface):
-	await interface.send_message('=calc 2+2')
-	response = await interface.wait_for_message()
-	assert response.content == '4'
+	await interface.assert_reply_equals('=calc 2+2', '4')
 
 
 @auto.test()
 async def calc_shortcut(interface):
-	await interface.send_message('== 8 * 9')
-	response = await interface.wait_for_message()
-	assert response.content == '72'
+	await interface.assert_reply_equals('== 8 * 9', '72')
 
 
 @auto.test()
@@ -63,13 +69,13 @@ async def latex(interface):
 
 @auto.test(needs_human = True)
 async def latex_settings(interface):
-	await interface.send_message('=set self p-tex-colour light')
+	await interface.send_message('=theme light')
 	await interface.wait_for_message()
 	await interface.send_message(r'=tex \text{This should be light}')
 	response = await interface.wait_for_message()
 	assert len(response.attachments) == 1
 	await interface.ask_human('Is the above result *light*?')
-	await interface.send_message('=set self p-tex-colour dark')
+	await interface.send_message('=theme dark')
 	await interface.wait_for_message()
 	await interface.send_message(r'=tex \text{This should be dark}')
 	response = await interface.wait_for_message()
@@ -77,13 +83,22 @@ async def latex_settings(interface):
 	await interface.ask_human('Is the above result *dark*?')
 
 
-@auto.test()
+@auto.test(needs_human = True)
+async def latex_inline(interface):
+	await interface.wait_for_reply('=set channel f-inline-tex enable')
+	await interface.wait_for_reply('Testing $$x^2$$ Testing')
+	await interface.ask_human('Does the above image say `Testing x^2 Testing`?')
+
+
+@auto.test(needs_human = True)
 async def latex_edit(interface):
 	command = await interface.send_message('=tex One')
 	result = await interface.wait_for_message()
+	await interface.ask_human('Does the above message have an image that says `One`?')
 	command = await interface.edit_message(command, '=tex Two')
 	await interface.wait_for_delete(result)
 	await interface.wait_for_message()
+	await interface.ask_human('Does the above message have an image that says `Two`?')
 
 
 @auto.test()
@@ -135,12 +150,12 @@ async def calc5_timeout(interface):
 
 @auto.test()
 async def calc5_token_failure(interface):
-	await interface.assert_reply_contains('=calc 4 & 5', 'unexpected symbol')
+	await interface.assert_reply_contains('=calc 4 @ 5', 'Invalid token at position 2')
 
 
 @auto.test()
 async def calc5_syntax_failure(interface):
-	await interface.assert_reply_contains('=calc 4 + 6 -', 'invalid syntax')
+	await interface.assert_reply_contains('=calc 4 + 6 -', 'Invalid syntax at position 7')
 
 
 auto.run(

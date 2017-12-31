@@ -28,6 +28,14 @@ import asyncio
 import re
 
 
+HELP_TEXT = '''\
+**::help** - Show this help
+**::run** all - Run all tests
+**::run** unrun - Run all tests that have not been run
+**::run** *name* - Run a specific test
+'''
+
+
 SPECIAL_TEST_NAMES = {'all', 'unrun'}
 
 
@@ -107,8 +115,36 @@ class Interface:
 		return result
 
 	async def wait_for_reply(self, content):
+		''' Sends a message and returns the next message that the targeted bot sends. '''
 		await self.send_message(content)
 		return await self.wait_for_message()
+
+	async def assert_message_equals(self, matches):
+		''' Waits for the next message.
+			If the message does not match a string exactly, fail the test.
+		'''
+		response = await self.wait_for_message()
+		if response.content != matches:
+			raise ResponseDidntMatch
+		return response
+
+	async def assert_message_contains(self, substring):
+		''' Waits for the next message.
+			If the message does not contain the given substring, fail the test.
+		'''
+		response = await self.wait_for_message()
+		if substring not in response.content:
+			raise ResponseDidntMatch
+		return response
+
+	async def assert_message_matches(self, regex):
+		''' Waits for the next message.
+			If the message does not match a regex, fail the test.
+		'''
+		response = await self.wait_for_message()
+		if not re.match(regex, response.content):
+			raise ResponseDidntMatch
+		return response
 
 	async def assert_reply_equals(self, contents, matches):
 		''' Send a message and wait for a response.
@@ -185,7 +221,9 @@ class Automata:
 
 	def __init__(self):
 		self.client = discord.Client()
+		self.setup_done = False
 		self.tests = []
+		self.setup_tasks = []
 
 	def test(self, needs_human = False, early_function = None):
 		''' Creates a new test.
@@ -195,7 +233,19 @@ class Automata:
 			test = Test(function.__name__, function, needs_human = needs_human)
 			assert self.find_test(test.name) is None
 			self.tests.append(test)
-		if early_function != None:
+		if early_function:
+			applier(early_function)
+		else:
+			return applier
+
+	def setup(self, early_function = None):
+		''' Adds a new setup task.
+			All setup tasks will be run before any test is attempted.
+		'''
+		def applier(function):
+			assert not self.setup_done
+			self.setup_tasks.append(function)
+		if early_function:
 			applier(early_function)
 		else:
 			return applier
@@ -230,6 +280,9 @@ class Automata:
 					await self.run_many(message, the_target)
 				elif name == 'unrun':
 					await self.run_many(message, the_target, lambda x : x.result is None)
+				elif '*' in name:
+					regex = re.compile(name.replace('*', '.*'))
+					await self.run_many(message, the_target, lambda x : regex.fullmatch(x.name))
 				elif self.find_test(name) is None:
 					await self.client.send_message(message.channel, ':x: There is no test called `{}`'.format(name))
 				else:
@@ -239,6 +292,8 @@ class Automata:
 			# Status display command
 			elif message.content == '::stats':
 				await self.display_stats(message.channel)
+			elif message.content == '::help':
+				await self.client.send_message(message.channel, HELP_TEXT)
 
 		@self.client.event
 		async def on_ready():
@@ -280,6 +335,7 @@ class Automata:
 
 	async def run_test(self, test, channel, target):
 		''' Run a single given test '''
+		await self.ensure_setup(channel, target)
 		test.result = False
 		try:
 			await test.func(Interface(self.client, channel, target))
@@ -289,3 +345,14 @@ class Automata:
 			print('Test failed:', test.name)
 			print('-------------------------------------------')
 			traceback.print_exc()
+
+	async def ensure_setup(self, channel, target):
+		try:
+			if not self.setup_done:
+				for task in self.setup_tasks:
+					await task(Interface(self.client, channel, target))
+					await asyncio.sleep(1)
+				self.setup_done = True
+		except Exception:
+			await self.client_send_message(channel, 'An error occurred during setup. Test was not run.')
+			raise
