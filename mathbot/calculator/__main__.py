@@ -11,7 +11,7 @@ import calculator.bytecode as bytecode
 import calculator.runtime as runtime
 import calculator.errors as errors
 from calculator.runtime import wrap_with_runtime
-from calculator.blackbox import Terminal
+from calculator.blackbox import Terminal, format_error_place
 
 
 def main():

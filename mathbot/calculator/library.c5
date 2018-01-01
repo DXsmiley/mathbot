@@ -15,6 +15,8 @@ difference (a, b) -> a - b,
 quotient (a, b) -> a / b,
 power (a, b) -> a ^ b,
 modulo (a, b) -> a % b,
+and (a, b) -> a & b,
+or (a, b) -> a | b,
 
 # Useful comparitive things
 max (a, b) -> if(a > b, a, b),
@@ -55,9 +57,16 @@ filter(f, l) -> reverse(_filter(f, l, .)),
 
 _reduce(f, l, r) -> if(
     !l, r,
-    _reduce(f, \l, f('l, r))
+    _reduce(f, \l, f(r, 'l))
 ),
 reduce(f, l) -> _reduce(f, \l, 'l),
+
+__reducel(f, l, r) -> if(
+	!l, r,
+	__reducel(f, \l, f('l, r))
+),
+_reducel(f, l) -> __reducel(f, \l, 'l),
+reducel(f, l) -> reduce(f, reverse(l)),
 
 _list(a, i, r) -> if (i < 0, r, _list(a, i - 1, a(i):r)),
 list(x.) -> _list(x, length(x) - 1, .),
