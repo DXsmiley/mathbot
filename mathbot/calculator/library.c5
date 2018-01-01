@@ -2,79 +2,79 @@
 # passed around as a 'function'.
 # Unfortunately there's no way to implement a nice equivilent
 # for ifelse
-if (c, t, f) ~> if(c(), t(), f()),
+if (c t f) ~> if(c() t() f())
 
 # Kind of needed but might be dissapearing soon in favour
 # of lists
-array (a.) -> a,
+array (a.) -> a
 
 # Functions that wrap around the standard operators
-sum (a, b) -> a + b,
-product (a, b) -> a * b,
-difference (a, b) -> a - b,
-quotient (a, b) -> a / b,
-power (a, b) -> a ^ b,
-modulo (a, b) -> a % b,
-and (a, b) -> a & b,
-or (a, b) -> a | b,
+sum (a b) -> a + b
+product (a b) -> a * b
+difference (a b) -> a - b
+quotient (a b) -> a / b
+power (a b) -> a ^ b
+modulo (a b) -> a % b
+and (a b) -> a & b
+or (a b) -> a | b
 
 # Useful comparitive things
-max (a, b) -> if(a > b, a, b),
-min (a, b) -> if(a < b, a, b),
+max (a b) -> if(a > b a b)
+min (a b) -> if(a < b a b)
 
-_zip(a, b, r) -> if (!a | !b, r, _zip(\a, \b, ('a:'b:.):r)),
-zip(a, b) -> reverse(_zip(a, b, .)),
+_zip(a b r) -> if (!a | !b r _zip(\a, \b, ('a:'b:.):r))
+zip(a b) -> reverse(_zip(a b .))
 
 # Like map but you get to iterate over two ranges at once
-zipmap (f, a, b) -> map(
-	(x) -> f('x, '\x),
-	zip(a, b)
-),
+zipmap (f a b) -> map(
+	(x) -> f('x '\x)
+	zip(a b)
+)
 
 # That series thing!
-series (function, start, end) -> reduce(sum, map(function, range(start, end + 1))),
+series (function start end) -> reduce(sum map(function range(start end + 1)))
 
 # Stuff that's useful for sympy
-fdiff (function) -> diff(function(new_symbol())),
+fdiff (function) -> diff(function(new_symbol()))
 
 # Bread and butter list mapipulation functions
 
-_repeat(item, times, result) -> if (times <= 0, result, _repeat(item, times - 1, item : result)),
-repeat(item, times) -> _repeat(item, times, .),
+_repeat(item times result) -> if (times <= 0 result _repeat(item times - 1 item : result))
+repeat(item times) -> _repeat(item times .)
 
-_reverse(i, o) -> if(!i, o, _reverse(\i, 'i:o)),
-reverse(l) -> _reverse(l, .),
+_reverse(i o) -> if(!i o _reverse(\i 'i:o))
+reverse(l) -> _reverse(l .)
 
-_map(f, l, r) -> if(!l, r, _map(f, \l, f('l):r)),
-map(f, l) -> reverse(_map(f, l, .)),
+_map(f l r) -> if(!l r _map(f \l f('l):r))
+map(f l) -> reverse(_map(f l .))
 
-_filter(f, l, r) -> ifelse(
-	!l,    r,
-	f('l), _filter(f, \l, 'l:r),
-           _filter(f, \l, r)
-),
-filter(f, l) -> reverse(_filter(f, l, .)),
+_filter(f l r) -> ifelse(
+	!l    r
+	f('l) _filter(f \l 'l:r)
+           _filter(f \l r)
+)
+filter(f l) -> reverse(_filter(f l .))
 
-_reduce(f, l, r) -> if(
-    !l, r,
-    _reduce(f, \l, f(r, 'l))
-),
-reduce(f, l) -> _reduce(f, \l, 'l),
+_reduce(f l r) -> if(
+    !l r
+    _reduce(f \l f(r 'l))
+)
+reduce(f l) -> _reduce(f \l 'l)
 
-__reducel(f, l, r) -> if(
-	!l, r,
-	__reducel(f, \l, f('l, r))
-),
-_reducel(f, l) -> __reducel(f, \l, 'l),
-reducel(f, l) -> reduce(f, reverse(l)),
+__reducel(f l r) -> if(
+	!l r
+	__reducel(f \l f('l r))
+)
+_reducel(f l) -> __reducel(f \l 'l)
+reducel(f l) -> reduce(f reverse(l))
 
-_list(a, i, r) -> if (i < 0, r, _list(a, i - 1, a(i):r)),
-list(x.) -> _list(x, length(x) - 1, .),
+_list(a i r) -> if (i < 0 r _list(a i - 1 a(i):r))
+list(x.) -> _list(x length(x) - 1 .)
 
-_range(a, b, r) -> if (a == b, r, _range(a, b - 1, (b - 1):r)),
-range(a, b) -> _range(a, b, .),
+_range(a b r) -> if (a == b r _range(a, b - 1, (b - 1):r))
+range(a b) -> _range(a b .)
 
-toarray(l) -> array(expand(l)),
+toarray(l) -> array(expand(l))
 
-_tolist(a, o) -> if (a, _tolist(\a, 'a:o), o),
-tolist(a) -> reverse(_tolist(a, .))
+_tolist(a o) -> if (a _tolist(\a 'a:o) o)
+tolist(a) -> reverse(_tolist(a .))

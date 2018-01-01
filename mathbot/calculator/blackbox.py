@@ -26,8 +26,17 @@ class Terminal():
         self.show_result_type = False
         self.builder = calculator.bytecode.CodeBuilder()
         self.allow_special_commands = allow_special_commands
-        runtime = calculator.runtime.wrap_with_runtime(self.builder, None)
-        self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder, yield_rate = yield_rate)
+        try:
+            runtime = calculator.runtime.wrap_with_runtime(self.builder, None)
+            self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder, yield_rate = yield_rate)
+        except calculator.parser.ParseFailed as e:
+            print('RUNTIME ISSUE: Parse error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
+        except calculator.parser.TokenizationFailed as e:
+            print('RUNTIME ISSUE: Tokenization error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
         self.interpereter.run()
         self.line_count = 0
         self.retain_cache = retain_cache

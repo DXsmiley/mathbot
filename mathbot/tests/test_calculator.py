@@ -163,10 +163,12 @@ def test_functions():
 	compile_fail('if(0, 0)')
 	compile_fail('if(0, 0, 0, 0)')
 	doit('f = (x) -> x, t = f(5), 1 + f(5)', 6)
+	doit('(x -> x * 2)(8)', 16)
+	doit('f = x -> x * 3, f(3)', 9)
 
 def test_macros():
 	doit('((x) ~> x())(5)', 5)
-	doit('((x) ~> x())(5 + 6)', 11)
+	doit('(x ~> x())(5 + 6)', 11)
 
 def test_logic():
 	doit('true  & true',  True)
@@ -324,3 +326,7 @@ def test_trig():
 	doit('sin(8)', sympy.sin(8))
 	doit('sin(8i+3)', sympy.sin(3+sympy.Number(8) * sympy.I))
 	doit('atan(0.1)', sympy.atan(0.1))
+
+def test_commaless():
+	doit('sum(1 2)', 3)
+	doit('sum(1 (1 + 1))', 3)

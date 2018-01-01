@@ -154,6 +154,7 @@ def expect(tokens, rule):
 
 
 def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, always_package = False):
+
 	if not isinstance(binding, DelimitedBinding):
 		raise ValueError('{} is not a valid rule for binding'.format(binding))
 
@@ -206,7 +207,55 @@ def eat_delimited(subrule, delimiters, binding, type, allow_nothing = False, alw
 					'token': delimiter
 				}
 			return value
+
 	internal.__name__ = 'eat_delimited___' + type
+	return internal
+
+
+def eat_optionally_delimited(subrule, delimiters, binding, type, allow_nothing = False, always_package = False):
+
+	if not isinstance(binding, DelimitedBinding):
+		raise ValueError('{} is not a valid rule for binding'.format(binding))
+
+	def internal(tokens):
+		listing = []
+		if tokens.is_complete():
+			if not allow_nothing:
+				raise UnexpectedLackOfToken(tokens)
+		else:
+			listing = [expect(tokens, subrule)]
+		while not tokens.is_complete():
+			if tokens.peek(0, *delimiters):
+				tokens.eat_details()
+			listing.append(expect(tokens, subrule))
+		if len(listing) == 1 and not always_package:
+			return listing[0]
+		if binding == DelimitedBinding.DONT_PROCESS or binding == DelimitedBinding.DROP_AND_FLATTEN:
+			return {
+				'#': type,
+				'items': listing
+			}
+		elif binding == DelimitedBinding.LEFT_FIRST:
+			listing = list(listing[::-1])
+			value = listing.pop()
+			while listing:
+				value = {
+					'#': type,
+					'left': value,
+					'right': listing.pop()
+				}
+			return listing
+		elif binding == DelimitedBinding.RIGHT_FIRST:
+			value = listing.pop()
+			while listing:
+				value = {
+					'#': type,
+					'left': listing.pop(),
+					'right': value
+				}
+			return listing
+
+	internal.__name__ == 'eat_optionally_delimited__' + type
 	return internal
 
 
@@ -227,9 +276,13 @@ def wrapped_expression(tokens):
 
 
 def function_call(tokens):
+	# Slightly 'intelligent' parsing, since integers
+	# cannot be called as functions
+	if tokens.peek(0, 'number'):
+		return atom(tokens)
 	value = wrapped_expression(tokens)
 	calls = []
-	while tokens.peek(0, TokenBlock):
+	while tokens.peek(0, TokenBlock) and not tokens.peek(1, 'function_definition'):
 		calls.append(ensure_completed(argument_list, tokens.eat_details()))
 	calls = calls[::-1]
 	while calls:
@@ -337,18 +390,23 @@ def expression(tokens):
 	return function_definition(tokens)
 
 
-_parameter_list = eat_delimited(word, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+_parameter_list = eat_optionally_delimited(word, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
 
 
 def parameter_list(tokens):
-	params = _parameter_list(tokens)
+	# params = _parameter_list(tokens)
+	params = []
+	while tokens.peek(0, 'word', 'comma'):
+		while tokens.peek_and_eat(0, 'comma'):
+			pass
+		params.append(expect(tokens, word))
 	is_variadic = False
 	if tokens.peek_and_eat(0, 'period'):
 		is_variadic = True
-	return params, is_variadic
+	return {'#': 'parameters', 'items': params}, is_variadic
 
 
-_argument_list = eat_delimited(expression, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+_argument_list = eat_optionally_delimited(expression, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
 def argument_list(tokens):
 	result = _argument_list(tokens)
 	if result is not None:
@@ -416,9 +474,16 @@ prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIG
 
 def function_definition(tokens):
 	if tokens.peek(1, 'function_definition'):
-		if not tokens.peek(0, TokenBlock):
+		if tokens.peek(0, TokenBlock):
+			args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
+		elif tokens.peek(0, 'word'):
+			args = {
+				'#': 'parameters',
+				'items': [tokens.eat_details()]
+			}
+			is_variadic = False
+		else:
 			raise ParseFailed(tokens)
-		args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
 		kind = tokens.eat_details()
 		expr = expression(tokens)
 		return {
@@ -461,7 +526,7 @@ def statement(tokens):
 	return expression(tokens)
 
 
-program = eat_delimited(statement, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'program')
+program = eat_optionally_delimited(statement, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'program')
 
 
 def process_tokens(tokens):
