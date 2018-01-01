@@ -1,0 +1,17 @@
+# Internally used to create a queue
+_qBuild(a b) -> array(a b)
+
+# Create a queue from a list
+qCreate(list) -> _qBuild(list .)
+
+# Push a new element onto a queue, returns the new queue
+qPush(q e) -> _qBuild(e:q(0) q(1))
+
+# Remove the element from the head of the queue, returns the new queue
+qPop(q) -> if(q(1)
+	_qBuild(q(0) \q(1))
+	_qBuild(. \reverse(q(0)))
+)
+
+# Returns the element that is currently at the head of the queue
+qHead(q) -> if(q(1) 'q(1) 'reverse(q(0)))
