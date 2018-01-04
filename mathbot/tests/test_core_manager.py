@@ -19,14 +19,14 @@ class ConflictingModule(core.module.Module):
 
 	@core.handles.command('echo', '*')
 	async def another_echo(self, message, contents):
-		pass
+		pass # pragma: no cover
 
 
 class AnotherModule(core.module.Module):
 
 	@core.handles.command('hello', '*')
 	async def hello(self, message, contents):
-		pass
+		pass # pragma: no cover
 
 
 @pytest.fixture(scope = 'function')

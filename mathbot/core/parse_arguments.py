@@ -10,6 +10,10 @@ class InvalidGreedyConsumerArgument(Exception):
 	pass
 
 
+class InvalidFormatError(ValueError):
+	pass
+
+
 def remove_whitespace(stack):
 	while len(stack) > 0 and stack[-1] in ' \t\n':
 		stack.pop()
@@ -67,7 +71,5 @@ def parse(format, argstring):
 				if i != len(format) - 1:
 					raise InvalidGreedyConsumerArgument
 			else:
-				raise Exception('oh no!')
-		if len(args) != 0:
-			raise InvalidArgumentNumber
+				raise InvalidFormatError('{} is not a valid argument format'.format(v))
 		return output
