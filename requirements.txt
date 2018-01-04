@@ -15,3 +15,5 @@ asyncpg
 jinja2
 PyJWT
 aiohttp_jinja2
+coverage
+pytest-cov
