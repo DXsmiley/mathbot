@@ -9,6 +9,9 @@ import json
 import sys
 
 
+DEFAULT_PARAMETER_FILE = 'parameters_default.json'
+
+
 def _dictionary_overwrite(old, new):
 	if not isinstance(new, dict):
 		return new
@@ -61,7 +64,7 @@ def add_source_filename(filename):
 		add_source(json.load(f))
 
 
-add_source_filename('parameters_default.json')
+add_source_filename(DEFAULT_PARAMETER_FILE)
 
 
 def get(path):
@@ -78,3 +81,15 @@ def get(path):
 	while len(path) > 0:
 		result = result[path.pop()]
 	return result
+
+
+def reset(add_default = True):
+	''' Clear the parameters and unloads them.
+		Should really only be used to write tests.
+	'''
+	global parameters
+	global add_source_filename
+	parameters = None
+	sources = []
+	if add_default:
+		add_source_filename(DEFAULT_PARAMETER_FILE)
