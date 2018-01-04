@@ -4,10 +4,28 @@
 import sys
 import os
 import asyncio
+import re
 
 import discord
-
 import logging
+import core.parameters
+
+logging.basicConfig(level = logging.WARNING)
+
+# Need to load up the parameters before we do anything else
+
+for i in sys.argv[1:]:
+	if re.fullmatch(r'\w+\.env', i):
+		value = os.environ.get(i[:-4])
+		jdata = json.loads(value)
+		core.parameters.add_source(jdata)
+	elif i.startswith('{') and i.endswith('}'):
+		jdata = json.loads(i)
+		core.parameters.add_source(jdata)
+	else:
+		core.parameters.add_source_filename(i)
+
+# Continue loading in the other modules
 
 import modules.wolfram
 import modules.about
@@ -25,7 +43,8 @@ import modules.greeter
 
 import core.manager
 import core.keystore
-import core.parameters
+
+# Setup the keystore
 
 keystore_mode = core.parameters.get('keystore mode')
 if keystore_mode == 'redis':
@@ -38,6 +57,7 @@ elif keystore_mode == 'disk':
 else:
 	raise Exception('"{}" is not a valid keystore mode'.format(keystore_mode))
 
+# Determine the release mode and token
 
 RELEASE = core.parameters.get('release').lower()
 TOKEN = core.parameters.get('token')
@@ -47,8 +67,6 @@ if RELEASE not in ['development', 'beta', 'production']:
 
 if not TOKEN:
 	raise Exception('No token specified')
-
-logging.basicConfig(level = logging.WARNING)
 
 
 # Used to ensure the beta bot only replies in the channel that it is supposed to

@@ -1,4 +1,5 @@
 import automata
+import sys
 import core.parameters
 
 
@@ -156,6 +157,10 @@ async def calc5_token_failure(interface):
 @auto.test()
 async def calc5_syntax_failure(interface):
 	await interface.assert_reply_contains('=calc 4 + 6 -', 'Invalid syntax at position 7')
+
+
+for i in sys.argv[1:]:
+	core.parameters.add_source_filename(i)
 
 
 auto.run(
