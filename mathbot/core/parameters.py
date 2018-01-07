@@ -88,7 +88,7 @@ def reset(add_default = True):
 		Should really only be used to write tests.
 	'''
 	global parameters
-	global add_source_filename
+	global sources
 	parameters = None
 	sources = []
 	if add_default:
