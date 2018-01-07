@@ -3,10 +3,12 @@ import core.parameters
 
 @pytest.fixture(scope = 'function')
 def patrons():
-    core.parameters.reset()
     import patrons
+    core.parameters.reset()
     patrons.PATRONS = {}
     yield patrons
+    core.parameters.reset()
+    patrons.PATRONS = {}
 
 
 def test_simple_rankings(patrons):
