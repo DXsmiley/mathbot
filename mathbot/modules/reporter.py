@@ -26,6 +26,8 @@ class ReporterModule(core.module.Module):
 					await core.keystore.lpush('error-report', item)
 				else:
 					await asyncio.sleep(10)
+		except asyncio.CancelledError:
+			raise
 		except Exception:
 			print('Exception in ReporterModule.queue_reports on shard {}. This is bad.'.format(self.client.shard_id))
 
@@ -46,6 +48,8 @@ class ReporterModule(core.module.Module):
 						await self.client.send_message(report_channel, message)
 					else:
 						await asyncio.sleep(10)
+		except asyncio.CancelledError:
+			raise
 		except Exception:
 			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.client.shard_id))
 			traceback.print_exc()
