@@ -587,7 +587,8 @@ def stringify(bytecode):
 
 
 if __name__ == '__main__':
+	# pylint: disable=invalid-name
 	tokens, ast = parser.parse('1 + 2')
-	print(json.dumps(ast, indent = 4))
+	print(json.dumps(ast, indent=4))
 	for i in build(ast):
 		print(i)

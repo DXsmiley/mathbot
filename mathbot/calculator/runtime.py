@@ -210,17 +210,30 @@ FIXED_VALUES_EXPORTABLE = {
 
 
 EXTRACT_FROM_SYMPY = '''
-	re im sign Abs arg conjugate polar_lift periodic_argument principal_branch
+	re im sign Abs arg conjugate 
 	sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 	tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
-	exp root sqrt diff integrate pi E I gcd lcm gamma factorial
+	exp root sqrt pi E I gcd lcm gamma factorial
 '''
+# Things not used:
+# polar_lift periodic_argument principal_branch diff integrate
+
+ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
+
+def protect_sympy_function(func):
+	def replacement(*args):
+		for i in args:
+			if not isinstance(i, ALL_SYMPY_CLASSES):
+				raise TypeError
+		return func(*args)
+	return replacement
+
 
 for i in EXTRACT_FROM_SYMPY.split():
 	value = getattr(sympy, i)
 	name = i.lower()
 	if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
-		BUILTIN_FUNCTIONS[name] = value
+		BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
 	else:
 		FIXED_VALUES[name] = value
 
@@ -230,7 +243,7 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
 
 
-def wrap_with_runtime(builder, my_ast, exportable = False, protect_globals = False):
+def wrap_with_runtime(builder, my_ast, exportable=False, protect_globals=False):
 	# ----- Declarations --------------------
 	elnk = {'name': '_system_base', 'position': 0, 'code': '?'}
 	s = builder.new_segment()

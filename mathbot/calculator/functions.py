@@ -137,7 +137,7 @@ class SingularValue:
 		return 'constant({})'.format(self.item)
 
 	def __repr__(self):
-		return str(self)
+		return repr(self)
 
 
 class Interval:
