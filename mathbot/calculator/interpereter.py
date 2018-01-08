@@ -265,7 +265,7 @@ class Interpereter:
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
 
-	def run(self, tick_limit = None, error_if_exhausted = False, expect_complete = False):
+	def run(self, tick_limit = None, error_if_exhausted = False, expect_complete = False, get_entire_stack = False):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
 			error_if_exhausted - If True, an error will be thrown if execution is not finished in the specified number of ticks.
@@ -291,14 +291,18 @@ class Interpereter:
 		if expect_complete:
 			if len(self.stack) > 2:
 				raise SystemError('Execution finished with extra items on the stack. Is there a leak?')
+		if get_entire_stack:
+			return self.stack[1:]
 		return self.top
 
-	async def run_async(self):
+	async def run_async(self, get_entire_stack = False):
 		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
 			self.run(self.yield_rate)
 			# Yield so that other coroutines may run
 			await asyncio.sleep(0)
+		if get_entire_stack:
+			return self.stack[1:]
 		return self.top
 
 	def tick(self):
@@ -583,14 +587,24 @@ class Interpereter:
 			raise EvaluationError('Attempt to prepend to start of non-list')
 		self.push(calculator.functions.List(new, lst))
 
-	def call_function(self, function, arguments, return_to, disable_cache = False, macro_unprepped = False, do_tco = False):
+	def call_builtin_function(self, function, arguments, return_to):
+		try:
+			result = function(*arguments)
+		except Exception:
+			# arg = arguments if len(arguments)
+			# pylint: disable=raising-format-tuple
+			if not arguments:
+				raise EvaluationError('Failed to call {} with no arguments.', function)
+			elif len(arguments) == 1:
+				raise EvaluationError('Failed to call {} on {}', function, arguments[0])
+			else:
+				raise EvaluationError('Failed to call {} on {}', function, arguments)
+		self.push(result)
+		self.place = return_to
+
+	def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
-			try:
-				result = function(*arguments)
-			except Exception:
-				raise EvaluationError('Failed to call {} on {}'.format(function, arguments))
-			self.push(result)
-			self.place = return_to
+			self.call_builtin_function(function, arguments, return_to)
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
 			need_to_call = True

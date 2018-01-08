@@ -94,10 +94,10 @@ class Terminal():
                 })
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
-                result = await asyncio.wait_for(self.interpereter.run_async(), 5)
+                result_items = await asyncio.wait_for(self.interpereter.run_async(get_entire_stack = True), 5)
                 worked = True
-                details['result'] = result
-                if result is not None:
+                details['result'] = result_items
+                for result in result_items:
                     # Note: This is handled with a try / except because 
                     f_res = calculator.formatter.format(result, limit = self.output_limit)
                     try:
