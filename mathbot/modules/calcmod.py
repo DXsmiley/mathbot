@@ -108,6 +108,9 @@ class CalculatorModule(core.module.Module):
 			result, worked, details = await scope.execute_async(arg)
 			if result.count('\n') > 0:
 				result = '```\n{}\n```'.format(result)
+			else:
+				result = result.replace('*', '\\*')
+				result = result.replace('_', '\\_')
 			if result == '':
 				result = ':thumbsup:'
 			elif len(result) > 2000:
