@@ -74,7 +74,9 @@ class I(enum.IntEnum):
 	LIST_PREPEND = 63
 	LIST_CONCAT = 64
 
-	# Next to use: 66
+	PUSH_ERROR_STOPGAP = 66
+
+	# Next to use: 67
 
 
 OPERATOR_DICT = {
@@ -111,7 +113,8 @@ PROTECTED_NAMES = [
 	'ifelse',
 	'map',
 	'filter',
-	'reduce'
+	'reduce',
+	'try'
 ]
 
 
@@ -370,6 +373,24 @@ class CodeSegment:
 					p_false = Destination()
 				self.bytecodeify(args[-1], keys)
 				self.push(p_end)
+			elif function_name == 'try':
+				if len(args) < 2:
+					raise calculator.error.CompilationError('Too few arguments for try function')
+				block_end = Destination()
+				land_on_error = Destination()
+				for case in args[:-1]:
+					self.push(I.PUSH_ERROR_STOPGAP, Pointer(land_on_error), 0)
+					self.bytecodeify(case, keys)
+					self.push(
+						I.STACK_SWAP, # Swap the top two items so the stopgap is on top
+						I.DISCARD,    # Discard the swapgap
+						I.JUMP,       # Jump to the end of the block
+						Pointer(block_end),
+						land_on_error # This is the start of the next case
+					)
+					land_on_error = Destination()
+				self.bytecodeify(args[-1], keys)
+				self.push(block_end)
 			else:
 				# IDEA: If the function contains only a small amount of code, we can also
 				# inline it (for normal function calls). Cannot inline everything since

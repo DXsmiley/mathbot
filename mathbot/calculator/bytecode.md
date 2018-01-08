@@ -74,6 +74,8 @@
 - 55 - Special Filter
 - 56 - Special Filter Store
 
+- 66 - Push Error Stopgap [handler address, pass error] (stopgap marker)
+
 ## Chain comparators
 
 To start a set of chain comparisons, the number 1 is pushed to the stack, followed by the first operand.

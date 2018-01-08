@@ -145,6 +145,15 @@ class CallingCache:
 		self.queue = collections.deque()
 
 
+class ErrorStopGap:
+
+	__slots__ = ['handler_address', 'should_pass']
+
+	def __init__(self, handler_address, should_pass):
+		self.handler_address = handler_address
+		self.should_pass = should_pass
+
+
 class Interpereter:
 
 	def __init__(self, code_constructed, trace = False, builder = None, yield_rate = 100):
@@ -217,7 +226,8 @@ class Interpereter:
 			b.LIST_CREATE_EMPTY: self.inst_list_create_empty,
 			b.LIST_EXTRACT_FIRST: self.inst_list_extract_first,
 			b.LIST_EXTRACT_REST: self.inst_list_extract_rest,
-			b.LIST_PREPEND: self.inst_list_prepend
+			b.LIST_PREPEND: self.inst_list_prepend,
+			b.PUSH_ERROR_STOPGAP: self.inst_push_error_stopgap
 		}
 
 	def clear_cache(self):
@@ -273,19 +283,15 @@ class Interpereter:
 		'''
 		if expect_complete:
 			warnings.warn('expect_complete is deprecated', DeprecationWarning)
-		try:
-			if tick_limit is None:
-				while self.head != bytecode.I.END:
-					self.tick()
-					# print(self.place, self.stack)
-			else:
-				while self.head != bytecode.I.END and tick_limit > 0:
-					tick_limit -= 1
-					self.tick()
-					# print(self.place, self.stack)
-		except EvaluationError as e:
-			e._linking = self.erlnk[self.place]
-			raise e
+		if tick_limit is None:
+			while self.head != bytecode.I.END:
+				self.tick()
+				# print(self.place, self.stack)
+		else:
+			while self.head != bytecode.I.END and tick_limit > 0:
+				tick_limit -= 1
+				self.tick()
+				# print(self.place, self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
 		if expect_complete:
@@ -314,8 +320,21 @@ class Interpereter:
 			print('Tried to run unknown instruction:', self.head)
 			raise EvaluationError('Tried to run unknown instruction: ' + repr(self.head))
 		else:
-			inst()
+			try:
+				inst()
+			except EvaluationError as error:
+				error._linking = self.erlnk[self.place]
+				self.panic(error)
 		self.place += 1
+
+	def panic(self, error):
+		try:
+			while not isinstance(self.top, ErrorStopGap):
+				# No stopgap found, raise the error instead
+				self.pop()
+		except IndexError:
+			raise error
+		self.place = self.pop().handler_address - 1
 
 	def inst_constant(self):
 		''' Push a constant to the stack '''
@@ -586,6 +605,11 @@ class Interpereter:
 		if not isinstance(lst, calculator.functions.ListBase):
 			raise EvaluationError('Attempt to prepend to start of non-list')
 		self.push(calculator.functions.List(new, lst))
+
+	def inst_push_error_stopgap(self):
+		handler_address = self.next()
+		should_pass = self.next()
+		self.push(ErrorStopGap(handler_address, should_pass))
 
 	def call_builtin_function(self, function, arguments, return_to):
 		try:
