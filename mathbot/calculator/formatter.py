@@ -1,9 +1,16 @@
+''' Calculator formatter.
+
+    Used to take complicated data structures, including
+    lists, arrays, and sympy objects and convert them
+    into a flat, human-readable string.
+'''
+
 import sympy
 import calculator.functions
 import calculator.errors
 
 
-ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
+ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes) # pylint: disable=no-member
 
 
 class Collector:
@@ -38,17 +45,13 @@ class Collector:
         return output
 
 
-# class CustomStringPrinter(sympy.printing.str.StrPrinter):
-
-#     def _print_I(self, expr):
-#         return '**I**'
-
-#     def _print_Mul(self, expr):
-#         a, b = i.as_two_terms()
-#         if 
-
-
 class SimpleFormatter:
+
+    ''' Simplest implementation of the formatter.
+        Currently used to format things in all cases,
+        but in theory could be subclassed to produce
+        different behaviour for specific cases.
+    '''
 
     def __init__(self, limit=None):
         self._collector = Collector(limit=limit)
@@ -57,67 +60,60 @@ class SimpleFormatter:
         ''' Remove the most recently added item '''
         self._collector.drop()
 
-    def fm(self, *args):
+    def fmt(self, *args):
         ''' Format a number of objects '''
         for i in args:
             # print(i.__class__, i.__class__.__mro__)
             if i is None:
                 self._collector.print('null')
             elif isinstance(i, str):
-                self.fm_string(i)
+                self.fmt_string(i)
             elif isinstance(i, list):
-                self.fm_py_list(i)
+                self.fmt_py_list(i)
             elif isinstance(i, calculator.functions.Array):
-                self.fm_array(i)
+                self.fmt_array(i)
             elif isinstance(i, calculator.functions.ListBase):
-                self.fm_list(i)
+                self.fmt_list(i)
             else:
-                self.fm_string(str(i))
+                self.fmt_string(str(i))
 
-    def fm_iterable(self, name, iterable):
+    def fmt_iterable(self, name, iterable):
         ''' Format an iterable object that supports .head and .rest '''
-        self.fm(name, '(')
+        self.fmt(name, '(')
         while iterable:
-            self.fm(iterable.head)
+            self.fmt(iterable.head)
             iterable = iterable.rest
             if iterable:
-                self.fm(', ')
-        self.fm(')')
+                self.fmt(', ')
+        self.fmt(')')
 
-    def fm_string(self, i):
+    def fmt_string(self, i):
         ''' Format a string, which means just add it to the output '''
         self._collector.print(i)
 
-    def fm_array(self, i):
+    def fmt_array(self, i):
         ''' Format an array '''
-        self.fm_iterable('array', i)
+        self.fmt_iterable('array', i)
 
-    def fm_list(self, i):
+    def fmt_list(self, i):
         ''' Format a list '''
-        self.fm_iterable('list', i)
+        self.fmt_iterable('list', i)
 
-    def fm_py_list(self, ls):
+    def fmt_py_list(self, lst):
         ''' Formay a python list '''
-        self.fm('(')
-        for i in ls:
-            self.fm(i, ', ')
-        if ls:
+        self.fmt('(')
+        for i in lst:
+            self.fmt(i, ', ')
+        if lst:
             self.drop()
-        self.fm(')')
+        self.fmt(')')
 
     def __str__(self):
         return str(self._collector)
 
 
-class DiscordFormatter(SimpleFormatter):
-
-    def fm_string(self, i):
-        i = i.replace('*', '\\*')
-        i = i.replace('_', '\\_')
-        self._collector.print(i)
-
-
-def format(*values, limit=None):
+def format(*values, limit=None): # pylint: disable=redefined-builtin
+    ''' Format some values, producing a human-readable string. '''
     fmtr = SimpleFormatter(limit=limit)
-    fmtr.fm(*values)
+    fmtr.fmt(*values)
     return str(fmtr)
