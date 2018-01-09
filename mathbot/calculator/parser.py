@@ -260,7 +260,7 @@ def eat_optionally_delimited(subrule, delimiters, binding, type, allow_nothing =
 
 
 def atom(tokens):
-	if tokens.peek(0, 'number', 'word', 'period'):
+	if tokens.peek(0, 'number', 'word', 'period', 'string', 'glyph'):
 		return tokens.eat_details()
 
 
@@ -641,6 +641,8 @@ def parse(string, source_name = '__unknown__'):
 			('__remove__', r'#.*'),
 			('kw_symbol', r'symbol'),
 			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
+			('string', r'"(?:\\.|[^\\"])*"'),
+			('glyph', r'\`\\?.\`'),
 			# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 			('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),
 			# ('die_op', r'd'),

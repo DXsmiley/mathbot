@@ -375,7 +375,7 @@ class Interpereter:
 			try:
 				self.push(op(left, right))
 			except Exception:
-				raise EvaluationError('Operation failed on {} and {}'.format(left, right))
+				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
 	inst_add = binary_op(operator.add)
@@ -409,7 +409,7 @@ class Interpereter:
 			if result is sympy.zoo or result is sympy.oo:
 				raise TypeError
 		except Exception:
-			raise EvaluationError('Cannot run factorial function on {}'.format(original_value))
+			raise EvaluationError('Cannot run factorial function on {}', original_value)
 		self.push(result)
 		# self.push(operators.function_factorial(self.pop()))
 
@@ -492,7 +492,7 @@ class Interpereter:
 			# symbol = sympy.symbols(self.head)
 			# self.push(symbol)
 			# self.root_scope.set(index, 0, symbol)
-			raise EvaluationError('Failed to access variable "{}"'.format(self.head))
+			raise EvaluationError('Failed to access variable {}', self.head)
 
 	def inst_access_local(self):
 		''' Access a local variable '''
@@ -642,7 +642,7 @@ class Interpereter:
 				num_parameters = inspector.num_parameters
 				if inspector.is_variadic:
 					if len(arguments) < num_parameters - 1:
-						raise EvaluationError('Not enough arguments for variadic function {}'.format(function))
+						raise EvaluationError('Not enough arguments for variadic function {}', function)
 					main = arguments[:num_parameters - 1]
 					extra = arguments[num_parameters - 1:]
 					scope_array = main
@@ -650,7 +650,7 @@ class Interpereter:
 					new_scope = IndexedScope(function.scope, num_parameters, scope_array)
 				else:
 					if num_parameters != len(arguments):
-						raise EvaluationError('Improper number of arguments for function {}'.format(function))
+						raise EvaluationError('Improper number of arguments for function {}', function)
 					if num_parameters == 0:
 						new_scope = function.scope
 					elif inspector.is_macro and macro_unprepped:
@@ -669,7 +669,7 @@ class Interpereter:
 				self.current_scope = new_scope
 				self.place = inspector.code_address
 		else:
-			raise EvaluationError('{} is not a function'.format(function))
+			raise EvaluationError('{} is not a function', function)
 		self.place -= 1 # Negate the +1 after this
 
 	def get_memory_usage(self):

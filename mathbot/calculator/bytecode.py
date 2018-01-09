@@ -1,6 +1,7 @@
 import enum
 import calculator.parser as parser
 import calculator.errors
+import calculator.functions
 import itertools
 import json
 import sympy
@@ -296,6 +297,22 @@ class CodeSegment:
 
 	def btcfy_number(self, node, keys):
 		self.push(I.CONSTANT, convert_number(node['string']))
+
+	def btcfy_glyph(self, node, keys):
+		s = node['string'][1:-1]
+		if s == '\`':
+			s = '`'
+		else:
+			s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
+		self.push(I.CONSTANT, calculator.functions.Glyph(s))
+
+	def btcfy_string(self, node, keys):
+		s = node['string'][1:-1]
+		s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
+		c = calculator.functions.EmptyList()
+		for i in range(len(s) - 1, -1, -1):
+			c = calculator.functions.List(calculator.functions.Glyph(s[i]), c)
+		self.push(I.CONSTANT, c)
 
 	def btcfy_bin_op(self, node, keys):
 		op = node['operator']

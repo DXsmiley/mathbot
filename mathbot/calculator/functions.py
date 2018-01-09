@@ -3,6 +3,17 @@ import calculator.errors
 import functools
 
 
+class Glyph:
+
+	__slots__ = ['value']
+	
+	def __init__(self, value):
+		self.value = value
+	
+	def __str__(self):
+		return self.value
+
+
 class BuiltinFunction:
 
 	def __init__(self, func, name = None):
@@ -72,9 +83,18 @@ class Array:
 	def __repr__(self):
 		return str(self)
 
+	def __iter__(self):
+		for i in range(self.start, self.end):
+			yield self.items[i]
+
 
 class ListBase:
-	pass
+
+	def __iter__(self):
+		current = self
+		while current:
+			yield current.head
+			current = current.rest
 
 
 class List(ListBase):

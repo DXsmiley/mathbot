@@ -67,37 +67,55 @@ class SimpleFormatter:
             if i is None:
                 self._collector.print('null')
             elif isinstance(i, str):
-                self.fmt_string(i)
+                self.fmt_py_string(i)
             elif isinstance(i, list):
                 self.fmt_py_list(i)
             elif isinstance(i, calculator.functions.Array):
                 self.fmt_array(i)
             elif isinstance(i, calculator.functions.ListBase):
                 self.fmt_list(i)
+            elif isinstance(i, calculator.functions.Glyph):
+                self.fmt_glyph(i)
             else:
                 self.fmt_string(str(i))
 
-    def fmt_iterable(self, name, iterable):
-        ''' Format an iterable object that supports .head and .rest '''
-        self.fmt(name, '(')
-        while iterable:
-            self.fmt(iterable.head)
-            iterable = iterable.rest
-            if iterable:
-                self.fmt(', ')
-        self.fmt(')')
-
-    def fmt_string(self, i):
+    def fmt_py_string(self, i):
         ''' Format a string, which means just add it to the output '''
         self._collector.print(i)
 
-    def fmt_array(self, i):
-        ''' Format an array '''
-        self.fmt_iterable('array', i)
+    def fmt_glyph(self, g):
+        ''' Format a single glyph '''
+        v = '\\`' if g.value == '`' else repr(g.value)[1:-1]
+        self.fmt('`', v, '`')
 
-    def fmt_list(self, i):
+    def fmt_array(self, array):
+        ''' Format an array '''
+        self.fmt('array(')
+        for i in array:
+            self.fmt(i, ', ')
+        self.drop()
+        self.fmt(')')
+
+    def fmt_list(self, list):
         ''' Format a list '''
-        self.fmt_iterable('list', i)
+        is_string = True
+        for i in list:
+            if not isinstance(i, calculator.functions.Glyph):
+                is_string = False
+        if is_string:
+            self.fmt('"')
+            for i in list:
+                if i.value == '"':
+                    self._collector.print('\\"')
+                else:
+                    self._collector.print(i.value)
+            self.fmt('"')
+        else:
+            self.fmt('list(')
+            for i in list:
+                self.fmt(i, ', ')
+            self.drop()
+            self.fmt(')')
 
     def fmt_py_list(self, lst):
         ''' Formay a python list '''
