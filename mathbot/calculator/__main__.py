@@ -56,13 +56,15 @@ def print_token_parse_caret(to):
 
 
 def interactive_terminal():
-
 	terminal = Terminal(allow_special_commands = True, yield_rate = 1)
 
 	while True:
-		line = input('> ')
-		if line == '':
+		try:
+			line = input('> ')
+		except EOFError:
 			break
+		if line == '':
+			continue
 		output, worked, details = terminal.execute(line)
 		print(output)
 
