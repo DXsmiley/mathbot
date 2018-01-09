@@ -61,11 +61,14 @@ def interactive_terminal():
 	while True:
 		try:
 			line = input('> ')
-		except EOFError:
+		except (EOFError, KeyboardInterrupt):
 			break
 		if line == '':
 			continue
-		output, worked, details = terminal.execute(line)
-		print(output)
+		try:
+			output, worked, details = terminal.execute(line)
+			print(output)
+		except KeyboardInterrupt:
+			print('Operation halted by keyboard interupt')
 
 main()
