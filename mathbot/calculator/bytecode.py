@@ -4,6 +4,7 @@ import calculator.errors
 import itertools
 import json
 import sympy
+import inspect
 
 
 @enum.unique
@@ -279,282 +280,300 @@ class CodeSegment:
 		self.items += items
 		self.error_link += [error] * len(items)
 
-	def bytecodeify(self, p, keys):
-		# TCO not allowed in most cirumstances. Get the value and then set it.
-		# Can re-assign it later if it's *actually* allowed
+	def bytecodeify(self, node, keys):
+		# TCO not allowed in most cirumstances. Get the value and then set it. The real value will be passed to the handler function if the function asks for it.
 		allow_tco = keys['allow_tco']
 		keys = keys(allow_tco = False)
 		# Branch by the current node type
-		node_type = p['#']
-		if node_type == 'number':
-			self.push(I.CONSTANT)
-			self.push(convert_number(p['string']))
-		elif node_type == 'bin_op':
-			op = p['operator']
-			left = p['left']
-			right = p['right']
-			er = p['token']['source']
-			if op == '&': # Logical and
-				end = Destination()
-				self.bytecodeify(left, keys)
-				self.push(
-					I.DUPLICATE,
-					I.JUMP_IF_FALSE,
-					Pointer(end),
-					error = er
-				)
-				self.bytecodeify(right, keys)
-				self.push(
-					I.BIN_AND,
-					end,
-					error = er
-				)
-			elif op == '|': # Logical or
-				end = Destination()
-				self.bytecodeify(left, keys)
-				self.push(
-					I.DUPLICATE,
-					I.JUMP_IF_TRUE,
-					Pointer(end),
-					error = er
-				)
-				self.bytecodeify(right, keys)
-				self.push(
-					I.BIN_OR_,
-					end,
-					error = er
-				)
-			else:
-				self.bytecodeify(right, keys)
-				self.bytecodeify(left, keys)
-				self.push(OPERATOR_DICT[op], error = p['token']['source'])
-		elif node_type == 'not':
-			self.bytecodeify(p['expression'], keys)
-			self.push(I.UNR_NOT, error = p['token']['source'])
-		elif node_type == 'die':
-			self.bytecodeify(p['faces'], keys)
-			self.bytecodeify(p.get('times', {'#': 'number', 'string': '1'}), keys)
-			self.push(I.BIN_DIE, error = p['token']['source'])
-		elif node_type == 'uminus':
-			self.bytecodeify(p['value'], keys)
-			self.push(I.UNR_MIN, error = p['token']['source'])
-		elif node_type == 'function_call':
-			args = p.get('arguments', {'items': []})['items']
-			function_name = p['function']['string'].lower() if p['function']['#'] == 'word' else None
-			call_marker_errinfo = p['arguments']['edges']['start']['source']
-			if function_name == 'if':
-				# Optimisation for the 'if' function.
-				if len(args) != 3:
-					raise calculator.errors.CompilationError('Invalid number of arguments for if function')
-				p_end = Destination()
-				p_false = Destination()
-				self.bytecodeify(args[0], keys())
-				self.push(I.JUMP_IF_FALSE)
-				self.push(Pointer(p_false))
-				self.bytecodeify(args[1], keys(allow_tco = allow_tco))
-				self.push(I.JUMP)
-				self.push(Pointer(p_end))
-				self.push(p_false)
-				self.bytecodeify(args[2], keys(allow_tco = allow_tco))
-				self.push(p_end)
-			elif function_name == 'ifelse':
-				if len(args) < 3 or len(args) % 2 == 0:
-					raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
-				p_end = Destination()
-				p_false = Destination()
-				for condition, result in zip(args[::2], args[1::2]):
-					self.bytecodeify(condition, keys)
-					self.push(I.JUMP_IF_FALSE)
-					self.push(Pointer(p_false))
-					self.bytecodeify(result, keys)
-					self.push(I.JUMP)
-					self.push(Pointer(p_end))
-					self.push(p_false)
-					p_false = Destination()
-				self.bytecodeify(args[-1], keys)
-				self.push(p_end)
-			elif function_name == 'try':
-				if len(args) < 2:
-					raise calculator.error.CompilationError('Too few arguments for try function')
-				block_end = Destination()
-				land_on_error = Destination()
-				for case in args[:-1]:
-					self.push(I.PUSH_ERROR_STOPGAP, Pointer(land_on_error), 0)
-					self.bytecodeify(case, keys)
-					self.push(
-						I.STACK_SWAP, # Swap the top two items so the stopgap is on top
-						I.DISCARD,    # Discard the swapgap
-						I.JUMP,       # Jump to the end of the block
-						Pointer(block_end),
-						land_on_error # This is the start of the next case
-					)
-					land_on_error = Destination()
-				self.bytecodeify(args[-1], keys)
-				self.push(block_end)
-			else:
-				# IDEA: If the function contains only a small amount of code, we can also
-				# inline it (for normal function calls). Cannot inline everything since
-				# this leads to exponential code growth.
-				argument_functions = [
-					self.define_function({
-						'#': 'function_definition',
-						'parameters': {'items': []},
-						'kind': '->',
-						'expression': i
-					}, keys) for i in args[::-1]
-				]
-				self.bytecodeify(p['function'], keys)
-				landing_macro = Destination()
-				landing_end = Destination()
-				# Need to jump because normal functions and macros are handled differently
-				self.push(I.JUMP_IF_MACRO)
-				self.push(Pointer(landing_macro))
-				# Handle if normal function
-				for i in argument_functions:
-					self.push(I.FUNCTION_NORMAL)
-					self.push(i)
-					self.push(I.ARG_LIST_END_NO_CACHE)
-					self.push(0)
-				if allow_tco:
-					self.push(I.ARG_LIST_END_WITH_TCO)
-				else:
-					self.push(I.ARG_LIST_END)
-				self.push(len(args), error = call_marker_errinfo)
-				self.push(I.JUMP)
-				self.push(Pointer(landing_end))
-				# Handle if macro function
-				self.push(landing_macro)
-				for i in argument_functions:
-					self.push(I.FUNCTION_NORMAL)
-					self.push(i)
-				self.push(I.ARG_LIST_END_NO_CACHE, error = call_marker_errinfo)
-				self.push(len(args))
-				# Aaaaand we done here
-				self.push(landing_end)
-		elif node_type == 'word':
-			# self.push(I.WORD)
-			# self.push(p['string'].lower())
-			scope, depth, index = keys['scope'].find_value(p['string'].lower())
-			if scope == self.builder.globalscope:
-				# NOTE: Only global variables can fail to be found,
-				# so we only need the name for this one.
-				self.push(I.ACCESS_GLOBAL)
-				self.push(index)
-				self.push(p['string'], error = p['source'])
-			elif depth == 0:
-				self.push(I.ACCESS_LOCAL)
-				self.push(index)
-			else:
-				self.push(I.ACCESS_SEMI)
-				self.push(depth)
-				self.push(index)
-		elif node_type == 'factorial':
-			self.bytecodeify(p['value'], keys)
-			self.push(I.UNR_FAC, error = p['token']['source'])
-		elif node_type == 'assignment':
-			self.bytecodeify(p['value'], keys)
-			name = p['variable']['string'].lower()
-			if name in PROTECTED_NAMES and not keys['unsafe']:
-				m = 'Cannot assign to variable "{}"'.format(name)
-				raise calculator.errors.CompilationError(m, p['variable'])
-			scope, depth, index = keys['scope'].find_value(name)
-			assert(scope == self.builder.globalscope)
-			# print(scope, depth, index)
-			self.push(I.ASSIGNMENT)
-			self.push(index)
-			# self.push(I.ASSIGNMENT)
-			# self.push(p['variable']['string'].lower())
-		elif node_type == 'declare_symbol':
-			name = p['name']['string'].lower()
-			if name in PROTECTED_NAMES and not keys['unsafe']:
-				m = 'Cannot assign to variable "{}"'.format(name)
-				raise calculator.errors.CompilationError(m, p['name'])
-			scope, depth, index = keys['scope'].find_value(name)
-			assert(scope == self.builder.globalscope)
-			self.push(I.DECLARE_SYMBOL)
-			self.push(index)
-			self.push(name)
-		elif node_type == 'statement_list':
-			self.bytecodeify(p['statement'], keys)
-			if p['next'] is not None:
-				self.bytecodeify(p['next'], keys)
-		elif node_type == 'program':
-			for i in p['items']:
-				self.bytecodeify(i, keys)
-			# self.push(I.END)
-		elif node_type == 'end':
-			self.push(I.END)
-		elif node_type == 'function_definition':
-			# Create the function itself
-			start_pointer = self.define_function(p, keys)
-			# Create the bytecode for the current scope
-			# self.push(I.FUNCTION_MACRO if p['kind'] == '~>' else I.FUNCTION_NORMAL)
-			self.push(I.FUNCTION_NORMAL)
-			self.push(start_pointer)
-		elif node_type == 'comparison':
-			if len(p['rest']) == 1:
-				# Can get away with a simple binary operator like the others
-				self.bytecodeify(p['rest'][0]['value'], keys)
-				self.bytecodeify(p['first'], keys)
-				op = p['rest'][0]['operator']
-				er = p['rest'][0]['token']['source']
-				self.push(OPERATOR_DICT[op], error = er)
-			else:
-				bailed = Destination()
-				end = Destination()
-				self.push(I.CONSTANT, 1)
-				self.bytecodeify(p['first'], keys)
-				for index, ast in enumerate(p['rest']):
-					if index > 0:
-						self.push(
-							I.STACK_SWAP, # Get the flag on top
-							I.DUPLICATE,  # Copy the flag (copy consumed by branch)
-							I.JUMP_IF_FALSE, # If its zero, bail
-							Pointer(bailed),
-							I.STACK_SWAP # Put the value back on top
-						)
-					self.bytecodeify(ast['value'], keys)
-					self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
-				self.push(
-					I.JUMP,
-					Pointer(end),
-					bailed,
-					I.STACK_SWAP,
-					end,
-					I.DISCARD,
-				)
-		elif node_type == 'period':
-			self.push(I.LIST_CREATE_EMPTY)
-		elif node_type == 'head':
-			self.bytecodeify(p['expression'], keys)
-			self.push(I.LIST_EXTRACT_FIRST, error = p['token']['source'])
-		elif node_type == 'tail':
-			self.bytecodeify(p['expression'], keys)
-			self.push(I.LIST_EXTRACT_REST, error = p['token']['source'])
-		else:
-			raise Exception('Unknown AST node type: {}'.format(node_type))
+		node_type = node['#']
+		handler = getattr(self, 'btcfy_' + node_type, None)
+		if handler is None:
+			raise calculator.errors.CompilationError('Unknown AST node: {}. Cannot convert to bytecode.'.format(node_type))
+		h_params, _, _, _ = inspect.getargspec(handler)
+		if 'allow_tco' in h_params:
+			return handler(node, keys, allow_tco)
+		return handler(node, keys)
 
-	def define_function(self, p, keys):
+	def btcfy_number(self, node, keys):
+		self.push(I.CONSTANT, convert_number(node['string']))
+
+	def btcfy_bin_op(self, node, keys):
+		op = node['operator']
+		left = node['left']
+		right = node['right']
+		er = node['token']['source']
+		if op == '&': # Logical and
+			end = Destination()
+			self.bytecodeify(left, keys)
+			self.push(
+				I.DUPLICATE,
+				I.JUMP_IF_FALSE,
+				Pointer(end),
+				error = er
+			)
+			self.bytecodeify(right, keys)
+			self.push(
+				I.BIN_AND,
+				end,
+				error = er
+			)
+		elif op == '|': # Logical or
+			end = Destination()
+			self.bytecodeify(left, keys)
+			self.push(
+				I.DUPLICATE,
+				I.JUMP_IF_TRUE,
+				Pointer(end),
+				error = er
+			)
+			self.bytecodeify(right, keys)
+			self.push(
+				I.BIN_OR_,
+				end,
+				error = er
+			)
+		else:
+			self.bytecodeify(right, keys)
+			self.bytecodeify(left, keys)
+			self.push(OPERATOR_DICT[op], error = node['token']['source'])
+
+	def btcfy_not(self, node, keys):
+		self.bytecodeify(node['expression'], keys)
+		self.push(I.UNR_NOT, error = node['token']['source'])
+
+	def btcfy_uminus(self, node, keys):
+		self.bytecodeify(node['value'], keys)
+		self.push(I.UNR_MIN, error = node['token']['source'])
+
+	def btcfy_word(self, node, keys):
+		scope, depth, index = keys['scope'].find_value(node['string'].lower())
+		if scope == self.builder.globalscope:
+			# NOTE: Only global variables can fail to be found,
+			# so we only need the name for this one.
+			self.push(I.ACCESS_GLOBAL)
+			self.push(index)
+			self.push(node['string'], error = node['source'])
+		elif depth == 0:
+			self.push(I.ACCESS_LOCAL)
+			self.push(index)
+		else:
+			self.push(I.ACCESS_SEMI)
+			self.push(depth)
+			self.push(index)
+
+	def btcfy_factorial(self, node, keys):
+		self.bytecodeify(node['value'], keys)
+		self.push(I.UNR_FAC, error = node['token']['source'])
+
+	def btcfy_assignment(self, node, keys):
+		self.bytecodeify(node['value'], keys)
+		name = node['variable']['string'].lower()
+		if name in PROTECTED_NAMES and not keys['unsafe']:
+			m = 'Cannot assign to variable "{}"'.format(name)
+			raise calculator.errors.CompilationError(m, node['variable'])
+		scope, depth, index = keys['scope'].find_value(name)
+		assert(scope == self.builder.globalscope)
+		# print(scope, depth, index)
+		self.push(I.ASSIGNMENT)
+		self.push(index)
+
+	def btcfy_declare_symbol(self, node, keys):
+		name = node['name']['string'].lower()
+		if name in PROTECTED_NAMES and not keys['unsafe']:
+			m = 'Cannot assign to variable "{}"'.format(name)
+			raise calculator.errors.CompilationError(m, node['name'])
+		scope, depth, index = keys['scope'].find_value(name)
+		assert(scope == self.builder.globalscope)
+		self.push(I.DECLARE_SYMBOL)
+		self.push(index)
+		self.push(name)
+
+	def btcfy_statement_list(self, node, keys):
+		self.bytecodeify(node['statement'], keys)
+		if node['next'] is not None:
+			self.bytecodeify(node['next'], keys)
+
+	def btcfy_program(self, node, keys):
+		for i in node['items']:
+			self.bytecodeify(i, keys)
+
+	def btcfy_end(self, node, keys):
+		self.push(I.END)
+
+	def btcfy_function_definition(self, node, keys):
+		# Create the function itself
+		start_pointer = self.define_function(node, keys)
+		# Create the bytecode for the current scope
+		# self.push(I.FUNCTION_MACRO if node['kind'] == '~>' else I.FUNCTION_NORMAL)
+		self.push(I.FUNCTION_NORMAL)
+		self.push(start_pointer)
+
+	def btcfy_comparison(self, node, keys):
+		if len(node['rest']) == 1:
+			# Can get away with a simple binary operator like the others
+			self.bytecodeify(node['rest'][0]['value'], keys)
+			self.bytecodeify(node['first'], keys)
+			op = node['rest'][0]['operator']
+			er = node['rest'][0]['token']['source']
+			self.push(OPERATOR_DICT[op], error = er)
+		else:
+			bailed = Destination()
+			end = Destination()
+			self.push(I.CONSTANT, 1)
+			self.bytecodeify(node['first'], keys)
+			for index, ast in enumerate(node['rest']):
+				if index > 0:
+					self.push(
+						I.STACK_SWAP, # Get the flag on top
+						I.DUPLICATE,  # Copy the flag (copy consumed by branch)
+						I.JUMP_IF_FALSE, # If its zero, bail
+						Pointer(bailed),
+						I.STACK_SWAP # Put the value back on top
+					)
+				self.bytecodeify(ast['value'], keys)
+				self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
+			self.push(
+				I.JUMP,
+				Pointer(end),
+				bailed,
+				I.STACK_SWAP,
+				end,
+				I.DISCARD,
+			)
+
+	def btcfy_period(self, node, keys):
+		self.push(I.LIST_CREATE_EMPTY)
+
+	def btcfy_head(self, node, keys):
+		self.bytecodeify(node['expression'], keys)
+		self.push(I.LIST_EXTRACT_FIRST, error = node['token']['source'])
+
+	def btcfy_tail(self, node, keys):
+		self.bytecodeify(node['expression'], keys)
+		self.push(I.LIST_EXTRACT_REST, error = node['token']['source'])
+
+	def btcfy_function_call(self, node, keys, allow_tco):
+		args = node.get('arguments', {'items': []})['items']
+		function_name = node['function']['string'].lower() if node['function']['#'] == 'word' else None
+		handler = self.btcfy_function_call_normal
+		if function_name:
+			handler = getattr(self, 'btcfy_func_' + function_name, handler)
+		handler(node, keys, args, allow_tco)
+
+	def btcfy_function_call_normal(self, node, keys, args, allow_tco):
+		call_marker_errinfo = node['arguments']['edges']['start']['source']
+		# IDEA: If the function contains only a small amount of code, we can also
+		# inline it (for normal function calls). Cannot inline everything since
+		# this leads to exponential code growth.
+		argument_functions = [
+			self.define_function({
+				'#': 'function_definition',
+				'parameters': {'items': []},
+				'kind': '->',
+				'expression': i
+			}, keys) for i in args[::-1]
+		]
+		self.bytecodeify(node['function'], keys)
+		landing_macro = Destination()
+		landing_end = Destination()
+		# Need to jump because normal functions and macros are handled differently
+		self.push(I.JUMP_IF_MACRO)
+		self.push(Pointer(landing_macro))
+		# Handle if normal function
+		for i in argument_functions:
+			self.push(I.FUNCTION_NORMAL)
+			self.push(i)
+			self.push(I.ARG_LIST_END_NO_CACHE)
+			self.push(0)
+		if allow_tco:
+			self.push(I.ARG_LIST_END_WITH_TCO)
+		else:
+			self.push(I.ARG_LIST_END)
+		self.push(len(args), error = call_marker_errinfo)
+		self.push(I.JUMP)
+		self.push(Pointer(landing_end))
+		# Handle if macro function
+		self.push(landing_macro)
+		for i in argument_functions:
+			self.push(I.FUNCTION_NORMAL)
+			self.push(i)
+		self.push(I.ARG_LIST_END_NO_CACHE, error = call_marker_errinfo)
+		self.push(len(args))
+		# Aaaaand we done here
+		self.push(landing_end)
+
+	def btcfy_func_try(self, node, keys, args, allow_tco):
+		if len(args) < 2:
+			raise calculator.error.CompilationError('Too few arguments for try function')
+		block_end = Destination()
+		land_on_error = Destination()
+		for case in args[:-1]:
+			self.push(I.PUSH_ERROR_STOPGAP, Pointer(land_on_error), 0)
+			self.bytecodeify(case, keys)
+			self.push(
+				I.STACK_SWAP, # Swap the top two items so the stopgap is on top
+				I.DISCARD,    # Discard the swapgap
+				I.JUMP,       # Jump to the end of the block
+				Pointer(block_end),
+				land_on_error # This is the start of the next case
+			)
+			land_on_error = Destination()
+		self.bytecodeify(args[-1], keys)
+		self.push(block_end)
+
+	def btcfy_func_ifelse(self, node, keys, args, allow_tco):
+		if len(args) < 3 or len(args) % 2 == 0:
+			raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
+		p_end = Destination()
+		p_false = Destination()
+		for condition, result in zip(args[::2], args[1::2]):
+			self.bytecodeify(condition, keys)
+			self.push(I.JUMP_IF_FALSE)
+			self.push(Pointer(p_false))
+			self.bytecodeify(result, keys)
+			self.push(I.JUMP)
+			self.push(Pointer(p_end))
+			self.push(p_false)
+			p_false = Destination()
+		self.bytecodeify(args[-1], keys)
+		self.push(p_end)
+
+	def btcfy_func_if(self, node, keys, args, allow_tco):
+		if len(args) != 3:
+			raise calculator.errors.CompilationError('Invalid number of arguments for if function')
+		p_end = Destination()
+		p_false = Destination()
+		self.bytecodeify(args[0], keys())
+		self.push(I.JUMP_IF_FALSE)
+		self.push(Pointer(p_false))
+		self.bytecodeify(args[1], keys(allow_tco = allow_tco))
+		self.push(I.JUMP)
+		self.push(Pointer(p_end))
+		self.push(p_false)
+		self.bytecodeify(args[2], keys(allow_tco = allow_tco))
+		self.push(p_end)
+
+	def define_function(self, node, keys):
 		contents = self.new_segment(late = True)
 		start_address = Destination()
 		contents.push(start_address)
-		contents.push(p.get('name', '?').lower())
-		params = [i['string'].lower() for i in p['parameters']['items']]
-		for n, i in zip(params, p['parameters']['items']):
+		contents.push(node.get('name', '?').lower())
+		params = [i['string'].lower() for i in node['parameters']['items']]
+		for n, i in zip(params, node['parameters']['items']):
 			if n in PROTECTED_NAMES:
 				m = '"{}" is not allowed as a funcation parameter'.format(n)
 				raise calculator.errors.CompilationError(m, i)
 		contents.push(len(params))
 		# for i in params:
 		# 	contents.push(i)
-		contents.push(p.get('variadic', 0))
-		is_macro = int(p.get('kind') == '~>')
+		contents.push(node.get('variadic', 0))
+		is_macro = int(node.get('kind') == '~>')
 		contents.push(is_macro)
 		if len(params) == 0:
-			contents.bytecodeify(p['expression'], keys(allow_tco = True))
+			contents.bytecodeify(node['expression'], keys(allow_tco = True))
 		else:
 			subscope = Scope(params, superscope = keys['scope'])
-			contents.bytecodeify(p['expression'], keys(allow_tco = True, scope = subscope))
+			contents.bytecodeify(node['expression'], keys(allow_tco = True, scope = subscope))
 		# if not is_macro:
 		# 	contents.push(I.STORE_IN_CACHE)
 		contents.push(I.STORE_IN_CACHE)
@@ -605,11 +624,3 @@ def stringify(bytecode):
 		else:
 			raise Exception('Unknown bytecode item: {} ({})'.format(str(i), i.__type__))
 	return ' '.join(map(str, result))
-
-
-if __name__ == '__main__':
-	# pylint: disable=invalid-name
-	tokens, ast = parser.parse('1 + 2')
-	print(json.dumps(ast, indent=4))
-	for i in build(ast):
-		print(i)
