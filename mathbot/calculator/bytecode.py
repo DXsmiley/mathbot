@@ -366,8 +366,10 @@ class CodeSegment:
 		self.push(I.UNR_FAC, error = node['token']['source'])
 
 	def btcfy_assignment(self, node, keys):
-		self.bytecodeify(node['value'], keys)
 		name = node['variable']['string'].lower()
+		if (node['value']['#'] == 'function_definition'):
+			node['value']['name'] = name
+		self.bytecodeify(node['value'], keys)
 		if name in PROTECTED_NAMES and not keys['unsafe']:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['variable'])
