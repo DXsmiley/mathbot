@@ -94,7 +94,9 @@ class CalculatorModule(core.module.Module):
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message, should_sort = False):
 		await self.replay_commands(message.channel, message.author)
-		arg = arg.replace('`', ' ')
+		# Yeah this is kinda not great...
+		if arg.count('`') == 2 and arg.startswith('`') and arg.endswith('`'):
+			arg = arg.replace('`', ' ')
 		if arg == '':
 			# If no equation was given, spit out the help.
 			if not message.content.startswith('=='):
@@ -106,7 +108,12 @@ class CalculatorModule(core.module.Module):
 			safe.sprint('Doing calculation:', arg)
 			scope = SCOPES[message.channel.id]
 			result, worked, details = await scope.execute_async(arg)
-			if result.count('\n') > 0:
+			if result.count('\n') > 7:
+				lines = result.split('\n')
+				num_removed_lines = len(lines) - 8
+				selected = '\n'.join(lines[:8])
+				result = '```\n{}\n```\n{} lines were removed.'.format(selected, num_removed_lines)
+			elif result.count('\n') > 0:
 				result = '```\n{}\n```'.format(result)
 			else:
 				result = result.replace('*', '\\*')
