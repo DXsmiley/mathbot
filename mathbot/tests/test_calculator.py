@@ -8,9 +8,20 @@ TIMEOUT = 100000
 
 class Ignore: pass
 
+def check_string(list, expected):
+	if not isinstance(expected, str):
+		return False
+	assert isinstance(list, calculator.functions.ListBase)
+	assert len(list) == len(expected)
+	for g, c in zip(list, expected):
+		assert g.value == c
+	return True
+
 def doit(equation, expected):
 	result = calculator.calculate(equation, tick_limit = TIMEOUT)
 	assert expected is Ignore \
+		or isinstance(result, calculator.functions.Glyph) and result.value == expected \
+		or check_string(result, expected) \
 		or result is None and expected is None \
 		or isinstance(result, sympy.boolalg.BooleanAtom) and bool(result) == expected \
 		or sympy.simplify(result - expected) == 0
@@ -330,3 +341,12 @@ def test_trig():
 def test_commaless():
 	doit('sum(1 2)', 3)
 	doit('sum(1 (1 + 1))', 3)
+
+def test_strings():
+	doit('`a`', 'a')
+	doit('`\\``', '`')
+	doit('`\\\\`', '\\')
+	doit('"Hello"', "Hello")
+	doit('\'"Hello"', 'H')
+	doit('\\"Hello"', 'ello')
+	doit('`a`:` `:"string"', "a string")

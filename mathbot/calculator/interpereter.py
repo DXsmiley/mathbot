@@ -227,7 +227,9 @@ class Interpereter:
 			b.LIST_EXTRACT_FIRST: self.inst_list_extract_first,
 			b.LIST_EXTRACT_REST: self.inst_list_extract_rest,
 			b.LIST_PREPEND: self.inst_list_prepend,
-			b.PUSH_ERROR_STOPGAP: self.inst_push_error_stopgap
+			b.PUSH_ERROR_STOPGAP: self.inst_push_error_stopgap,
+			b.CONSTANT_STRING: self.inst_constant_string,
+			b.CONSTANT_GLYPH: self.inst_constant_glyph
 		}
 
 	def clear_cache(self):
@@ -345,6 +347,17 @@ class Interpereter:
 		''' Push an empty array to the stack '''
 		warnings.warn('Instruction CONSTANT_EMPTY_ARRAY is deprecated', DeprecationWarning)
 		self.push(Array([]))
+
+	def inst_constant_string(self):
+		''' Push a string to the stack '''
+		s = self.next()
+		a = list(map(Glyph, s))
+		self.push(FlatList(a, EmptyList()))
+
+	def inst_constant_glyph(self):
+		''' Push a glyph to the stack '''
+		c = self.next()
+		self.push(Glyph(c))
 
 	def inst_duplicate(self):
 		''' Duplicate the top item of the stack '''

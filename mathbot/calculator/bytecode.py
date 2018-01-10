@@ -78,7 +78,10 @@ class I(enum.IntEnum):
 
 	PUSH_ERROR_STOPGAP = 66
 
-	# Next to use: 67
+	CONSTANT_STRING = 67
+	CONSTANT_GLYPH = 68
+
+	# Next to use: 69
 
 
 OPERATOR_DICT = {
@@ -304,15 +307,12 @@ class CodeSegment:
 			s = '`'
 		else:
 			s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
-		self.push(I.CONSTANT, calculator.functions.Glyph(s))
+		self.push(I.CONSTANT_GLYPH, s)
 
 	def btcfy_string(self, node, keys):
 		s = node['string'][1:-1]
 		s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
-		c = calculator.functions.EmptyList()
-		for i in range(len(s) - 1, -1, -1):
-			c = calculator.functions.List(calculator.functions.Glyph(s[i]), c)
-		self.push(I.CONSTANT, c)
+		self.push(I.CONSTANT_STRING, s)
 
 	def btcfy_bin_op(self, node, keys):
 		op = node['operator']
