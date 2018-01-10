@@ -96,8 +96,16 @@ class ListBase:
 			yield current.head
 			current = current.rest
 
+	def __repr__(self):
+		return 'List-{}'.format(len(self))
+
+	def __bool__(self):
+		return True
+
 
 class List(ListBase):
+
+	__slots__ = ['head', 'rest', 'size']
 
 	def __init__(self, head, rest):
 		self.head = head
@@ -107,9 +115,6 @@ class List(ListBase):
 	def __len__(self):
 		return self.size
 
-	def __bool__(self):
-		return True
-
 	def __str__(self):
 		parts = []
 		cur = self
@@ -118,8 +123,62 @@ class List(ListBase):
 			cur = cur.rest
 		return 'list(' + ', '.join(parts) + ')'
 
-	def __repr__(self):
-		return 'List-{}'.format(self.size)
+
+class FlatList(ListBase):
+
+	class Viewer(ListBase):
+
+		__slots__ = ['fl', 'place']
+
+		def __init__(self, fl, place):
+			self.fl = fl
+			self.place = place
+
+		@property
+		def head(self):
+			return self.fl.values[self.place]
+
+		@property
+		def rest(self):
+			if self.place + 1 == len(self.fl.values):
+				return self.fl.tail
+			return FlatList.Viewer(self.fl, self.place + 1)
+
+		def __len__(self):
+			return self.fl.size - self.place
+
+
+	__slots__ = ['values', 'tail', 'place', 'size']
+
+	def __init__(self, values, tail):
+		if len(values) == 0:
+			raise ValueError('Cannot create a FlatList with an empty array of values')
+		if tail is None:
+			raise ValueError('Tail of FlatList cannot be None')
+		self.values = values
+		self.tail = tail
+		self.size = len(tail) + len(values)
+
+	@property
+	def head(self):
+		return self.values[0]
+
+	@property
+	def rest(self):
+		if len(self.values) == 1:
+			return self.tail
+		return FlatList.Viewer(self, 1)
+
+	def __len__(self):
+		return self.size
+
+	def __str__(self):
+		parts = []
+		cur = self
+		while not isinstance(cur, EmptyList):
+			parts.append(str(cur.head))
+			cur = cur.rest
+		return 'list(' + ', '.join(parts) + ')'
 
 
 class EmptyList(ListBase):
@@ -140,9 +199,6 @@ class EmptyList(ListBase):
 
 	def __str__(self):
 		return '.'
-
-	def __repr__(self):
-		return 'List-0'
 
 
 class SingularValue:
