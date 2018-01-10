@@ -472,8 +472,8 @@ def comparison_list(tokens):
 prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIGHT_FIRST, 'bin_op')
 
 
-def function_definition(tokens):
-	if tokens.peek(1, 'function_definition'):
+def function_definition(tokens, allow_equal_sign = False):
+	if tokens.peek(1, 'function_definition') or (tokens.peek(1, 'assignment') and allow_equal_sign):
 		if tokens.peek(0, TokenBlock):
 			args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
 		elif tokens.peek(0, 'word'):
@@ -514,9 +514,10 @@ def statement(tokens):
 			'#': 'declare_symbol',
 			'name': name
 		}
-	elif tokens.peek_sequence(0, 'word', TokenBlock, 'function_definition'):
+	elif tokens.peek_sequence(0, 'word', TokenBlock, 'function_definition') \
+	  or tokens.peek_sequence(0, 'word', TokenBlock, 'assignment'):
 		name = word(tokens)
-		function = function_definition(tokens)
+		function = function_definition(tokens, allow_equal_sign = True)
 		function['name'] = name['string']
 		return {
 			'#': 'assignment',

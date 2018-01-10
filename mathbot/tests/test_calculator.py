@@ -177,6 +177,14 @@ def test_functions():
 	doit('(x -> x * 2)(8)', 16)
 	doit('f = x -> x * 3, f(3)', 9)
 
+def test_function_creation():
+	doit('f = x -> x * 2, f(3)', 6)
+	doit('f(x) -> x * 2, f(3)', 6)
+	doit('f(x) = x * 2, f(3)', 6)
+	doit('f = (x y) -> x + y, f(1, 2)', 3)
+	doit('f(x y) -> x + y, f(1, 2)', 3)
+	doit('f(x y) = x + y, f(1, 2)', 3)
+
 def test_macros():
 	doit('((x) ~> x())(5)', 5)
 	doit('(x ~> x())(5 + 6)', 11)
