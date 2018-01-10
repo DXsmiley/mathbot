@@ -77,7 +77,7 @@ class SimpleFormatter:
             elif isinstance(i, calculator.functions.Glyph):
                 self.fmt_glyph(i)
             else:
-                self.fmt_string(str(i))
+                self.fmt_py_string(str(i))
 
     def fmt_py_string(self, i):
         ''' Format a string, which means just add it to the output '''
