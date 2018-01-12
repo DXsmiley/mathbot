@@ -147,22 +147,27 @@ class LatexModule(core.module.Module):
 			}
 
 	async def render_and_reply(self, message, latex, colour_back, colour_text):
+		get_timestamp = lambda : message.edited_timestamp or message.timestamp
+		original_timestamp = get_timestamp()
 		try:
 			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
 		except asyncio.TimeoutError:
 			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
 		except RenderingError:
 			print('Rendering Error')
-			return await self.send_message(message.channel,
-				'Rendering failed. Check your code. You can edit your existing message if needed.',
-				blame = message.author
-			)
+			if get_timestamp() == original_timestamp:
+				return await self.send_message(message.channel,
+					'Rendering failed. Check your code. You can edit your existing message if needed.',
+					blame = message.author
+				)
 		else:
 			print('Success!')
 			content = None
 			if await advertising.should_advertise_to(message.author, message.channel):
 				content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-			return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
+			# If the query message has been updated in this time, don't post the (now out of date) result
+			if get_timestamp() == original_timestamp:
+				return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
 
 
 async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
