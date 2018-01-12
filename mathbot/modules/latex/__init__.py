@@ -218,7 +218,11 @@ def extract_inline_tex(content):
 		while True:
 			word = next(parts)
 			if word != '':
-				latex += '{} '.format(word.replace('#', '\#').replace('$', '\$'))
+				latex += '{} '.format(
+					word.replace('#', '\#')
+						.replace('$', '\$')
+						.replace('%', '\%')
+				)
 			word = next(parts)
 			if word != '':
 				latex += '$\displaystyle {}$ '.format(word.strip('`'))
