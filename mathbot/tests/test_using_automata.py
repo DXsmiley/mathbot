@@ -34,11 +34,29 @@ def automata_test(function: Callable[[automata.Interface], None]) \
     return _internal
 
 
+def automata_test_human(function: Callable[[automata.Interface], None]) \
+        -> Callable[[automata.DiscordBot], None]:
+    ''' Mark a function as an automata test '''
+    @pytest.mark.automata
+    @pytest.mark.needs_human
+    def _internal(__automata_fixture: automata.DiscordBot) -> None:
+        if not pytest.config.getoption('--run-automata-human'):
+            pytest.skip('Needs --run-automata-human command line option to run human-interaction automata tests.')
+        channel_id = core.parameters.get('automata channel')
+        channel = __automata_fixture.get_channel(channel_id)
+        test = automata.Test(function.__name__, function)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(__automata_fixture.run_test(test, channel))
+        loop.run_until_complete(asyncio.sleep(1))
+    _internal.__name__ = function.__name__
+    return _internal
+
+
 @pytest.fixture(scope='session')
 def __automata_fixture():
 
-    if not pytest.config.getoption("--runautomata"):
-        pytest.skip('Needs --runautomata command line option to run automata tests.')
+    if not pytest.config.getoption("--run-automata"):
+        pytest.skip('Needs --run-automata command line option to run automata tests.')
 
     loop = asyncio.get_event_loop()
 
@@ -81,7 +99,7 @@ def __automata_fixture():
 
         loop.run_until_complete(asyncio.sleep(1))
         loop.run_until_complete(manager.client.logout())
-        loop.run_until_complete(auto.client.logout())
+        loop.run_until_complete(auto.logout())
         loop.run_until_complete(asyncio.sleep(1))
 
     finally:
@@ -157,38 +175,38 @@ async def test_latex(interface):
         assert len(response.attachments) == 1
 
 
-# @auto.test(needs_human = True)
-# async def latex_settings(interface):
-#     await interface.send_message('=theme light')
-#     await interface.wait_for_message()
-#     await interface.send_message(r'=tex \text{This should be light}')
-#     response = await interface.wait_for_message()
-#     assert len(response.attachments) == 1
-#     await interface.ask_human('Is the above result *light*?')
-#     await interface.send_message('=theme dark')
-#     await interface.wait_for_message()
-#     await interface.send_message(r'=tex \text{This should be dark}')
-#     response = await interface.wait_for_message()
-#     assert len(response.attachments) == 1
-#     await interface.ask_human('Is the above result *dark*?')
+@automata_test_human
+async def latex_settings(interface):
+    await interface.send_message('=theme light')
+    await interface.wait_for_message()
+    await interface.send_message(r'=tex \text{This should be light}')
+    response = await interface.wait_for_message()
+    assert len(response.attachments) == 1
+    await interface.ask_human('Is the above result *light*?')
+    await interface.send_message('=theme dark')
+    await interface.wait_for_message()
+    await interface.send_message(r'=tex \text{This should be dark}')
+    response = await interface.wait_for_message()
+    assert len(response.attachments) == 1
+    await interface.ask_human('Is the above result *dark*?')
 
 
-# @auto.test(needs_human = True)
-# async def latex_inline(interface):
-#     await interface.wait_for_reply('=set channel f-inline-tex enable')
-#     await interface.wait_for_reply('Testing $$x^2$$ Testing')
-#     await interface.ask_human('Does the above image say `Testing x^2 Testing`?')
+@automata_test_human
+async def latex_inline(interface):
+    await interface.wait_for_reply('=set channel f-inline-tex enable')
+    await interface.wait_for_reply('Testing $$x^2$$ Testing')
+    await interface.ask_human('Does the above image say `Testing x^2 Testing`?')
 
 
-# @auto.test(needs_human = True)
-# async def latex_edit(interface):
-#     command = await interface.send_message('=tex One')
-#     result = await interface.wait_for_message()
-#     await interface.ask_human('Does the above message have an image that says `One`?')
-#     command = await interface.edit_message(command, '=tex Two')
-#     await interface.wait_for_delete(result)
-#     await interface.wait_for_message()
-#     await interface.ask_human('Does the above message have an image that says `Two`?')
+@automata_test_human
+async def latex_edit(interface):
+    command = await interface.send_message('=tex One')
+    result = await interface.wait_for_message()
+    await interface.ask_human('Does the above message have an image that says `One`?')
+    command = await interface.edit_message(command, '=tex Two')
+    await interface.wait_for_delete(result)
+    await interface.wait_for_message()
+    await interface.ask_human('Does the above message have an image that says `Two`?')
 
 
 @automata_test
@@ -222,8 +240,7 @@ async def test_wolfram_no_data(interface):
 
 @automata_test
 async def test_error_throw(interface):
-    await interface.send_message('=throw')
-    await interface.wait_for_failure()
+    await interface.assert_reply_contains('=throw', 'Something went wrong')
 
 
 @automata_test
