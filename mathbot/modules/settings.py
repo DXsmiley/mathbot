@@ -98,10 +98,69 @@ def is_admin_message(m, prevent_global_elevation = False):
 	return perms.administrator or perms.manage_server
 
 
+class ProblemReporter:
+
+	def __init__(self, module, channel):
+		self.problems = []
+		self.module = module
+		self.channel = channel
+
+	async def __aenter__(self):
+		return self._report
+
+	async def __aexit__(self, type, value, traceback):
+		if self.problems:
+			msg = '\n'.join(self.problems)
+			await self.module.send_message(self.channel, msg)
+			raise WasProblems
+
+	def _report(self, text):
+		self.problems.append(text)
+
+
+class WasProblems(Exception):
+	pass
+
+
 class SettingsModule(core.module.Module):
+
+	reduce_value = {
+		'enable': 1,
+		'disable': 0,
+		'reset': None,
+		'original': None,
+		'e': 1,
+		'd': 0,
+		'r': None,
+		'o': None
+	}.get()
 
 	@core.handles.command('settings setting set', 'string string string')
 	async def command_set(self, message, context, setting, value):
+		try:
+			with problem as ProblemReporter():
+				if message.channel.is_private:
+					problem('This command cannot be used in private channels.')
+			with problem as ProblemReporter():
+				setting_details = core.settings.redirect(setting)
+				if setting_details is None:
+					problem('`{}` is not a valid setting. See `=help settings` for a list of valid settings.')
+				if context not in ['server', 'channel', 's', 'c']:
+					problem('`{}` is not a valid context. Options are: `server` or `channel`'.format(context))
+				if value not in ['enable', 'disable', 'original', 'e', 'd', 'o', 'reset', 'r']:
+					problem('`{}` is not a valid value. Options are `enable`, `disable`, `reset`.')
+		except WasProblems:
+			pass
+		else:
+			ctx = {'s': message.server, 'c': message.channel}[context[0]]
+			val = SettingsModule.reduce_value(value)
+			await core.settings.set(ctx, value)
+			await self.send_message(message.channel, 'Setting applied', blame = message.author)
+
+		if context not in ['server', 'channel', 's', 'c']:
+			pass
+		if setting_details is None:
+
 		setting, setting_details = core.settings.redirect(setting)
 		# Throw an error for an unknown setting.
 		if setting_details is None:
@@ -171,6 +230,21 @@ class SettingsModule(core.module.Module):
 			u = await core.settings.get_setting_context(message, arg, 'self')
 			r = CHECKSETTING_TEMPLATE.format(arg, s, c, u)
 			await self.send_message(message.channel, r, blame = message.author)
+
+	# @core.handles.command('checkallsettings'):
+	# async def command_check_all_settings(self, message, arg):
+	# 	class AlternateNone: pass
+	# 	if not message.channel.is_private:
+	# 		lines = []
+	# 		for setting, s_details in core.settings.SETTINGS.items():
+	# 			if 'channel' in s_details['contexts'] and 'server' in s_details['contexts']:
+	# 				lines.append('>>> {} (default: {})'.format(setting, s_details['default']))
+	# 				for channel in message.server.channels:
+	# 					set_to = await core.settings.channel_get_setting(message, setting, 'channel')
+	# 		m = '```\n{}\n```'.format('\n'.join(lines))
+	# 		await self.send_message(message.channel, m, blame = message.author)
+
+
 
 	@core.handles.command('prefix', '*')
 	async def command_prefix(self, message, arg):
