@@ -133,15 +133,15 @@ class SettingsModule(core.module.Module):
 		'd': 0,
 		'r': None,
 		'o': None
-	}.get()
+	}.get
 
 	@core.handles.command('settings setting set', 'string string string')
 	async def command_set(self, message, context, setting, value):
 		try:
-			with problem as ProblemReporter():
+			with ProblemReporter() as problem:
 				if message.channel.is_private:
 					problem('This command cannot be used in private channels.')
-			with problem as ProblemReporter():
+			with ProblemReporter() as problem:
 				setting_details = core.settings.redirect(setting)
 				if setting_details is None:
 					problem('`{}` is not a valid setting. See `=help settings` for a list of valid settings.')
@@ -157,61 +157,14 @@ class SettingsModule(core.module.Module):
 			await core.settings.set(ctx, value)
 			await self.send_message(message.channel, 'Setting applied', blame = message.author)
 
-		if context not in ['server', 'channel', 's', 'c']:
-			pass
-		if setting_details is None:
-
-		setting, setting_details = core.settings.redirect(setting)
-		# Throw an error for an unknown setting.
-		if setting_details is None:
-			valid_settings = format_bullet_points(sorted(core.settings.SETTINGS))
-			msg = INVALID_SETTING_MESSAGE.format(setting = setting, valid_settings = valid_settings)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# Ensure that the context is valid
-		if context not in setting_details['contexts']:
-			valid_contexts = format_bullet_points(setting_details['contexts'])
-			msg = INVALID_CONTEXT_MESSAGE.format(context = context, setting = setting, valid_contexts = valid_contexts)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# If the context is the channel or the server, check that the user has the correct permissions to apply it.
-		# Also give an error if this is done from a private message.
-		if context in ['channel', 'server']:
-			if message.channel.is_private:
-				return await self.send_message(message.channel,
-					'Cannot apply setting to context "{}" from private message.'.format(context),
-					blame = message.author
-				)
-			if not is_admin_message(message):
-				return await self.send_message(message.channel, SETTING_COMMAND_PERMS_ERROR, blame = message.author)
-		# Check that the value supplied is valid
-		if value not in setting_details['values']:
-			valid_values = format_bullet_points(setting_details['values'])
-			msg = INVALID_VALUE_MESSAGE.format(value = value, setting = setting, valid_values = valid_values)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# NOTE: Be careful with this if you go to change it at any point
-		mapped_value = setting_details['values'][value]
-		value_reduction = {
-			True: 1,
-			False: 0,
-			None: 0
-		}
-		key = core.settings.get_key(message, setting, context)
-		await core.keystore.set(key, value_reduction.get(mapped_value, mapped_value))
-		if mapped_value is None:
-			await core.keystore.delete(key)
-		response = SETTING_COMMAND_RESPONSE.format(
-			context = context,
-			setting = setting,
-			value = value
-		)
-		await self.send_message(message.channel, response, blame = message.author)
-
 	@core.handles.command('theme', 'string')
 	async def command_theme(self, message, theme):
 		theme = theme.lower()
 		if theme not in ['light', 'dark']:
 			m = '`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
-			key = core.settings.get_key(message, 'p-tex-colour', 'self')
+
+			key = 'p-tex-colour:' + message.author.id
 			await core.keystore.set(key, theme)
 			m = 'Your theme has been set to `{theme}`.'
 		await self.send_message(message.channel, m.format(theme = theme), blame = message.author)

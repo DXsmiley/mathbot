@@ -46,9 +46,13 @@ async def set(setting, context, value):
 
 
 async def get_server_prefix(server):
+	if isinstance(server, discord.Message):
+		server = server.server
+	if isinstance(server, discord.Channel):
+		server = server.server
 	if not isinstance(server, discord.Server):
-		raise TypeError
-	return get_single('s-prefix', server) or '='
+		raise TypeError('{} is not a valid server'.format(server))
+	return await get_single('s-prefix', server) or '='
 
 
 async def get_channel_prefix(channel):
