@@ -209,12 +209,12 @@ class SettingsModule(core.module.Module):
 			]
 			for setting, s_details in core.settings.SETTINGS.items():
 				if 'redirect' not in s_details:
-					value_server  = await core.settings.get_single(setting, message.server)
 					value_channel = await core.settings.get_single(setting, message.channel)
+					value_server  = await core.settings.get_single(setting, message.server)
 					lines.append(' {: <16} | {: <8} | {: <8} | {: <8}'.format(
 						setting,
-						SettingsModule.expand_value(value_server),
 						SettingsModule.expand_value(value_channel),
+						SettingsModule.expand_value(value_server),
 						SettingsModule.expand_value(s_details['default'])
 					))
 			m = '```\n{}\n```'.format('\n'.join(lines))
