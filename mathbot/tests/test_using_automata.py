@@ -9,7 +9,6 @@ import bot
 import pytest
 import asyncio
 import core.parameters
-import pytest
 
 from typing import Callable
 
