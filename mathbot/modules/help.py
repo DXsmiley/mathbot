@@ -38,7 +38,7 @@ class HelpModule(core.module.Module):
 					if message.channel.is_private:
 						prefix = await core.keystore.get('last-seen-prefix', message.author.id) or '='
 					else:
-						prefix = await core.settings.get_server_prefix(message.server.id)
+						prefix = await core.settings.get_server_prefix(message.server)
 						await core.keystore.set('last-seen-prefix', message.author.id, prefix)
 					page = doubleformat(
 						page,
