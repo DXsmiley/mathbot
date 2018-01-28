@@ -55,14 +55,18 @@ def automata_test_human(function: Callable[[automata.Interface], None]) \
 @pytest.fixture(scope='session')
 def __automata_fixture():
 
-    if not pytest.config.getoption("--run-automata"):
+    if not pytest.config.getoption('--run-automata'):
         pytest.skip('Needs --run-automata command line option to run automata tests.')
+
+    param_file = pytest.config.getoption('--parameter-file')
+    if param_file is None:
+        pytest.skip('Needs a specified --parameter-file to run automata tests.')
 
     loop = asyncio.get_event_loop()
 
     # TODO: Make this better
     core.parameters.reset()
-    core.parameters.add_source_filename('ignore/dev.json')
+    core.parameters.add_source_filename(param_file)
     core.parameters.add_source({
         'keystore': {
             'mode': 'disk',

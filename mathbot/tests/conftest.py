@@ -14,4 +14,9 @@ def pytest_addoption(parser):
         default = False,
         help = "Run tests reliant on the automata and human interaction"
     )
-
+    parser.addoption(
+        "--parameter-file",
+        action = "store",
+        default = None,
+        help = "Load parameters from a file"
+    )
