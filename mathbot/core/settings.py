@@ -1,9 +1,31 @@
 import core.keystore
 import expiringdict
 import discord
+import warnings
+
+
+class None2:
+	pass
+
+
+SETTINGS = {
+	'c-tex': {'default': True},
+	'c-calc': {'default': True},
+	'c-wolf': {'default': True},
+	'f-calc-shortcut': {'default': True},
+	'f-wolf-filter': {'default': True},
+	'f-wolf-mention': {'default': True},
+	'f-inline-tex': {'default': False},
+	'f-delete-tex': {'default': False},
+	'f-tex-inline': {'redirect': 'f-inline-tex'},
+	'f-tex-delete': {'redirect': 'f-delete-tex'}
+}
 
 
 def _get_key(setting, context):
+	setting = redirect(setting)
+	if not isinstance(setting, str):
+		raise TypeError('{} is not a valid setting'.format(setting))
 	if isinstance(context, discord.Channel):
 		if not context.is_private and context.id == context.server.id:
 			key = '{setting}:{id}c'
@@ -17,18 +39,25 @@ def _get_key(setting, context):
 
 
 async def get_single(setting, context):
-	await core.keystore.get(_get_key(setting, context))
+	setting = redirect(setting)
+	return await core.keystore.get(_get_key(setting, context))
 
 
-async def resolve(setting, *contexts):
+async def resolve(setting, *contexts, default = None2):
+	setting = redirect(setting)
+	print('Resolving', setting)
 	for i in contexts:
 		result = await get_single(setting, i)
+		print('>', result)
 		if result is not None:
 			return result
+	if default is not None2:
+		return default
 	return SETTINGS[setting]['default']
 
 
 async def resolve_message(setting, message):
+	setting = redirect(setting)
 	if message.channel.is_private:
 		so = SETTINGS[setting]
 		if 'private' in so:
@@ -37,25 +66,61 @@ async def resolve_message(setting, message):
 	return await resolve(setting, message.channel, message.server)
 
 
+async def get_setting(message, setting):
+	warnings.warn('core.settings.get_setting is deprecated')
+	return await resolve_message(setting, message)
+
+
 async def set(setting, context, value):
+	setting = redirect(setting)
 	key = _get_key(setting, context)
+	print(key, '--->', value)
 	if value is None:
 		await core.keystore.delete(key)
+	elif value not in [0, 1]:
+		raise ValueError('{} is not a valid setting value'.format(value))
 	else:
-		await core.keystore.set(_get_key(setting, context), value)
+		await core.keystore.set(key, value)
 
 
-async def get_server_prefix(server):
-	if isinstance(server, discord.Message):
-		server = server.server
-	if isinstance(server, discord.Channel):
-		server = server.server
-	if not isinstance(server, discord.Server):
-		raise TypeError('{} is not a valid server'.format(server))
-	return await get_single('s-prefix', server) or '='
+async def get_server_prefix(context):
+	if isinstance(context, discord.Message):
+		context = context.channel
+	if isinstance(context, discord.Channel):
+		if context.is_private:
+			return '='
+		context = context.server
+	if not isinstance(context, discord.Server):
+		raise TypeError('{} is not a valid server'.format(context))
+	return (await core.keystore.get('s-prefix:' + context.id)) or '='
+
+
+async def set_server_prefix(context, prefix):
+	if isinstance(context, discord.Message):
+		context = context.channel
+	if isinstance(context, discord.Channel):
+		if context.is_private:
+			return '='
+		context = context.server
+	if not isinstance(context, discord.Server):
+		raise TypeError('{} is not a valid server'.format(context))
+	return (await core.keystore.set('s-prefix:' + context.id, prefix)) or '='
 
 
 async def get_channel_prefix(channel):
 	if channel.is_private:
 		return '='
 	return await get_server_prefix(channel.server)
+
+
+def redirect(setting):
+	if setting not in SETTINGS:
+		return None
+	next = SETTINGS[setting].get('redirect')
+	if next:
+		return redirect(next)
+	return setting
+
+
+def details(setting):
+	return SETTINGS.get(redirect(setting))

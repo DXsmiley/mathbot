@@ -203,17 +203,14 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 
 
 async def get_colours(message):
-	colour_setting = await core.settings.get_setting(message, 'p-tex-colour')
-	if colour_setting == 'transparent':
-		colour_text = '737f8d'
-		colour_back = None
-	elif colour_setting == 'light':
-		colour_text = '202020'
-		colour_back = 'ffffff'
+	colour_setting = await core.keystore.get('p-tex-colour', message.author.id) or 'dark'
+	if colour_setting == 'light':
+		return 'ffffff', '202020'
 	elif colour_setting == 'dark':
-		colour_text = 'f0f0f0'
-		colour_back = '36393E'
-	return colour_back, colour_text
+		return '36393E', 'f0f0f0'
+	# Fallback in case of other weird things
+	return '36393E', 'f0f0f0'
+	# raise ValueError('{} is not a valid colour scheme'.format(colour_setting))
 
 
 def extract_inline_tex(content):
