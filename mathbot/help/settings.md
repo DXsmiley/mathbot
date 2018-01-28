@@ -37,6 +37,8 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 - `f-wolf-filter`: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
 - `f-wolf-mention`: Enable or disable the `@mention` in the footer of W|A results.
 
+:::page-break
+
 ## Examples
 
 Disable the `=wolf` command on a server:
@@ -54,8 +56,6 @@ If you are still having problems you can ask on the official server: {{server_li
 :::webpage
 If you are still having problems you can ask [on the official server]({{server_link}}).
 :::endblock
-
-::page-break
 
 ## Extra tools
 
