@@ -1,10 +1,14 @@
 import collections
 import asyncio
 import traceback
+import discord
 
 import core.module
 import core.handles
 import core.keystore
+import core.parameters
+
+import typing
 
 
 # This queue is a global object, which actually means that multiple
@@ -12,6 +16,7 @@ import core.keystore
 # just be multiple shards pushing from the queue to the redis store
 # every 10 seconds or so. Because we're using coroutines and not
 # real threads, this is OK.
+QUEUE = typing.Deque[str]()
 QUEUE = collections.deque()
 
 
@@ -54,7 +59,7 @@ class ReporterModule(core.module.Module):
 			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.client.shard_id))
 			traceback.print_exc()
 
-	async def get_report_channel(self):
+	async def get_report_channel(self) -> typing.Optional[discord.Channel]:
 		channel_id = core.parameters.get('error-reporting channel')
 		if channel_id:
 			try:
@@ -66,5 +71,5 @@ class ReporterModule(core.module.Module):
 				pass
 		return None
 
-def enque(string):
+def enque(string: str):
 	QUEUE.appendleft(string)

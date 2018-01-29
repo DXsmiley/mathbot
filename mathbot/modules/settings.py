@@ -4,6 +4,7 @@ import re
 import core.keystore
 import core.help
 import core.settings
+import core.module
 
 
 SETTING_COMMAND_ARG_ERROR = """

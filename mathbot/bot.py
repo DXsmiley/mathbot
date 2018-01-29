@@ -9,6 +9,9 @@ import re
 import discord
 import logging
 import core.parameters
+import json
+
+import typing
 
 
 # logging.basicConfig(level = logging.WARNING)
@@ -18,7 +21,7 @@ DONE_SETUP = False
 RELEASE = None
 TOKEN = None
 SHARDS_TOTAL = 0
-SHARDS_MINE = []
+SHARDS_MINE = typing.List[int]()
 
 
 def do_setup():
