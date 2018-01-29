@@ -106,7 +106,8 @@ class LatexModule(core.module.Module):
 	async def inline_latex(self, message):
 		# The testing bot should not be ignored
 		ignore = message.author.bot and message.author.id != '309967930269892608'
-		if not ignore and not message.content.startswith('=') and message.content.count('$$') >= 2:
+		server_prefix = await core.settings.get_server_prefix(message)
+		if not ignore and not message.content.startswith(server_prefix) and message.content.count('$$') >= 2:
 			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
@@ -114,7 +115,8 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
+		server_prefix = await core.settings.get_server_prefix(message)
+		if not after.content.startswith(server_prefix) and after.content.count('$$') >= 2 and before.content != after.content:
 			if after.channel.is_private or (await core.settings.get_setting(after, 'c-tex') and await core.settings.get_setting(after, 'f-inline-tex')):
 				blob = self.connections.get(before.id, {'template': 'inline'})
 				try:
