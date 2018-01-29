@@ -28,8 +28,8 @@ class HelpModule(core.module.Module):
 			listing = ' - `' + '`\n - `'.join(core.help.listing()) + '`\n'
 			msg = 'The following help topics exist:\n{}'.format(listing)
 			# await self.send_message(message.channel, msg, blame = message.author)
-			if await self.send_private_fallback(message.author, message.channel, msg):
-				await self.send_message(message.channel, 'A list of help topics sent to you privately.', blame = message.author)
+			if await self.send_private_fallback(message.author, message.channel, msg) and not message.channel.is_private:
+				await self.send_message(message.channel, 'A list of help topics has been sent to you privately.', blame = message.author)
 		else:
 			response = core.help.get(topic)
 			if response is not None:

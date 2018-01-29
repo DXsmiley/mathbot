@@ -40,7 +40,7 @@ cp mathbot/parameters_default.json mathbot/parameters.json
 pip install -r requirements.txt
 ```
 
-Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `"production"`. Optionally change the other parameters.
+Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
 
 Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
 
