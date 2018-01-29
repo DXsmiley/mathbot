@@ -4,7 +4,7 @@
 
 # pylint: disable=missing-docstring
 
-from automata_interface import automata_test, automata_test_human
+from conftest import automata_test, automata_test_human
 
 # @auto.setup()
 # async def setup(interface):
