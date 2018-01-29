@@ -12,3 +12,4 @@ venv/
 # coverage.py
 .coverage
 htmlcov
+.mypy_cache
