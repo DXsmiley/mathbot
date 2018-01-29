@@ -3,6 +3,7 @@ import core.module
 import core.manager
 import core.handles
 import core.keystore
+import discord
 
 
 core.keystore.setup_disk(None)
@@ -48,19 +49,19 @@ def test_duplicate_command(manager):
 		manager.setup()
 
 
-class MockChannel:
+class MockChannel(discord.Channel):
 
 	def __init__(self, is_private):
 		self.is_private = is_private
 
 
-class MockServer:
+class MockServer(discord.Server):
 
 	def __init__(self):
 		self.id = '0000000000000000'
 
 
-class MockMessage:
+class MockMessage(discord.Message):
 
 	def __init__(self, content):
 		self.content = content

@@ -21,7 +21,7 @@ DONE_SETUP = False
 RELEASE = None
 TOKEN = None
 SHARDS_TOTAL = 0
-SHARDS_MINE = typing.List[int]()
+SHARDS_MINE = typing.List[int]
 
 
 def do_setup():
