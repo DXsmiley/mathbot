@@ -271,7 +271,7 @@ class Manager:
 			results.append('=')
 			results.append('')
 		else:
-			results.append(await core.settings.get_server_prefix(message.server.id))
+			results.append(await core.settings.get_server_prefix(message.server))
 		for i, v in enumerate(results):
 			if v is not None and not isinstance(v, str):
 				print('Non-string prefix detected')

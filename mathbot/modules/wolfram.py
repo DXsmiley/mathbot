@@ -307,7 +307,7 @@ class WolframModule(core.module.Module):
 		error_message = 'No details'
 		enable_filter = False
 		if not channel.is_private:
-			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
+			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
 		if enable_filter and wordfilter.is_bad(query):
 			await self.send_message(channel, FILTER_FAILURE, blame = blame)
 			return
@@ -370,7 +370,7 @@ class WolframModule(core.module.Module):
 				self.server = channel.server
 		enable_filter = False
 		if not channel.is_private:
-			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
+			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
 			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'channel'))
 			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'server'))
 			# print(enable_filter)
@@ -477,7 +477,7 @@ class WolframModule(core.module.Module):
 	async def format_adm(self, channel, blame, query, is_pup = False):
 		result = []
 		url = urllib.parse.urlencode({'i': query})
-		if not channel.is_private and await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-mention'):
+		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
 			result.append('Query made by {}\n'.format(blame.mention))
 		url = urllib.parse.urlencode({'i': query})
 		result.append(FOOTER_LINK.format(query = url))

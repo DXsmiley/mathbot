@@ -73,9 +73,9 @@ See `=help settings` for more details.
 CHECKSETTING_TEMPLATE = '''\
 Setting "{}" has the following values:
 ```
-Server:  {}
 Channel: {}
-You:     {}
+Server:  {}
+Default: {}
 ```
 '''
 
@@ -98,53 +98,72 @@ def is_admin_message(m, prevent_global_elevation = False):
 	return perms.administrator or perms.manage_server
 
 
+class ProblemReporter:
+
+	def __init__(self, module, channel):
+		self.problems = []
+		self.module = module
+		self.channel = channel
+
+	async def __aenter__(self):
+		return self._report
+
+	async def __aexit__(self, type, value, traceback):
+		if self.problems:
+			msg = '\n'.join(self.problems)
+			await self.module.send_message(self.channel, msg)
+			raise WasProblems
+
+	def _report(self, text):
+		self.problems.append(text)
+
+
+class WasProblems(Exception):
+	pass
+
+
 class SettingsModule(core.module.Module):
+
+	reduce_value = {
+		'enable': 1,
+		'disable': 0,
+		'reset': None,
+		'original': None,
+		'e': 1,
+		'd': 0,
+		'r': None,
+		'o': None
+	}.get
+
+	expand_value = {
+		None: '--------',
+		1: 'enabled',
+		0: 'disabled',
+		True: 'enabled',
+		False: 'disabled'
+	}.get
 
 	@core.handles.command('settings setting set', 'string string string')
 	async def command_set(self, message, context, setting, value):
-		setting, setting_details = core.settings.redirect(setting)
-		# Throw an error for an unknown setting.
-		if setting_details is None:
-			valid_settings = format_bullet_points(sorted(core.settings.SETTINGS))
-			msg = INVALID_SETTING_MESSAGE.format(setting = setting, valid_settings = valid_settings)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# Ensure that the context is valid
-		if context not in setting_details['contexts']:
-			valid_contexts = format_bullet_points(setting_details['contexts'])
-			msg = INVALID_CONTEXT_MESSAGE.format(context = context, setting = setting, valid_contexts = valid_contexts)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# If the context is the channel or the server, check that the user has the correct permissions to apply it.
-		# Also give an error if this is done from a private message.
-		if context in ['channel', 'server']:
-			if message.channel.is_private:
-				return await self.send_message(message.channel,
-					'Cannot apply setting to context "{}" from private message.'.format(context),
-					blame = message.author
-				)
-			if not is_admin_message(message):
-				return await self.send_message(message.channel, SETTING_COMMAND_PERMS_ERROR, blame = message.author)
-		# Check that the value supplied is valid
-		if value not in setting_details['values']:
-			valid_values = format_bullet_points(setting_details['values'])
-			msg = INVALID_VALUE_MESSAGE.format(value = value, setting = setting, valid_values = valid_values)
-			return await self.send_message(message.channel, msg, blame = message.author)
-		# NOTE: Be careful with this if you go to change it at any point
-		mapped_value = setting_details['values'][value]
-		value_reduction = {
-			True: 1,
-			False: 0,
-			None: 0
-		}
-		key = core.settings.get_key(message, setting, context)
-		await core.keystore.set(key, value_reduction.get(mapped_value, mapped_value))
-		if mapped_value is None:
-			await core.keystore.delete(key)
-		response = SETTING_COMMAND_RESPONSE.format(
-			context = context,
-			setting = setting,
-			value = value
-		)
-		await self.send_message(message.channel, response, blame = message.author)
+		try:
+			async with ProblemReporter(self, message.channel) as problem:
+				if message.channel.is_private:
+					problem('This command cannot be used in private channels.')
+			async with ProblemReporter(self, message.channel) as problem:
+				setting_details = core.settings.details(setting)
+				if setting_details is None:
+					problem('`{}` is not a valid setting. See `=help settings` for a list of valid settings.'.format(setting))
+				if context not in ['server', 'channel', 's', 'c']:
+					problem('`{}` is not a valid context. Options are: `server` or `channel`'.format(context))
+				if value not in ['enable', 'disable', 'original', 'e', 'd', 'o', 'reset', 'r']:
+					problem('`{}` is not a valid value. Options are `enable`, `disable`, `reset`.'.format(value))
+		except WasProblems:
+			pass
+		else:
+			ctx = {'s': message.server, 'c': message.channel}[context[0]]
+			val = SettingsModule.reduce_value(value)
+			await core.settings.set(setting, ctx, val)
+			await self.send_message(message.channel, 'Setting applied.', blame = message.author)
 
 	@core.handles.command('theme', 'string')
 	async def command_theme(self, message, theme):
@@ -152,42 +171,71 @@ class SettingsModule(core.module.Module):
 		if theme not in ['light', 'dark']:
 			m = '`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
-			key = core.settings.get_key(message, 'p-tex-colour', 'self')
+
+			key = 'p-tex-colour:' + message.author.id
 			await core.keystore.set(key, theme)
 			m = 'Your theme has been set to `{theme}`.'
 		await self.send_message(message.channel, m.format(theme = theme), blame = message.author)
 
 	@core.handles.command('checksetting', 'string')
-	async def command_checksetting(self, message, arg):
-		arg, details = core.settings.redirect(arg)
-		if details is None:
-			m = 'Setting "{}" does not exist.'.format(arg)
-			await self.send_message(message.channel, m, blame = message.author)
+	async def command_checksetting(self, message, setting):
+		if message.channel.is_private:
+			await self.send_message(message.channel, 'This command cannot be used in private channels.', blame = message.author)
+		elif core.settings.details(setting) is None:
+			await self.send_message(message.channel, '`{}` is not a valid setting. See `=help settings` for a list of valid settings.'.format(setting), blame = message.author)
 		else:
-			s = c = 'private channel'
-			if not message.channel.is_private:
-				s = await core.settings.get_setting_context(message, arg, 'server')
-				c = await core.settings.get_setting_context(message, arg, 'channel')
-			u = await core.settings.get_setting_context(message, arg, 'self')
-			r = CHECKSETTING_TEMPLATE.format(arg, s, c, u)
-			await self.send_message(message.channel, r, blame = message.author)
+			value_server  = await core.settings.get_single(setting, message.server)
+			value_channel = await core.settings.get_single(setting, message.channel)
+			print('Details for', setting)
+			print('Server: ', value_server)
+			print('Channel:', value_channel)
+			default = core.settings.details(setting).get('default')
+			m = CHECKSETTING_TEMPLATE.format(
+				setting,
+				SettingsModule.expand_value(value_channel),
+				SettingsModule.expand_value(value_server),
+				SettingsModule.expand_value(default)
+			)
+			await self.send_message(message.channel, m, blame = message.author)
+
+
+	@core.handles.command('checkallsettings', '')
+	async def command_check_all_settings(self, message):
+		if message.channel.is_private:
+			await self.send_message(message.channel, 'This command cannot be used in private channels.', blame = message.author)
+		else:
+			lines = [' Setting          | Channel  | Server   | Default',
+					 '------------------+----------+----------+----------'
+			]
+			for setting, s_details in core.settings.SETTINGS.items():
+				if 'redirect' not in s_details:
+					value_channel = await core.settings.get_single(setting, message.channel)
+					value_server  = await core.settings.get_single(setting, message.server)
+					lines.append(' {: <16} | {: <8} | {: <8} | {: <8}'.format(
+						setting,
+						SettingsModule.expand_value(value_channel),
+						SettingsModule.expand_value(value_server),
+						SettingsModule.expand_value(s_details['default'])
+					))
+			m = '```\n{}\n```'.format('\n'.join(lines))
+			await self.send_message(message.channel, m, blame = message.author)
+
 
 	@core.handles.command('prefix', '*')
 	async def command_prefix(self, message, arg):
 		print('=prefix command')
 		if message.channel.is_private:
 			await self.send_message(message.channel, 'This command does not apply to private channels', blame = message.author)
-		else:
-			if arg == '':
-				prefix = await core.settings.get_server_prefix(message.server.id)
-				if prefix is None or prefix == '=':
-					m = 'The prefix for this server is `=`, which is the default.'
-				else:
-					m = 'The prefix for this server is `{}`, which has been customised.'.format(prefix)
-				await self.send_message(message.channel, m, blame = message.author)
-			elif not is_admin_message(message):
-				await self.send_message(message.channel, 'You must be an admin on this server to change the prefix', blame = message.author)
+		elif arg == '':
+			prefix = await core.settings.get_server_prefix(message.server)
+			if prefix is None or prefix == '=':
+				m = 'The prefix for this server is `=`, which is the default.'
 			else:
-				prefix = arg.strip().replace('`', '')
-				await core.settings.set_server_prefix(message.server.id, prefix)
-				await self.send_message(message.channel, 'Bot prefix for this server has been changed to `{}`.'.format(prefix), blame = message.author)
+				m = 'The prefix for this server is `{}`, which has been customised.'.format(prefix)
+			await self.send_message(message.channel, m, blame = message.author)
+		elif not is_admin_message(message):
+			await self.send_message(message.channel, 'You must be an admin on this server to change the prefix', blame = message.author)
+		else:
+			prefix = arg.strip().replace('`', '')
+			await core.settings.set_server_prefix(message.server, prefix)
+			await self.send_message(message.channel, 'Bot prefix for this server has been changed to `{}`.'.format(prefix), blame = message.author)

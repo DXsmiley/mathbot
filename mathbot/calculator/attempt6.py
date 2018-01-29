@@ -212,16 +212,6 @@ def dieroll(tokens):
 	return left
 
 
-def uminus(tokens):
-	if tokens[0] == '-':
-		tokens.eat()
-		return {
-			'#': 'uminus',
-			'value': uminus(tokens)
-		}
-	return dieroll(tokens)
-
-
 SUPERSCRIPT_MAP = {
 	ord('⁰'): '0',
 	ord('¹'): '1',
@@ -236,7 +226,7 @@ SUPERSCRIPT_MAP = {
 }
 
 def superscript(tokens):
-	result = uminus(tokens)
+	result = dieroll(tokens)
 	while tokens.peek(0, 'superscript'):
 		tok = tokens.eat_details()
 		result = {
@@ -270,9 +260,33 @@ def parameter_list(tokens):
 argument_list = eat_delimited(expression, ['comma'], DROP_DELIMITERS, 'parameters', allow_nothing = True, always_package = True)
 
 
-power     = eat_delimited(superscript,    ['pow_op'],  BINDING_RIGHT, 'bin_op')
+def power(tokens):
+	left = superscript(tokens)
+	if tokens.peek(0, 'pow_op'):
+		t = tokens.eat_details()
+		return {
+			'#': 'bin_op',
+			'operator': '^',
+			'token': t,
+			'left': left,
+			'right': uminus(tokens)
+		}
+	return left
+
+
+def uminus(tokens):
+	if tokens[0] == '-':
+		t = tokens.eat_details()
+		return {
+			'#': 'uminus',
+			'token': t,
+			'value': uminus(tokens)
+		}
+	return power(tokens)
+
+
 # power     = eat_delimited(uminus,    ['pow_op'],  BINDING_RIGHT, 'bin_op')
-modulo    = eat_delimited(power,     ['mod_op'],  BINDING_LEFT,  'bin_op')
+modulo    = eat_delimited(uminus,     ['mod_op'],  BINDING_LEFT,  'bin_op')
 product   = eat_delimited(modulo,    ['mul_op'],  BINDING_LEFT,  'bin_op')
 addition  = eat_delimited(product,   ['add_op'],  BINDING_LEFT,  'bin_op')
 logic_and = eat_delimited(addition,  ['land_op'], BINDING_LEFT,  'bin_op')
