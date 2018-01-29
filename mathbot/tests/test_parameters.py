@@ -1,9 +1,12 @@
 import pytest
 import os
 
+import core.parameters
 from core.parameters import add_source, get
-
 def test_parameters():
+    sources_bak = core.parameters.sources
+    core.parameters.reset()
+
     add_source({'test-1': 'first'})
     add_source({'test-1': 'second'})
     add_source({'test-1': 'third'})
@@ -21,3 +24,6 @@ def test_parameters():
 
     with pytest.raises(Exception):
         add_source({'should_raise': True})
+
+    core.parameters.reset()
+    core.parameters.source = sources_bak
