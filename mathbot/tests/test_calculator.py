@@ -14,8 +14,8 @@ def repeat(equation, start, end):
 		r = calculator.calculate(equation, stop_errors = False)
 		assert start <= r <= end
 
-def unknown(equation):
-	calculator.calculate(equation, stop_errors = False)
+# def unknown(equation):
+# 	calculator.calculate(equation, stop_errors = False)
 
 def throws(equation):
 	with pytest.raises(calculator.EvaluationError):
@@ -57,7 +57,7 @@ def test_constants():
 	doit("PI^2", math.pi**2)
 	doit("e / 3", math.e / 3)
 
-def test_functions():
+def test_builtin_functions():
 	doit("round(PI^2)", round(math.pi**2))
 	doit("sin(PI/2)", math.sin(math.pi/2))
 	doit("int(E)", int(math.e))

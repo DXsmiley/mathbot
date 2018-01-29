@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+python3 -m pytest tests -rs --cov=. --cov-branch $@
+

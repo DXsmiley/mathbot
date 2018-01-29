@@ -229,7 +229,6 @@ def superscript(tokens):
 	result = dieroll(tokens)
 	while tokens.peek(0, 'superscript'):
 		tok = tokens.eat_details()
-		print(tok['string'], tok['string'].translate(SUPERSCRIPT_MAP))
 		result = {
 			'#': 'bin_op',
 			'operator': '^',

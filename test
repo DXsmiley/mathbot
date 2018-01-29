@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-# This script runs the unit tests
-
-cd mathbot
-python -m pytest tests
-cd ..

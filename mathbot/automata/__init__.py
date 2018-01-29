@@ -22,10 +22,15 @@
 #
 
 
-import discord
 import traceback
 import asyncio
 import re
+import enum
+
+import discord
+
+
+TIMEOUT = 20
 
 
 HELP_TEXT = '''\
@@ -36,7 +41,7 @@ HELP_TEXT = '''\
 '''
 
 
-SPECIAL_TEST_NAMES = {'all', 'unrun'}
+SPECIAL_TEST_NAMES = {'all', 'unrun', 'failed'}
 
 
 class TestRequirementFailure(Exception): pass
@@ -56,303 +61,318 @@ class HumanResponseFailure(TestRequirementFailure): pass
 class ResponseDidntMatch(TestRequirementFailure): pass
 
 
+class TestResult(enum.Enum):
+    ''' Enum representing the result of running a test case '''
+    UNRUN = 0
+    SUCCESS = 1
+    FAILED = 2
+
+
 class Test:
 
-	''' Holds data about a specific test '''
+    ''' Holds data about a specific test '''
 
-	def __init__(self, name, func, needs_human = False):
-		assert(name not in SPECIAL_TEST_NAMES)
-		self.name = name # The name of the test
-		self.func = func # The function to run when running the test
-		self.last_run = 0 # When the test was last run
-		self.result = None # The result of the test (True or False) or None if it was not run
-		self.needs_human = needs_human # Whether the test requires human interation
+    def __init__(self, name: str, func, needs_human: bool = False) -> None:
+        if name in SPECIAL_TEST_NAMES:
+            raise ValueError('{} is not a valid test name'.format(name))
+        self.name = name # The name of the test
+        self.func = func # The function to run when running the test
+        self.last_run = 0 # When the test was last run
+        self.result = TestResult.UNRUN # The result of the test (True or False) or None if it was not run
+        self.needs_human = needs_human # Whether the test requires human interation
 
 
 class Interface:
 
-	''' The interface that the test functions should use to interface with discord.
-		Test functions should not access the discord.py client directly.
-	'''
+    ''' The interface that the test functions should use to interface with discord.
+        Test functions should not access the discord.py client directly.
+    '''
 
-	def __init__(self, client, channel, target):
-		self.client = client # The discord.py client object
-		self.channel = channel # The channel the test is running in
-		self.target = target # The bot which we are testing
+    def __init__(self,
+                 client: discord.Client,
+                 channel: discord.Channel,
+                 target: (discord.Member, discord.User)) -> None:
+        # assert isinstance(channel, discord.Channel)
+        # assert isinstance(client, discord.Client)
+        # assert isinstance(target, (discord.Member, discord.User))
+        self.client = client # The discord.py client object
+        self.channel = channel # The channel the test is running in
+        self.target = target # The bot which we are testing
 
-	async def send_message(self, content):
-		''' Send a message to the testing channel. '''
-		return await self.client.send_message(self.channel, content)
+    async def send_message(self, content):
+        ''' Send a message to the testing channel. '''
+        return await self.client.send_message(self.channel, content)
 
-	async def edit_message(self, message, new_content):
-		''' Modified a message. Doesn't actually care what this message is. '''
-		return await self.client.edit_message(message, new_content)
+    async def edit_message(self, message, new_content):
+        ''' Modified a message. Doesn't actually care what this message is. '''
+        return await self.client.edit_message(message, new_content)
 
-	async def wait_for_failure(self):
-		''' Wait for the bot to send a message that indicated that something went wrong.
-			I'm not even sure why I implemented it.
-		'''
-		result = await self.client.wait_for_message(timeout = 20, channel = self.channel, author = self.target)
-		if result is None:
-			raise NoResponseError
-		try:
-			self.check_failure_condition(result)
-		except ErrordResponseError:
-			return result
-		else:
-			raise UnexpectedSuccessError
-		return result
+    async def wait_for_message(self):
+        ''' Waits for the bot the send a message.
+            If the bot takes longer than 20 seconds, the test fails.
+        '''
+        result = await self.client.wait_for_message(
+            timeout=TIMEOUT,
+            channel=self.channel,
+            author=self.target)
+        if result is None:
+            raise NoResponseError
+        return result
 
+    async def wait_for_reply(self, content):
+        ''' Sends a message and returns the next message that the targeted bot sends. '''
+        await self.send_message(content)
+        return await self.wait_for_message()
 
-	async def wait_for_message(self):
-		''' Waits for the bot the send a message.
-			If the bot takes longer than 20 seconds, the test fails.
-		'''
-		result = await self.client.wait_for_message(timeout = 20, channel = self.channel, author = self.target)
-		if result is None:
-			raise NoResponseError
-		self.check_failure_condition(result)
-		return result
+    async def assert_message_equals(self, matches):
+        ''' Waits for the next message.
+            If the message does not match a string exactly, fail the test.
+        '''
+        response = await self.wait_for_message()
+        if response.content != matches:
+            raise ResponseDidntMatch
+        return response
 
-	async def wait_for_reply(self, content):
-		''' Sends a message and returns the next message that the targeted bot sends. '''
-		await self.send_message(content)
-		return await self.wait_for_message()
+    async def assert_message_contains(self, substring):
+        ''' Waits for the next message.
+            If the message does not contain the given substring, fail the test.
+        '''
+        response = await self.wait_for_message()
+        if substring not in response.content:
+            raise ResponseDidntMatch
+        return response
 
-	async def assert_message_equals(self, matches):
-		''' Waits for the next message.
-			If the message does not match a string exactly, fail the test.
-		'''
-		response = await self.wait_for_message()
-		if response.content != matches:
-			raise ResponseDidntMatch
-		return response
+    async def assert_message_matches(self, regex):
+        ''' Waits for the next message.
+            If the message does not match a regex, fail the test.
+        '''
+        response = await self.wait_for_message()
+        if not re.match(regex, response.content):
+            raise ResponseDidntMatch
+        return response
 
-	async def assert_message_contains(self, substring):
-		''' Waits for the next message.
-			If the message does not contain the given substring, fail the test.
-		'''
-		response = await self.wait_for_message()
-		if substring not in response.content:
-			raise ResponseDidntMatch
-		return response
+    async def assert_reply_equals(self, contents, matches):
+        ''' Send a message and wait for a response.
+            If the response does not match a string exactly, fail the test.
+        '''
+        # print('Sending...')
+        await self.send_message(contents)
+        # print('About to wait...')
+        response = await self.wait_for_message()
+        # print('Got response')
+        if response.content != matches:
+            raise ResponseDidntMatch
+        return response
 
-	async def assert_message_matches(self, regex):
-		''' Waits for the next message.
-			If the message does not match a regex, fail the test.
-		'''
-		response = await self.wait_for_message()
-		if not re.match(regex, response.content):
-			raise ResponseDidntMatch
-		return response
+    async def assert_reply_contains(self, contents, substring):
+        ''' Send a message and wait for a response.
+            If the response does not contain the given substring, fail the test.
+        '''
+        await self.send_message(contents)
+        response = await self.wait_for_message()
+        if substring not in response.content:
+            raise ResponseDidntMatch
+        return response
 
-	async def assert_reply_equals(self, contents, matches):
-		''' Send a message and wait for a response.
-			If the response does not match a string exactly, fail the test.
-		'''
-		await self.send_message(contents)
-		response = await self.wait_for_message()
-		if response.content != matches:
-			raise ResponseDidntMatch
-		return response
+    async def assert_reply_matches(self, contents, regex):
+        ''' Send a message and wait for a response.
+            If the response does not match a regex, fail the test.
+        '''
+        await self.send_message(contents)
+        response = await self.wait_for_message()
+        if not re.match(regex, response.content):
+            raise ResponseDidntMatch
+        return response
 
-	async def assert_reply_contains(self, contents, substring):
-		''' Send a message and wait for a response.
-			If the response does not contain the given substring, fail the test.
-		'''
-		await self.send_message(contents)
-		response = await self.wait_for_message()
-		if substring not in response.content:
-			raise ResponseDidntMatch
-		return response
+    async def ensure_silence(self):
+        ''' Ensures that the bot does not post any messages for some number of seconds. '''
+        result = await self.client.wait_for_message(
+            timeout=TIMEOUT,
+            channel=self.channel,
+            author=self.target)
+        if result is not None:
+            raise UnexpectedResponseError
 
-	async def assert_reply_matches(self, contents, regex):
-		''' Send a message and wait for a response.
-			If the response does not match a regex, fail the test.
-		'''
-		await self.send_message(contents)
-		response = await self.wait_for_message()
-		if not re.match(regex, response.content):
-			raise ResponseDidntMatch
-		return response
-
-	async def ensure_silence(self):
-		''' Ensures that the bot does not post any messages for some number of seconds. '''
-		result = await self.client.wait_for_message(timeout = 20, channel = self.channel, author = self.target)
-		if result is not None:
-			raise UnexpectedResponseError
-
-	async def wait_for_delete(self, message):
-		pass # TODO: Implement this
-
-	def check_failure_condition(self, message):
-		''' When the bot we are testing does reply, make sure that it wasn't an internal
-			error being reported.
-
-			The current implementation is specific to MathBot. It will have to be changed
-			if this library splits off as its own project.
-		'''
-		if 'Something went wrong while handling the message' in message.content:
-			raise ErrordResponseError
-
-	async def ask_human(self, query):
-		''' Asks a human for an opinion on a question. Currently, only yes-no questions
-			are supported. If the human answers 'no', the test will be failed.
-		'''
-		message = await self.client.send_message(self.channel, query)
-		await self.client.add_reaction(message, u'\u2714')
-		await self.client.add_reaction(message, u'\u274C')
-		await asyncio.sleep(0.5)
-		reaction = await self.client.wait_for_reaction(timeout = 20, message = message)
-		if reaction is None:
-			raise HumanResponseTimeout
-		reaction, user = reaction
-		if reaction.emoji == u'\u274C':
-			raise HumanResponseFailure
-
-	# async def wait_for_pm(self):
-	# 	result = await self.client.wait_for_message(timeout = 20, channel = self.channel, author = self.target)
-	# 	if result is None:
-	# 		raise NoResponseError
-	# 	return result
+    async def ask_human(self, query):
+        ''' Asks a human for an opinion on a question. Currently, only yes-no questions
+            are supported. If the human answers 'no', the test will be failed.
+        '''
+        message = await self.client.send_message(self.channel, query)
+        await self.client.add_reaction(message, u'\u2714')
+        await self.client.add_reaction(message, u'\u274C')
+        await asyncio.sleep(0.5)
+        reaction = await self.client.wait_for_reaction(timeout=TIMEOUT, message=message)
+        if reaction is None:
+            raise HumanResponseTimeout
+        reaction, _ = reaction
+        if reaction.emoji == u'\u274C':
+            raise HumanResponseFailure
 
 
-class Automata:
+class ExpectCalls: # pylint: disable=too-few-public-methods
 
-	def __init__(self):
-		self.client = discord.Client()
-		self.setup_done = False
-		self.tests = []
-		self.setup_tasks = []
+    ''' Wrap a function in an object which counts the number
+        of times it was called. If the number of calls is not
+        equal to the expected number when this object is
+        garbage collected, something has gone wrong, and in
+        that case an error is thrown.
+    '''
 
-	def test(self, needs_human = False, early_function = None):
-		''' Creates a new test.
-			This function is designed to be called as a decorator, but doesn't need to be.
-		'''
-		def applier(function):
-			test = Test(function.__name__, function, needs_human = needs_human)
-			assert self.find_test(test.name) is None
-			self.tests.append(test)
-		if early_function:
-			applier(early_function)
-		else:
-			return applier
+    def __init__(self, function, expected_calls=1):
+        self.function = function
+        self.expected_calls = expected_calls
+        self.call_count = 0
 
-	def setup(self, early_function = None):
-		''' Adds a new setup task.
-			All setup tasks will be run before any test is attempted.
-		'''
-		def applier(function):
-			assert not self.setup_done
-			self.setup_tasks.append(function)
-		if early_function:
-			applier(early_function)
-		else:
-			return applier
+    def __call__(self, *args, **kwargs):
+        self.call_count += 1
+        return self.function(*args, **kwargs)
 
-	def find_test(self, name):
-		''' Return a test with a given name. If no such test exists, return None '''
-		for i in self.tests:
-			if i.name == name:
-				return i
-		return None
+    def __del__(self):
+        if self.call_count != self.expected_calls:
+            message = '{} was called {} times. It was expcted to have been called {} times'
+            raise RuntimeError(message.format(self.function, self.call_count, self.expected_calls))
 
-	def run(self, token, target):
 
-		''' Run automata.
-			The token of the automata bot, and the name of the bot that you want to test.
-			This call will block the program.
-		'''
+class TestCollector:
 
-		@self.client.event
-		async def on_message(message):
-			# Find the target, if we can't find it, crash
-			the_target = None
-			for i in message.server.members:
-				if target in i.name:
-					the_target = i
-			assert the_target is not None
-			# Run test command
-			if message.content.startswith('::run '):
-				name = message.content[6:]
-				print('Running test:', name)
-				if name == 'all':
-					await self.run_many(message, the_target)
-				elif name == 'unrun':
-					await self.run_many(message, the_target, lambda x : x.result is None)
-				elif '*' in name:
-					regex = re.compile(name.replace('*', '.*'))
-					await self.run_many(message, the_target, lambda x : regex.fullmatch(x.name))
-				elif self.find_test(name) is None:
-					await self.client.send_message(message.channel, ':x: There is no test called `{}`'.format(name))
-				else:
-					await self.client.send_message(message.channel, 'Running test `{}`'.format(name))
-					await self.run_test(self.find_test(name), message.channel, the_target)
-					await self.display_stats(message.channel)
-			# Status display command
-			elif message.content == '::stats':
-				await self.display_stats(message.channel)
-			elif message.content == '::help':
-				await self.client.send_message(message.channel, HELP_TEXT)
+    ''' Used to group tests and pass them around all at once. '''
 
-		@self.client.event
-		async def on_ready():
-			print('Started')
+    def __init__(self):
+        self._tests = []
 
-		self.client.run(token)
+    def add(self, function, name: str = '', needs_human: bool = False):
+        ''' Adds a test function to the group. '''
+        name = name or function.__name__
+        test = Test(name, function, needs_human=needs_human)
+        if name in self._tests:
+            raise KeyError('A test case called {} already exists.'.format(name))
+        self._tests.append(test)
 
-	async def run_many(self, message, the_target, condition = lambda x : True):
-		''' Run all the tests that match some predicate. '''
-		# All the tests that need a human should be run first.
-		to_run = sorted(filter(condition, self.tests), key = lambda x : not x.needs_human)
-		# Run all the tests and then display the stats
-		for test in to_run:
-			await self.client.send_message(message.channel, 'Running test `{}`'.format(test.name))
-			await asyncio.sleep(0.5)
-			await self.run_test(test, message.channel, the_target)
-			await asyncio.sleep(0.5)
-		await self.display_stats(message.channel)
+    def find_by_name(self, name: str):
+        ''' Return the test with the given name.
+            Return None if it does not exist.
+        '''
+        for i in self._tests:
+            if i.name == name:
+                return i
+        return None
 
-	async def display_stats(self, channel):
-		''' Display the status of the various tests. '''
-		# NOTE: An emoji is the width of two spaces
-		response = '```\n'
-		longest_name = max(map(lambda x : len(x.name), self.tests))
-		for test in self.tests:
-			response += test.name.rjust(longest_name) + ' '
-			if test.needs_human:
-				response += '✋ '
-			else:
-				response += '   '
-			if test.result is None:
-				response += '⚫ Not run\n'
-			elif test.result is True:
-				response += '✔️ Passed\n'
-			elif test.result is False:
-				response += '❌ Failed\n'
-		response += '```\n'
-		await self.client.send_message(channel, response)
+    def __call__(self, *args, **kwargs):
+        ''' Add a test decorator-style. '''
+        def decorator(function): # pylint: disable=missing-docstring
+            self.add(function, *args, **kwargs)
+        return ExpectCalls(decorator, 1)
 
-	async def run_test(self, test, channel, target):
-		''' Run a single given test '''
-		await self.ensure_setup(channel, target)
-		test.result = False
-		try:
-			await test.func(Interface(self.client, channel, target))
-			test.result = True
-		except Exception as e:
-			print('-------------------------------------------')
-			print('Test failed:', test.name)
-			print('-------------------------------------------')
-			traceback.print_exc()
+    def __iter__(self):
+        return (i for i in self._tests)
 
-	async def ensure_setup(self, channel, target):
-		try:
-			if not self.setup_done:
-				for task in self.setup_tasks:
-					await task(Interface(self.client, channel, target))
-					await asyncio.sleep(1)
-				self.setup_done = True
-		except Exception:
-			await self.client_send_message(channel, 'An error occurred during setup. Test was not run.')
-			raise
+
+class DiscordBot(discord.Client):
+
+    ''' Discord bot used to run tests.
+        This class by itself does not provide any useful methods for human interaction.
+    '''
+
+    def __init__(self, target_name: str) -> None:
+        super().__init__()
+        self._target_name = target_name.lower()
+        # self._setup_done = False
+
+    def _find_target(self, server: discord.Server) -> discord.Member:
+        for i in server.members:
+            if self._target_name in i.name.lower():
+                return i
+        raise KeyError('Could not find memory with name {}'.format(self._target_name))
+
+    async def run_test(self, test: Test, channel: discord.Channel, stop_error: bool = False) -> TestResult:
+        ''' Run a single test in a given channel.
+            Updates the test with the result, and also returns it.
+        '''
+        interface = Interface(
+            self,
+            channel,
+            self._find_target(channel.server))
+        try:
+            await test.func(interface)
+        except Exception:
+            test.result = TestResult.FAILED
+            if not stop_error:
+                raise
+        else:
+            test.result = TestResult.SUCCESS
+        return test.result
+
+
+class DiscordUI(DiscordBot):
+
+    ''' A variant of the discord bot which supports additional commands
+        to allow a human to also interact with it.
+    '''
+
+    def __init__(self, target_name: str, tests: TestCollector) -> None:
+        super().__init__(target_name)
+        self._tests = tests
+
+    async def _run_by_predicate(self, channel, prediate):
+        for test in self._tests:
+            if prediate(test):
+                await self.send_message(channel, '**Running test {}**'.format(test.name))
+                await self.run_test(test, channel, stop_error=True)
+
+    async def _display_stats(self, channel: discord.Channel) -> None:
+        ''' Display the status of the various tests. '''
+        # NOTE: An emoji is the width of two spaces
+        response = '```\n'
+        longest_name = max(map(lambda t: len(t.name), self._tests))
+        for test in self._tests:
+            response += test.name.rjust(longest_name) + ' '
+            if test.needs_human:
+                response += '✋ '
+            else:
+                response += '   '
+            if test.result is TestResult.UNRUN:
+                response += '⚫ Not run\n'
+            elif test.result is TestResult.SUCCESS:
+                response += '✔️ Passed\n'
+            elif test.result is TestResult.FAILED:
+                response += '❌ Failed\n'
+        response += '```\n'
+        print(response)
+        await self.send_message(channel, response)
+
+    async def on_ready(self) -> None:
+        ''' Report when the bot is ready for use '''
+        print('Started automata bot.')
+        print('Available tests are:')
+        for i in self._tests:
+            print('   {}'.format(i.name))
+
+    async def on_message(self, message: discord.Message) -> None:
+        ''' Handle an incomming message '''
+        if not message.channel.is_private:
+            if message.content.startswith('::run '):
+                name = message.content[6:]
+                print('Running test:', name)
+                if name == 'all':
+                    await self._run_by_predicate(message.chanel, lambda t: True)
+                elif name == 'unrun':
+                    pred = lambda t: t.result is TestResult.UNRUN
+                    await self._run_by_predicate(message.channel, pred)
+                elif name == 'failed':
+                    pred = lambda t: t.result is TestResult.FAILED
+                    await self._run_by_predicate(message.channel, pred)
+                elif '*' in name:
+                    regex = re.compile(name.replace('*', '.*'))
+                    await self.run_many(message, lambda t: regex.fullmatch(t.name))
+                elif self._tests.find_by_name(name) is None:
+                    text = ':x: There is no test called `{}`'
+                    await self.send_message(message.channel, text.format(name))
+                else:
+                    await self.send_message(message.channel, 'Running test `{}`'.format(name))
+                    await self.run_test(self._tests.find_by_name(name), message.channel)
+                    await self._display_stats(message.channel)
+            # Status display command
+            elif message.content == '::stats':
+                await self._display_stats(message.channel)
+            elif message.content == '::help':
+                await self.send_message(message.channel, HELP_TEXT)
