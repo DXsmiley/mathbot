@@ -7,6 +7,7 @@ TIER_EXPONENTIAL = 3
 TIER_SPECIAL = 4
 
 PATRONS = {}
+loaded = False
 
 def load():
 	global PATRONS
@@ -25,8 +26,10 @@ def load():
 		if numeric == -1:
 			raise ValueError('"{}" is an invalid patreon rank'.format(rank))
 		PATRONS[user] = numeric
+	global loaded
+	loaded = True
 
 def tier(uid):
-	if not PATRONS:
+	if not loaded:
 		load()
 	return PATRONS.get(uid, TIER_NONE)
