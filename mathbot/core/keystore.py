@@ -141,7 +141,8 @@ class Disk(Interface):
 		self.save()
 
 	async def delete(self, key):
-		del self.data[key]
+		if key in self.data:
+			del self.data[key]
 
 	async def expire(self, key, seconds):
 		self.data[key]['expires'] = time.time() + seconds
