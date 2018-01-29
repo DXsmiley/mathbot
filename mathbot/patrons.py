@@ -33,3 +33,7 @@ def tier(uid):
 	if not loaded:
 		load()
 	return PATRONS.get(uid, TIER_NONE)
+
+def reset():
+	global loaded
+	loaded = False

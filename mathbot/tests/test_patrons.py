@@ -6,9 +6,12 @@ def patrons():
     import patrons
     core.parameters.reset()
     patrons.PATRONS = {}
+    patrons.reset()
+
     yield patrons
     core.parameters.reset()
     patrons.PATRONS = {}
+    patrons.reset()
 
 
 def test_simple_rankings(patrons):
