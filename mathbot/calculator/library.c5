@@ -15,14 +15,14 @@ difference (a b) -> a - b
 quotient (a b) -> a / b
 power (a b) -> a ^ b
 modulo (a b) -> a % b
-and (a b) -> a & b
-or (a b) -> a | b
+and (a b) -> a && b
+or (a b) -> a || b
 
 # Useful comparitive things
 max (a b) -> if(a > b a b)
 min (a b) -> if(a < b a b)
 
-_zip(a b r) -> if (!a | !b r _zip(\a, \b, ('a:'b:.):r))
+_zip(a b r) -> if (!a || !b r _zip(\a, \b, ('a:'b:.):r))
 zip(a b) -> reverse(_zip(a b .))
 
 # Like map but you get to iterate over two ranges at once

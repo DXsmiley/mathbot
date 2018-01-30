@@ -91,8 +91,8 @@ OPERATOR_DICT = {
 	'/': I.BIN_DIV,
 	'^': I.BIN_POW,
 	'%': I.BIN_MOD,
-	'&': I.BIN_AND,
-	'|': I.BIN_OR_,
+	'&&': I.BIN_AND,
+	'||': I.BIN_OR_,
 	'<': I.BIN_LESS,
 	'>': I.BIN_MORE,
 	'<=': I.BIN_L_EQ,
@@ -322,7 +322,7 @@ class CodeSegment:
 		left = node['left']
 		right = node['right']
 		er = node['token']['source']
-		if op == '&': # Logical and
+		if op == '&&': # Logical and
 			end = Destination()
 			self.bytecodeify(left, keys)
 			self.push(
@@ -337,7 +337,7 @@ class CodeSegment:
 				end,
 				error = er
 			)
-		elif op == '|': # Logical or
+		elif op == '||': # Logical or
 			end = Destination()
 			self.bytecodeify(left, keys)
 			self.push(
