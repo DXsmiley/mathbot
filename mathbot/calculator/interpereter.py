@@ -92,7 +92,7 @@ class FunctionInspector:
 	'''
 
 	def __init__(self, interpereter, function_object):
-		assert(isinstance(function_object, Function))
+		assert isinstance(function_object, Function)
 		# This is all we need from the interpereter, so grab it
 		# if we need more information later we can take it
 		self.bytes = interpereter.bytes
@@ -122,7 +122,7 @@ class FunctionInspector:
 
 class CallingCache:
 
-	def __init__(self, capacity = 10000):
+	def __init__(self, capacity=10000):
 		self.clear()
 		self.capacity = 10000
 
@@ -130,7 +130,7 @@ class CallingCache:
 		return key in self.values
 
 	def __setitem__(self, key, value):
-		assert(key not in self.values)
+		assert key not in self.values
 		self.values[key] = value
 		self.queue.append(key)
 		if len(self.queue) > self.capacity:
@@ -156,7 +156,7 @@ class ErrorStopGap:
 
 class Interpereter:
 
-	def __init__(self, code_constructed, trace = False, builder = None, yield_rate = 100):
+	def __init__(self, code_constructed, trace=False, builder=None, yield_rate=100):
 		self.calling_cache = CallingCache()
 		self.builder = builder
 		self.trace = trace
@@ -168,7 +168,7 @@ class Interpereter:
 		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
 		self.protected_assignment_mode = False
-		b = bytecode.I
+		b = bytecode.I # pylint: no-invalid-name
 		self.switch_dictionary = {
 			b.NOTHING: do_nothing,
 			b.CONSTANT: self.inst_constant,
@@ -233,12 +233,20 @@ class Interpereter:
 		}
 
 	def clear_cache(self):
+		''' Clears the function call cache '''
 		self.calling_cache.clear()
 
-	def prepare_extra_code(self, ast, ready_to_run = True):
+	def prepare_extra_code(self, ast, ready_to_run=True):
+		''' Takes extra code as an AST and adds it to the interpereter.
+			If ready_to_run is set, then the program counter will be assigned
+			to point to the start of the added bytecode, so that calling
+			run() will execute the added code.
+		'''
 		if self.builder is None:
-			if len(self.bytes) == 0:
-				raise Exception('Attempted to add additional code to an environment without a builder specified.')
+			if not self.bytes:
+				raise Exception(
+					'Attempted to add additional code to an environment without a builder specified.'
+				)
 			self.builder = bytecode.CodeBuilder()
 		if ready_to_run:
 			self.place = len(self.bytes)
@@ -277,10 +285,12 @@ class Interpereter:
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
 
-	def run(self, tick_limit = None, error_if_exhausted = False, expect_complete = False, get_entire_stack = False):
+	def run(self, tick_limit=None, error_if_exhausted=False,
+			expect_complete=False, get_entire_stack=False):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
-			error_if_exhausted - If True, an error will be thrown if execution is not finished in the specified number of ticks.
+			error_if_exhausted - If True, an error will be thrown if execution is not finished in the
+								 specified number of ticks.
 			expect_complete    - Deprecated
 		'''
 		if expect_complete:
@@ -303,7 +313,7 @@ class Interpereter:
 			return self.stack[1:]
 		return self.top
 
-	async def run_async(self, get_entire_stack = False):
+	async def run_async(self, get_entire_stack=False):
 		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
 			self.run(self.yield_rate)

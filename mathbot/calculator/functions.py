@@ -5,21 +5,27 @@ import functools
 
 class Glyph:
 
+	''' Calculator object that represents a single character. '''
+
 	__slots__ = ['value']
-	
+
 	def __init__(self, value):
 		self.value = value
-	
+
 	def __str__(self):
 		return self.value
 
 
 class BuiltinFunction:
 
-	def __init__(self, func, name = None):
+	''' Calculator object that represents a "builtin" function.
+		That is, a function
+	'''
+
+	def __init__(self, func, name=None):
 		self.func = func
 		self.name = name or getattr(func, '__name__', '<unnamed>')
-		
+
 	def __call__(self, *args):
 		return self.func(*args)
 
@@ -28,6 +34,8 @@ class BuiltinFunction:
 
 
 class Function:
+
+	''' Calculator object the represents a function defined by some bytecode. '''
 
 	def __init__(self, address, scope, name):
 		# I'm not entirely happy about keeping the name in this thing.
@@ -43,7 +51,7 @@ class Function:
 
 class Array:
 
-	def __init__(self, items, start = None, end = None):
+	def __init__(self, items, start=None, end=None):
 		self.items = items
 		self.start = start or 0
 		self.end = end or len(items)

@@ -390,7 +390,14 @@ def expression(tokens):
 	return function_definition(tokens)
 
 
-_parameter_list = eat_optionally_delimited(word, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+_parameter_list = eat_optionally_delimited(
+	word,
+	['comma'],
+	DelimitedBinding.DROP_AND_FLATTEN,
+	'parameters',
+	allow_nothing=True,
+	always_package=True
+)
 
 
 def parameter_list(tokens):
@@ -406,7 +413,15 @@ def parameter_list(tokens):
 	return {'#': 'parameters', 'items': params}, is_variadic
 
 
-_argument_list = eat_optionally_delimited(expression, ['comma'], DelimitedBinding.DROP_AND_FLATTEN, 'parameters', allow_nothing = True, always_package = True)
+_argument_list = eat_optionally_delimited(expression,
+	['comma'],
+	DelimitedBinding.DROP_AND_FLATTEN,
+	'parameters',
+	allow_nothing=True,
+	always_package=True
+)
+
+
 def argument_list(tokens):
 	result = _argument_list(tokens)
 	if result is not None:
