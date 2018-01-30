@@ -98,13 +98,13 @@ def create_shard_manager(shard_id, shard_count):
 	import modules.reporter
 	import modules.greeter
 
-	assert(0 <= shard_id < shard_count)
+	assert 0 <= shard_id < shard_count
 
 	manager = core.manager.Manager(
 		TOKEN,
-		shard_id = shard_id,
-		shard_count = shard_count,
-		master_filter = event_filter
+		shard_id=shard_id,
+		shard_count=shard_count,
+		master_filter=event_filter
 	)
 
 	manager.add_modules(
