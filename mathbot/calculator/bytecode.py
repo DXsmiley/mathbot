@@ -298,21 +298,24 @@ class CodeSegment:
 			return handler(node, keys, allow_tco)
 		return handler(node, keys)
 
-	def btcfy_number(self, node, keys):
+	def btcfy_number(self, node, _):
+		''' Bytecodifies a number node '''
 		self.push(I.CONSTANT, convert_number(node['string']))
 
-	def btcfy_glyph(self, node, keys):
-		s = node['string'][1:-1]
-		if s == '\`':
-			s = '`'
+	def btcfy_glyph(self, node, _):
+		''' Bytecodifies a glyph node '''
+		string = node['string'][1:]
+		if string == '\\;':
+			string = '`'
 		else:
-			s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
-		self.push(I.CONSTANT_GLYPH, s)
+			string = bytes(string, 'utf-8').decode('unicode_escape')
+		self.push(I.CONSTANT_GLYPH, string)
 
-	def btcfy_string(self, node, keys):
-		s = node['string'][1:-1]
-		s = decoded_string = bytes(s, 'utf-8').decode('unicode_escape')
-		self.push(I.CONSTANT_STRING, s)
+	def btcfy_string(self, node, _):
+		''' Bytecodifies a string node '''
+		string = node['string'][1:-1]
+		string = bytes(string, 'utf-8').decode('unicode_escape')
+		self.push(I.CONSTANT_STRING, string)
 
 	def btcfy_bin_op(self, node, keys):
 		op = node['operator']

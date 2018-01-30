@@ -351,10 +351,10 @@ def test_commaless():
 	doit('sum(1 (1 + 1))', 3)
 
 def test_strings():
-	doit('`a`', 'a')
-	doit('`\\``', '`')
-	doit('`\\\\`', '\\')
+	doit(';a', 'a')
+	doit(';\\;', '`')
+	doit(';\\\\', '\\')
 	doit('"Hello"', "Hello")
 	doit('\'"Hello"', 'H')
 	doit('\\"Hello"', 'ello')
-	doit('`a`:` `:"string"', "a string")
+	doit(';a:; :"string"', "a string")

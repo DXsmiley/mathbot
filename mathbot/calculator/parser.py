@@ -658,7 +658,7 @@ def parse(string, source_name = '__unknown__'):
 			('kw_symbol', r'symbol'),
 			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
 			('string', r'"(?:\\.|[^\\"])*"'),
-			('glyph', r'\`\\?.\`'),
+			('glyph', r';\\?.'),
 			# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 			('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),
 			# ('die_op', r'd'),
