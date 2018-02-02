@@ -115,7 +115,7 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		server_prefix = await core.settings.get_server_prefix(message)
+		server_prefix = await core.settings.get_server_prefix(before)
 		if not after.content.startswith(server_prefix) and after.content.count('$$') >= 2 and before.content != after.content:
 			if after.channel.is_private or (await core.settings.get_setting(after, 'c-tex') and await core.settings.get_setting(after, 'f-inline-tex')):
 				blob = self.connections.get(before.id, {'template': 'inline'})
