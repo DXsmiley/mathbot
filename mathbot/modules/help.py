@@ -23,6 +23,8 @@ class HelpModule(core.module.Module):
 
 	@core.handles.command('help', '*')
 	async def help_command(self, message, topic):
+		if message.author.bot:
+			return
 		topic = re.sub(r' +', ' ', topic.strip())
 		if topic in ['topics', 'topic', 'list']:
 			listing = ' - `' + '`\n - `'.join(core.help.listing()) + '`\n'
