@@ -87,7 +87,7 @@ class Module:
 		try:
 			await self.send_message(to, message, blame = blame)
 			return True
-		except discord.errors.Forbidden:
+		except (discord.errors.Forbidden, discord.errors.HTTPException):
 			if not supress_warning:
 				await self.send_message(fallback, PM_PRIVACY_ERROR, blame = blame)
 			await self.send_message(fallback, message, blame = blame)
