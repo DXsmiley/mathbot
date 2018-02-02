@@ -246,7 +246,7 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 # CodeSegment.bytecodeify.btcfy__exact_item_hack = lambda s, n, _: s.push(n['value'])
 
 
-def _assignment_code(name, value):
+def _assignment_code(name, value, add_terminal_byte=False):
 	ast = {
 		'#': 'assignment',
 		'variable': {
@@ -257,19 +257,16 @@ def _assignment_code(name, value):
 			'value': value
 		}
 	}
-	return calculator.bytecode.ast_to_bytecode(ast, unsafe=True, add_terminal_byte=False)
+	return calculator.bytecode.ast_to_bytecode(ast, unsafe=True, add_terminal_byte=add_terminal_byte)
 
 
 def _prepare_runtime(exportable=False):
-	# Mathematical constants
 	if exportable:
 		for name, value in FIXED_VALUES_EXPORTABLE.items():
 			yield _assignment_code(name, value)
 	else:
 		for name, value in FIXED_VALUES.items():
 			yield _assignment_code(name, value)
-	# Builtin functions
-	if not exportable:
 		for name, func in BUILTIN_FUNCTIONS.items():
 			yield _assignment_code(name, BuiltinFunction(func, name))
 	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
@@ -278,6 +275,14 @@ def _prepare_runtime(exportable=False):
 
 def prepare_runtime(**kwargs):
 	return list(_prepare_runtime(**kwargs))
+
+
+def load_on_demand(name):
+	if name in FIXED_VALUES:
+		return _assignment_code(name, FIXED_VALUES[name], add_terminal_byte=True)
+	if name in BUILTIN_FUNCTIONS:
+		return _assignment_code(name, BuiltinFunction(BUILTIN_FUNCTIONS[name], name), add_terminal_byte=True)
+	return None
 
 
 def wrap_simple(ast):

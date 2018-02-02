@@ -2,6 +2,7 @@
 # passed around as a 'function'.
 # Unfortunately there's no way to implement a nice equivilent
 # for ifelse
+
 if (c t f) ~> if(c() t() f())
 
 # Kind of needed but might be dissapearing soon in favour
@@ -33,9 +34,6 @@ zipmap (f a b) -> map(
 
 # That series thing!
 series (function start end) -> reduce(sum map(function range(start end + 1)))
-
-# Stuff that's useful for sympy
-fdiff (function) -> diff(function(new_symbol()))
 
 # Bread and butter list mapipulation functions
 
@@ -79,14 +77,15 @@ toarray(l) -> array(expand(l))
 _tolist(a o) -> if (a _tolist(\a 'a:o) o)
 tolist(a) -> reverse(_tolist(a .))
 
-_join(a b) -> if(a 'a:_join(\a b) b)
+__join(a b) -> if(a __join(\a 'a:b) b)
+_join(a b) -> __join(reverse(a) b)
 join(x.) -> reduce(_join x)
 
-sort(x) -> if(x
+sort(x) -> if(!x .
 	join(
 		sort(filter(i -> i <  'x, x))
 		     filter(i -> i == 'x, x)
 		sort(filter(i -> i >  'x, x))
-	)
-	.
-)
+	))
+
+"Standard library loaded"

@@ -153,10 +153,9 @@ class ErrorStopGap:
 		self.handler_address = handler_address
 		self.should_pass = should_pass
 
-
 class Interpereter:
 
-	def __init__(self, code_constructed, trace=False, yield_rate=100):
+	def __init__(self, code_constructed, trace=False, yield_rate=100, hooks={}):
 		self.calling_cache = CallingCache()
 		self.trace = trace
 		self.bytes = code_constructed.bytecode
@@ -167,6 +166,7 @@ class Interpereter:
 		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
 		self.protected_assignment_mode = False
+		self.hooks = hooks
 		b = bytecode.I # pylint: no-invalid-name
 		self.switch_dictionary = {
 			b.NOTHING: do_nothing,
@@ -238,6 +238,18 @@ class Interpereter:
 	def clear_cache(self):
 		''' Clears the function call cache '''
 		self.calling_cache.clear()
+
+	def state_freeze(self):
+		''' Returns the state of the interpereter so that it may be recovered later.
+			Global variables are not considered 'frozen'
+		'''
+		return FrozenState(self)
+
+	def state_thaw(self, frozen):
+		''' Returns to a frozen state '''
+		self.place = frozen.place
+		self.stack = frozen.stack[:]
+		self.current_scope = frozen.current_scope
 
 	@property
 	def head(self):
@@ -489,16 +501,14 @@ class Interpereter:
 
 	def inst_access_gobal(self):
 		''' Retreive a global variable and push it to the top of the stack '''
-		self.place += 1
-		index = self.head
-		self.place += 1
+		index = self.next()
+		name = self.next()
 		try:
-			self.push(self.root_scope.get(index, 0))
+			value = self.root_scope.get(index, 0)
+			self.push(value)
 		except ScopeMissedError:
-			# symbol = sympy.symbols(self.head)
-			# self.push(symbol)
-			# self.root_scope.set(index, 0, symbol)
-			raise EvaluationError('Failed to access variable {}', self.head)
+			if 'access-global-miss' not in self.hooks or self.hooks['access-global-miss'](name) == False:
+				raise calculator.errors.AccessFailedError(name)
 
 	def inst_access_local(self):
 		''' Access a local variable '''
@@ -680,6 +690,16 @@ class Interpereter:
 
 	def get_memory_usage(self):
 		return deep_getsizeof(self)
+
+
+class FrozenState:
+
+	__slots__ = ['place', 'stack', 'current_scope']
+
+	def __init__(self, interpereter: Interpereter):
+		self.place = interpereter.place
+		self.stack = interpereter.stack[:]
+		self.current_scope = interpereter.current_scope
 
 
 def test(string):

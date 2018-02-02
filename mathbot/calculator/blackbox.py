@@ -18,38 +18,65 @@ On line {line_num} at position {position}
 {carat}'''
 
 
+class AccessGlobalMissHook:
+
+    def __init__(self, interpereter, linker):
+        self.interpereter = interpereter
+        self.linker = linker
+
+    def __call__(self, name):
+        missing_bytecode = calculator.runtime.load_on_demand(name)
+        if not missing_bytecode:
+            return False
+        frozen = self.interpereter.state_freeze()
+        self.interpereter.stack = [None]
+        self.interpereter.place = self.linker.add_segment(missing_bytecode)
+        self.interpereter.run()
+        self.interpereter.state_thaw(frozen)
+        self.interpereter.place -= 3 # Go back to the instruction to load the value
+        return True
+
+
 class Terminal:
 
-    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100):
+    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100, load_on_demand=True):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
         self.linker = calculator.bytecode.Linker()
         self.allow_special_commands = allow_special_commands
-        try:
-            runtime = calculator.runtime.prepare_runtime()
-            self.linker.add_segments(runtime)
-            self.interpereter = calculator.interpereter.Interpereter(
-                self.linker.constructed(),
-                yield_rate=yield_rate
-            )
-        except calculator.parser.ParseFailed as e:
-            print('RUNTIME ISSUE: Parse error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-            raise e
-        except calculator.parser.TokenizationFailed as e:
-            print('RUNTIME ISSUE: Tokenization error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-            raise e
-        try:
-            self.interpereter.run()
-        except Exception:
-            temp_interp = calculator.interpereter.Interpereter(
-                self.linker.constructed(),
-                yield_rate=yield_rate,
-                trace=True
-            )
-            temp_interp.run()
+        self.load_on_demand = load_on_demand
+        if not load_on_demand:
+            try:
+                runtime = calculator.runtime.prepare_runtime()
+                self.linker.add_segments(runtime)
+            except calculator.parser.ParseFailed as e:
+                print('RUNTIME ISSUE: Parse error')
+                print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+                raise e
+            except calculator.parser.TokenizationFailed as e:
+                print('RUNTIME ISSUE: Tokenization error')
+                print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+                raise e
+        hooks = {}
+        self.interpereter = calculator.interpereter.Interpereter(
+            self.linker.constructed(),
+            yield_rate=yield_rate,
+            hooks=hooks
+        )
+        if load_on_demand:
+            hooks['access-global-miss'] = AccessGlobalMissHook(self.interpereter, self.linker)
+        if not load_on_demand:
+            try:
+                self.interpereter.run()
+            except Exception:
+                print('Error during library loading. Re-running with trace.')
+                temp_interp = calculator.interpereter.Interpereter(
+                    self.linker.constructed(),
+                    yield_rate=yield_rate,
+                    trace=True
+                )
+                temp_interp.run()
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
@@ -99,11 +126,10 @@ class Terminal:
                 tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
                     prt(json.dumps(ast, indent = 4))
+                ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
                 self.interpereter.stack = [None]
                 self.interpereter.place = self.linker.add_segment(
-                    calculator.bytecode.ast_to_bytecode(
-                        {'#': 'program', 'items': [ast, {'#': 'end'}]}
-                    )
+                    calculator.bytecode.ast_to_bytecode(ast)
                 )
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
@@ -160,6 +186,17 @@ class Terminal:
         if not self.retain_cache:
             self.interpereter.clear_cache()
         return '\n'.join(output), worked, details
+
+
+def handle_eval_error(prt, e):
+    dbg = e._linking
+    if dbg is None:
+        prt('No debugging information available for this error.')
+        # prt('You may wish to open an issue: github.com/DXsmiley/mathbot')
+    else:
+        prt('Runtime error in', dbg['name'])
+        prt(format_error_place(dbg['code'], dbg['position']))
+    prt(str(e))
 
 
 def format_error_place(string, position):

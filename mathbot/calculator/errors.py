@@ -68,3 +68,9 @@ class EvaluationError(FormattedError):
 
 class SystemError(FormattedError):
 	''' Problem due to a bug in the system, not the user's code '''
+
+class AccessFailedError(EvaluationError):
+	''' Failed to access a variable '''
+	def __init__(self, name):
+		super().__init__('Failed to access variable {}', name)
+		self.name = name
