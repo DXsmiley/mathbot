@@ -135,7 +135,25 @@ class Destination:
 		self.location = None
 
 
+class GlobalToken:
+
+	__slots__ = ['name']
+
+	def __init__(self, name):
+		self.name = name
+
+
+class BytecodeAddress:
+
+	__slots__ = ['location']
+
+	def __init__(self, location):
+		self.location = location
+
+
 class Scope:
+
+	__slots__ = ['superscope', 'name_mapping']
 
 	def __init__(self, names, superscope = None):
 		self.superscope = superscope
@@ -145,7 +163,8 @@ class Scope:
 		if name in self.name_mapping:
 			return self, depth, self.name_mapping[name]
 		if self.superscope is None:
-			self.name_mapping[name] = len(self.name_mapping)
+			# self.name_mapping[name] = len(self.name_mapping)
+			self.name_mapping[name] = GlobalToken(name)
 			return self, depth, self.name_mapping[name]
 		return self.superscope.find_value(name, depth + 1)
 
@@ -222,63 +241,92 @@ class ConstructedBytecode:
 		return result
 
 
-class CodeBuilder:
+class Linker:
 
-	def __init__(self, offset = 0):
-		self.segments = []
-		self.segments_backend = []
-		self.offset = offset
-		self.globalscope = Scope([])
+	def __init__(self, *segments):
+		self.globalscope = {}
 		self.bytecode = []
 		self.error_link = []
+		self.start_addresses = []
+		self.add_segments(segments)
 
-	def new_segment(self, late = False):
-		seg = CodeSegment(self)
-		if late:
-			self.segments_backend.append(seg)
-		else:
-			self.segments.append(seg)
-		return seg
+	def add_segments(self, segments):
+		for i in segments:
+			self.add_segment(i)
 
-	def bytecodeify(self, ast, late = False, unsafe = False):
-		keys = Keys(unsafe = unsafe, scope = self.globalscope, allow_tco = False)
-		self.new_segment().bytecodeify(ast, keys)
+	def constructed(self):
+		return ConstructedBytecode(self.bytecode, self.error_link)
 
-	def dump(self):
-		newcode = []
-		newerrs = []
-		for i in itertools.chain(self.segments, self.segments_backend):
-			newcode += i.items
-			newerrs += i.error_link
+	def resolve_name(self, name):
+		if name not in self.globalscope:
+			self.globalscope[name] = len(self.globalscope)
+		return self.globalscope[name]
+
+	def add_segment(self, segment):
+		start_address = len(self.bytecode)
+		self.start_addresses.append(start_address)
+		for i, v in enumerate(segment.bytecode):
+			if isinstance(v, Destination):
+				v.location = start_address + i
+		for v in segment.bytecode:
+			if isinstance(v, GlobalToken):
+				name = v.name
+				v = self.resolve_name(name)
+				print(name, v)
+				# v = self.resolve_name(v.name)
+			if isinstance(v, BytecodeAddress):
+				v = v.address + start_address
+			if isinstance(v, Pointer):
+				v = v.destination.location
+			if isinstance(v, Destination):
+				v = I.NOTHING
+			self.bytecode.append(v)
+		# for v in segment.error_link:
+		# 	if isinstance(i, GlobalToken):
+		# 		i = self.resolve_name(i.name)
+		# 	if isinstance(i, BytecodeAddress):
+		# 		i = i.address + start_address
+		# 	self.error_link.append(v)
+		self.error_link += segment.error_link
+		return start_address
+
+
+class Builder:
+
+	def __init__(self):
 		self.segments = []
-		self.segments_backend = []
-		offset = self.offset + len(self.bytecode)
-		# Determine the location of the destinations
-		for address, item in enumerate(newcode):
-			if isinstance(item, Destination):
-				assert item.location is None
-				item.location = address + offset
-				newcode[address] = I.NOTHING
-		# Link the pointers up to their destinations
-		for address, item in enumerate(newcode):
-			if isinstance(item, Pointer):
-				assert newcode[address].destination.location is not None
-				newcode[address] = newcode[address].destination.location
-		self.bytecode += newcode
-		self.error_link += newerrs
-		return ConstructedBytecode(self.bytecode[:], self.error_link[:])
+		self.globalscope = Scope([])
+
+	def create_segment(self):
+		segment = CodeSegment(self)
+		self.segments.append(segment)
+		return segment
+
+	def flatten(self):
+		items = []
+		error_link = []
+		for i in self.segments:
+			items += i.items
+			error_link += i.error_link
+		return ConstructedBytecode(items, error_link)
 
 
 class CodeSegment:
 
-	def __init__(self, builder):
-		self.builder = builder
-		self.start_address = None
+	def __init__(self, master):
 		self.items = []
 		self.error_link = []
+		self.master = master
 
-	def new_segment(self, late = False):
-		return self.builder.new_segment(late = late)
+	def add_ast(self, ast, unsafe = False):
+		self.bytecodeify(
+			ast,
+			Keys(
+				scope=self.master.globalscope,
+				allow_tco=False,
+				unsafe=unsafe
+			)
+		)
 
 	def push(self, *items, error = None):
 		self.items += items
@@ -367,7 +415,7 @@ class CodeSegment:
 
 	def btcfy_word(self, node, keys):
 		scope, depth, index = keys['scope'].find_value(node['string'].lower())
-		if scope == self.builder.globalscope:
+		if scope == self.master.globalscope:
 			# NOTE: Only global variables can fail to be found,
 			# so we only need the name for this one.
 			self.push(I.ACCESS_GLOBAL)
@@ -380,6 +428,9 @@ class CodeSegment:
 			self.push(I.ACCESS_SEMI)
 			self.push(depth)
 			self.push(index)
+
+	def btcfy__exact_item_hack(self, node, keys):
+		self.push(I.CONSTANT, node['value'])
 
 	def btcfy_factorial(self, node, keys):
 		self.bytecodeify(node['value'], keys)
@@ -394,7 +445,7 @@ class CodeSegment:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['variable'])
 		scope, depth, index = keys['scope'].find_value(name)
-		assert(scope == self.builder.globalscope)
+		assert scope == self.master.globalscope
 		# print(scope, depth, index)
 		self.push(I.ASSIGNMENT)
 		self.push(index)
@@ -405,7 +456,7 @@ class CodeSegment:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['name'])
 		scope, depth, index = keys['scope'].find_value(name)
-		assert(scope == self.builder.globalscope)
+		assert scope == self.master.globalscope
 		self.push(I.DECLARE_SYMBOL)
 		self.push(index)
 		self.push(name)
@@ -576,7 +627,7 @@ class CodeSegment:
 		self.push(p_end)
 
 	def define_function(self, node, keys):
-		contents = self.new_segment(late = True)
+		contents = self.master.create_segment()
 		start_address = Destination()
 		contents.push(start_address)
 		contents.push(node.get('name', '?').lower())
@@ -601,6 +652,15 @@ class CodeSegment:
 		contents.push(I.STORE_IN_CACHE)
 		contents.push(I.RETURN)
 		return Pointer(start_address)
+
+
+def ast_to_bytecode(ast, unsafe=False, add_terminal_byte=True) -> ConstructedBytecode:
+	builder = Builder()
+	segment = builder.create_segment()
+	segment.add_ast(ast, unsafe=unsafe)
+	if add_terminal_byte:
+		segment.push(I.END)
+	return builder.flatten()
 
 
 def convert_number(x):

@@ -243,55 +243,41 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
 
 
-def wrap_with_runtime(builder, my_ast, exportable=False, protect_globals=False):
-	# ----- Declarations --------------------
-	elnk = {'name': '_system_base', 'position': 0, 'code': '?'}
-	s = builder.new_segment()
-	if protect_globals:
-		s.push(I.BEGIN_PROTECTED_GLOBAL_BLOCK)
-	def assignment(name, value):
-		s.push(I.CONSTANT, error = elnk)
-		s.push(value)
-		scope, depth, index = builder.globalscope.find_value(name)
-		assert(scope == builder.globalscope)
-		assert(depth == 0)
-		s.push(I.ASSIGNMENT, error = elnk)
-		s.push(index)
-	def function(name, address, macro = False):
-		s.push(I.FUNCTION_MACRO if macro else I.FUNCTION_NORMAL, error = elnk)
-		s.push(Pointer(address))
-		scope, depth, index = builder.globalscope.find_value(name)
-		assert(scope == builder.globalscope)
-		assert(depth == 0)
-		s.push(I.ASSIGNMENT, error = elnk)
-		s.push(index)
+# CodeSegment.bytecodeify.btcfy__exact_item_hack = lambda s, n, _: s.push(n['value'])
+
+
+def _assignment_code(name, value):
+	ast = {
+		'#': 'assignment',
+		'variable': {
+			'string': name,
+		},
+		'value': {
+			'#': '_exact_item_hack',
+			'value': value
+		}
+	}
+	return calculator.bytecode.ast_to_bytecode(ast, unsafe=True, add_terminal_byte=False)
+
+
+def _prepare_runtime(exportable=False):
 	# Mathematical constants
 	if exportable:
 		for name, value in FIXED_VALUES_EXPORTABLE.items():
-			assignment(name, value)
+			yield _assignment_code(name, value)
 	else:
 		for name, value in FIXED_VALUES.items():
-			assignment(name, value)
+			yield _assignment_code(name, value)
 	# Builtin functions
 	if not exportable:
-		# for name, func in BUILTIN_MATH_FUNCTIONS.items():
-		# 	wrapped = except_math_error(func, name)
-		# 	assignment(name, BuiltinFunction(wrapped, name))
 		for name, func in BUILTIN_FUNCTIONS.items():
-			assignment(name, BuiltinFunction(func, name))
-	# The essential things
-	# _, ast = parser.parse(BOILER_CODE)
-	# builder.bytecodeify(ast, unsafe = True)
-	_, ast = parser.parse(LIBRARY_CODE, source_name = '_system_library')
-	builder.bytecodeify(ast, unsafe = True)
-	# ----- User Code -----------------------
-	if my_ast is not None:
-		builder.bytecodeify(my_ast)
-	if protect_globals:
-		builder.new_segment().push(I.END_PROTECTED_GLOBAL_BLOCK, error = elnk)
-	builder.new_segment().push(I.END, error = elnk)
-	# ----- Return the resulting bytecode -
-	return builder.dump()
+			yield _assignment_code(name, BuiltinFunction(func, name))
+	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
+	yield calculator.bytecode.ast_to_bytecode(ast, unsafe=True)
+
+
+def prepare_runtime(**kwargs):
+	return list(_prepare_runtime(**kwargs))
 
 
 def wrap_simple(ast):

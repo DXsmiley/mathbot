@@ -18,17 +18,21 @@ On line {line_num} at position {position}
 {carat}'''
 
 
-class Terminal():
+class Terminal:
 
-    def __init__(self, allow_special_commands = False, retain_cache = True, output_limit = None, yield_rate = 100):
+    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
-        self.builder = calculator.bytecode.CodeBuilder()
+        self.linker = calculator.bytecode.Linker()
         self.allow_special_commands = allow_special_commands
         try:
-            runtime = calculator.runtime.wrap_with_runtime(self.builder, None)
-            self.interpereter = calculator.interpereter.Interpereter(runtime, builder = self.builder, yield_rate = yield_rate)
+            runtime = calculator.runtime.prepare_runtime()
+            self.linker.add_segments(runtime)
+            self.interpereter = calculator.interpereter.Interpereter(
+                self.linker.constructed(),
+                yield_rate=yield_rate
+            )
         except calculator.parser.ParseFailed as e:
             print('RUNTIME ISSUE: Parse error')
             print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
@@ -37,7 +41,15 @@ class Terminal():
             print('RUNTIME ISSUE: Tokenization error')
             print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
             raise e
-        self.interpereter.run()
+        try:
+            self.interpereter.run()
+        except Exception:
+            temp_interp = calculator.interpereter.Interpereter(
+                self.linker.constructed(),
+                yield_rate=yield_rate,
+                trace=True
+            )
+            temp_interp.run()
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
@@ -87,11 +99,11 @@ class Terminal():
                 tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
                     prt(json.dumps(ast, indent = 4))
-                ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
-                self.interpereter.prepare_extra_code({
-                    '#': 'program',
-                    'items': [ast]
-                })
+                self.interpereter.instruction = self.linker.add_segment(
+                    calculator.bytecode.ast_to_bytecode(
+                        {'#': 'program', 'items': [ast, {'#': 'end'}]}
+                    )
+                )
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
                 result_items = await asyncio.wait_for(self.interpereter.run_async(get_entire_stack = True), 5)

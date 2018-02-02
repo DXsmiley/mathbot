@@ -156,9 +156,8 @@ class ErrorStopGap:
 
 class Interpereter:
 
-	def __init__(self, code_constructed, trace=False, builder=None, yield_rate=100):
+	def __init__(self, code_constructed, trace=False, yield_rate=100):
 		self.calling_cache = CallingCache()
-		self.builder = builder
 		self.trace = trace
 		self.bytes = code_constructed.bytecode
 		self.erlnk = code_constructed.error_link
@@ -232,29 +231,13 @@ class Interpereter:
 			b.CONSTANT_GLYPH: self.inst_constant_glyph
 		}
 
+	def swap_bytecode(self, constructed_bytecode):
+		self.bytes = code_constructed.bytecode
+		self.erlnk = code_constructed.error_link
+
 	def clear_cache(self):
 		''' Clears the function call cache '''
 		self.calling_cache.clear()
-
-	def prepare_extra_code(self, ast, ready_to_run=True):
-		''' Takes extra code as an AST and adds it to the interpereter.
-			If ready_to_run is set, then the program counter will be assigned
-			to point to the start of the added bytecode, so that calling
-			run() will execute the added code.
-		'''
-		if self.builder is None:
-			if not self.bytes:
-				raise Exception(
-					'Attempted to add additional code to an environment without a builder specified.'
-				)
-			self.builder = bytecode.CodeBuilder()
-		if ready_to_run:
-			self.place = len(self.bytes)
-			self.stack = [None]
-		self.builder.bytecodeify(ast)
-		constructed = self.builder.dump()
-		self.bytes = constructed.bytecode
-		self.erlnk = constructed.error_link
 
 	@property
 	def head(self):

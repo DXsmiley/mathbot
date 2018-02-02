@@ -10,7 +10,7 @@ import calculator.parser as parser
 import calculator.bytecode as bytecode
 import calculator.runtime as runtime
 import calculator.errors as errors
-from calculator.runtime import wrap_with_runtime
+from calculator.runtime import prepare_runtime
 from calculator.blackbox import Terminal, format_error_place
 
 
@@ -24,7 +24,7 @@ def main():
 		filename = proc_filename(args.filename)
 		code = open(filename).read()
 		tokens, ast = parser.parse(code, source_name = filename)
-		btc = wrap_with_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
+		btc = prepare_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
 		if args.compile:
 			print(btc.dump())
 			return
