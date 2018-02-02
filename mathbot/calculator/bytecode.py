@@ -270,10 +270,7 @@ class Linker:
 				v.location = start_address + i
 		for v in segment.bytecode:
 			if isinstance(v, GlobalToken):
-				name = v.name
-				v = self.resolve_name(name)
-				print(name, v)
-				# v = self.resolve_name(v.name)
+				v = self.resolve_name(v.name)
 			if isinstance(v, BytecodeAddress):
 				v = v.address + start_address
 			if isinstance(v, Pointer):

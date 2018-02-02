@@ -78,3 +78,15 @@ toarray(l) -> array(expand(l))
 
 _tolist(a o) -> if (a _tolist(\a 'a:o) o)
 tolist(a) -> reverse(_tolist(a .))
+
+_join(a b) -> if(a 'a:_join(\a b) b)
+join(x.) -> reduce(_join x)
+
+sort(x) -> if(x
+	join(
+		sort(filter(i -> i <  'x, x))
+		     filter(i -> i == 'x, x)
+		sort(filter(i -> i >  'x, x))
+	)
+	.
+)

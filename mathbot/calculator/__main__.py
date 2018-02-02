@@ -63,6 +63,8 @@ def interactive_terminal():
 			line = input('> ')
 		except (EOFError, KeyboardInterrupt):
 			break
+		if line in [':q', ':x', ':quit', ':exit']:
+			break
 		if line == '':
 			continue
 		try:

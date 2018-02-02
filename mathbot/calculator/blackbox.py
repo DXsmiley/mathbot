@@ -99,7 +99,8 @@ class Terminal:
                 tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
                     prt(json.dumps(ast, indent = 4))
-                self.interpereter.instruction = self.linker.add_segment(
+                self.interpereter.stack = [None]
+                self.interpereter.place = self.linker.add_segment(
                     calculator.bytecode.ast_to_bytecode(
                         {'#': 'program', 'items': [ast, {'#': 'end'}]}
                     )
