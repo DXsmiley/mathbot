@@ -45,10 +45,8 @@ async def get_single(setting, context):
 
 async def resolve(setting, *contexts, default = None2):
 	setting = redirect(setting)
-	print('Resolving', setting)
 	for i in contexts:
 		result = await get_single(setting, i)
-		print('>', result)
 		if result is not None:
 			return result
 	if default is not None2:
