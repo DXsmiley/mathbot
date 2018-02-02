@@ -34,7 +34,19 @@ class HelpModule(core.module.Module):
 				await self.send_message(message.channel, 'A list of help topics has been sent to you privately.', blame = message.author)
 		else:
 			response = core.help.get(topic)
-			if response is not None:
+			if response is None:
+				suggestions = core.help.get_similar(topic)
+				if len(suggestions) == 0:
+					msg = "Help topic `{}` does not exist.".format(topic)
+				elif len(suggestions) == 1:
+					msg = "Help topic `{}` does not exist.\nMaybe you meant `{}`?".format(topic, suggestions[0])
+				else:
+					msg = "Help topic `{}` does not exist.\nMaybe you meant one of: {}?".format(
+						topic,
+						', '.join(map("`{}`".format, suggestions))
+					)
+				await self.send_message(message.channel, msg, blame = message.author)
+			else:
 				was_private = True
 				for index, page in enumerate(response):
 					if message.channel.is_private:
@@ -57,6 +69,3 @@ class HelpModule(core.module.Module):
 					else:
 						m = "Help has been sent to you privately."	
 					await self.send_message(message.channel, m, blame = message.author)
-			else:
-				msg = "Help topic '{}' does not exist.".format(topic)
-				await self.send_message(message.channel, msg, blame = message.author)

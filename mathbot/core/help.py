@@ -1,4 +1,5 @@
 import codecs
+import difflib
 
 
 TOPICS = {}
@@ -37,9 +38,8 @@ def listing():
 	return sorted(PRIMARY_TOPICS)
 
 
-# TODO: Function to suggest similar topic if the user spelt something wrong.
 def get_similar(topic):
-	assert(False)
+	return sorted(difflib.get_close_matches(topic, PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
 
 
 def load_from_file(filename, topics = None):
