@@ -84,9 +84,11 @@ async def set(setting, context, value):
 
 
 async def get_server_prefix(context):
-	if isinstance(context, discord.Message):
+	if isinstance(context, discord.message.Message):
 		context = context.channel
-	if isinstance(context, discord.Channel):
+	if isinstance(context, discord.channel.PrivateChannel):
+		return '='
+	if isinstance(context, discord.channel.Channel):
 		if context.is_private:
 			return '='
 		context = context.server
