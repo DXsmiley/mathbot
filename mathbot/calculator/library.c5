@@ -87,5 +87,3 @@ sort(x) -> if(!x .
 		     filter(i -> i == 'x, x)
 		sort(filter(i -> i >  'x, x))
 	))
-
-"Standard library loaded"
