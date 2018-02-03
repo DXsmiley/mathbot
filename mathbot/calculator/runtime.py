@@ -7,6 +7,7 @@ import itertools
 import os
 import sympy
 import types
+import collections
 
 from calculator.bytecode import *
 from calculator.functions import *
@@ -260,6 +261,37 @@ def _assignment_code(name, value, add_terminal_byte=False):
 	return calculator.bytecode.ast_to_bytecode(ast, unsafe=True, add_terminal_byte=add_terminal_byte)
 
 
+def strip_extra(t):
+	if isinstance(t, (str, int)):
+		return t
+	if isinstance(t, list):
+		return list(map(strip_extra, t))
+	return {k:strip_extra(v) for k, v in t.items() if k != 'source'}
+
+
+def findall(ast, tag):
+	if isinstance(ast, list):
+		for i in ast:
+			yield from findall(i, tag)
+	if isinstance(ast, dict):
+		if ast.get('#') == tag:
+			yield ast
+		for k, v in ast.items():
+			yield from findall(v, tag)
+
+
+def lib_pieces():
+	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
+	definitions = {}
+	for assignment in findall(ast, 'assignment'):
+		name = assignment['variable']['string'].lower()
+		definitions[name] = assignment
+	return definitions
+
+
+LIB_PIECES = lib_pieces()
+
+
 def _prepare_runtime(exportable=False):
 	if exportable:
 		for name, value in FIXED_VALUES_EXPORTABLE.items():
@@ -282,6 +314,8 @@ def load_on_demand(name):
 		return _assignment_code(name, FIXED_VALUES[name], add_terminal_byte=True)
 	if name in BUILTIN_FUNCTIONS:
 		return _assignment_code(name, BuiltinFunction(BUILTIN_FUNCTIONS[name], name), add_terminal_byte=True)
+	if name in LIB_PIECES:
+		return calculator.bytecode.ast_to_bytecode(LIB_PIECES[name], unsafe=True, add_terminal_byte=True)
 	return None
 
 
