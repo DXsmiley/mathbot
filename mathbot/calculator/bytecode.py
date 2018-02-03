@@ -251,8 +251,11 @@ class Linker:
 		self.add_segments(segments)
 
 	def add_segments(self, segments):
-		for i in segments:
-			self.add_segment(i)
+		if segments:
+			first = self.add_segment(segments[0])
+			for i in segments[1:]:
+				self.add_segment(i)
+			return first
 
 	def constructed(self):
 		return ConstructedBytecode(self.bytecode, self.error_link)

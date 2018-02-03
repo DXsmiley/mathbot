@@ -8,6 +8,7 @@ import os
 import sympy
 import types
 import collections
+import functools
 
 from calculator.bytecode import *
 from calculator.functions import *
@@ -305,6 +306,7 @@ def _prepare_runtime(exportable=False):
 	yield calculator.bytecode.ast_to_bytecode(ast, unsafe=True)
 
 
+@functools.lru_cache
 def prepare_runtime(**kwargs):
 	return list(_prepare_runtime(**kwargs))
 

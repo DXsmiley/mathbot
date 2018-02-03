@@ -4,10 +4,42 @@ import enum
 
 
 class DelimitedBinding(enum.Enum):
-	DONT_PROCESS = 0
-	LEFT_FIRST = 1
-	RIGHT_FIRST = 2
+	DONT_PROCESS     = 0
+	LEFT_FIRST       = 1
+	RIGHT_FIRST      = 2
 	DROP_AND_FLATTEN = 3
+
+
+class BracketType(enum.Enum):
+	NONE   = 0
+	ROUND  = 1
+	SQUARE = 2
+	CURLY  = 3
+
+
+class BracketDirection(enum.Enum):
+	LEFT = 0
+	RIGHT = 1
+
+
+bracket_type = lambda x: {
+	'(': BracketType.ROUND,
+	')': BracketType.ROUND,
+	'[': BracketType.SQUARE,
+	']': BracketType.SQUARE,
+	'{': BracketType.CURLY,
+	'}': BracketType.CURLY	
+}.get(x, BracketType.NONE)
+
+
+bracket_direction = lambda x: {
+	'(': BracketDirection.LEFT,
+	')': BracketDirection.RIGHT,
+	'[': BracketDirection.LEFT,
+	']': BracketDirection.RIGHT,
+	'{': BracketDirection.LEFT,
+	'}': BracketDirection.RIGHT	
+}.get(x)
 
 
 class ParseFailed(Exception):
@@ -83,6 +115,7 @@ class TokenBlock:
 		self.values = values
 		self.root = root
 		self.edge_tokens = edge_tokens
+		self.edge_type = bracket_type(edge_tokens[0]['string'])
 
 	@property
 	def edge_start(self):
@@ -104,10 +137,12 @@ class TokenBlock:
 			return self.values[self.place + index]
 
 	def peek(self, index, *valids):
+		if TokenBlock in valids:
+			print('TokenBlock is no longer a valid argument to TokenBlock.peek!')
 		if self.place + index < len(self.values):
 			t = self.values[self.place + index]
 			if isinstance(t, TokenBlock):
-				return TokenBlock in valids
+				return t.edge_type in valids or TokenBlock in valids
 			elif isinstance(t, dict):
 				return t['#'] in valids
 
@@ -270,7 +305,7 @@ def word(tokens):
 
 
 def wrapped_expression(tokens):
-	if tokens.peek(0, TokenBlock):
+	if tokens.peek(0, BracketType.ROUND):
 		return ensure_completed(expression, tokens.eat_details())
 	return atom(tokens)
 
@@ -282,7 +317,7 @@ def function_call(tokens):
 		return atom(tokens)
 	value = wrapped_expression(tokens)
 	calls = []
-	while tokens.peek(0, TokenBlock) and not tokens.peek(1, 'function_definition'):
+	while tokens.peek(0, BracketType.ROUND) and not tokens.peek(1, 'function_definition'):
 		calls.append(ensure_completed(argument_list, tokens.eat_details()))
 	calls = calls[::-1]
 	while calls:
@@ -489,7 +524,7 @@ prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIG
 
 def function_definition(tokens, allow_equal_sign = False):
 	if tokens.peek(1, 'function_definition') or (tokens.peek(1, 'assignment') and allow_equal_sign):
-		if tokens.peek(0, TokenBlock):
+		if tokens.peek(0, BracketType.ROUND):
 			args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
 		elif tokens.peek(0, 'word'):
 			args = {
@@ -529,8 +564,8 @@ def statement(tokens):
 			'#': 'declare_symbol',
 			'name': name
 		}
-	elif tokens.peek_sequence(0, 'word', TokenBlock, 'function_definition') \
-	  or tokens.peek_sequence(0, 'word', TokenBlock, 'assignment'):
+	elif tokens.peek_sequence(0, 'word', BracketType.ROUND, 'function_definition') \
+	  or tokens.peek_sequence(0, 'word', BracketType.ROUND, 'assignment'):
 		name = word(tokens)
 		function = function_definition(tokens, allow_equal_sign = True)
 		function['name'] = name['string']
@@ -548,15 +583,16 @@ program = eat_optionally_delimited(statement, ['comma'], DelimitedBinding.DROP_A
 def process_tokens(tokens):
 	tokens = tokens[::]
 	# Check that the brackets are balanced
-	depth = 0
+	stack = []
 	for tok in tokens:
-		if tok['string'] == '(':
-			depth += 1
-		elif tok['string'] == ')':
-			depth -= 1
-			if depth < 0:
+		btype = bracket_type(tok['string'])
+		if btype != BracketType.NONE:
+			bdir = bracket_direction(tok['string'])
+			if bdir == BracketDirection.LEFT:
+				stack.append(btype)
+			elif not stack or stack.pop() != btype:
 				raise ImbalancedBraces(tok)
-	if depth > 0:
+	if stack:
 		raise ImbalancedBraces(tokens[-1])
 	# Do the thing
 	p_start = tokens.pop(0)
@@ -566,9 +602,9 @@ def process_tokens(tokens):
 		result = [first_token]
 		while tokens:
 			tok = tokens.pop()
-			if tok['string'] == '(':
+			if tok['string'] in ['(', '[']:
 				result.append(recurse(tok))
-			elif tok['string'] == ')':
+			elif tok['string'] in [')', ']']:
 				result.append(tok)
 				break
 			else:
@@ -669,7 +705,8 @@ def parse(string, source_name = '__unknown__'):
 			('mul_op', r'[*×]', '*'),
 			('add_op', r'[+-]'),
 			('comp_op', r'<=|>=|<|>|!=|=='),
-			('paren', r'[()]'),
+			('paren', r'\(|\)'),
+			('bracket', r'\[|\]'),
 			('function_definition', r'~>|->'),
 			('comma', r','),
 			('assignment', r'='),

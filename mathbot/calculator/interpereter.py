@@ -280,7 +280,7 @@ class Interpereter:
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
 
-	def run(self, tick_limit=None, error_if_exhausted=False,
+	def run(self, start_address=None, tick_limit=None, error_if_exhausted=False,
 			expect_complete=False, get_entire_stack=False):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
@@ -288,6 +288,8 @@ class Interpereter:
 								 specified number of ticks.
 			expect_complete    - Deprecated
 		'''
+		if start_address is not None:
+			self.place = start_address
 		if expect_complete:
 			warnings.warn('expect_complete is deprecated', DeprecationWarning)
 		if tick_limit is None:
