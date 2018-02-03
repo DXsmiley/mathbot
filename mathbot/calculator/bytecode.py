@@ -623,6 +623,12 @@ class CodeSegment:
 		self.bytecodeify(args[2], keys(allow_tco = allow_tco))
 		self.push(p_end)
 
+	def btcfy_func_list(self, node, keys, args, allow_tco):
+		self.push(I.LIST_CREATE_EMPTY)
+		for a in args[::-1]:
+			self.bytecodeify(a, keys)
+			self.push(I.LIST_PREPEND)
+
 	def define_function(self, node, keys):
 		contents = self.master.create_segment()
 		start_address = Destination()
