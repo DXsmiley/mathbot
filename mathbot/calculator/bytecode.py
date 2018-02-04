@@ -341,7 +341,7 @@ class CodeSegment:
 		handler = getattr(self, 'btcfy_' + node_type, None)
 		if handler is None:
 			raise calculator.errors.CompilationError('Unknown AST node: {}. Cannot convert to bytecode.'.format(node_type))
-		h_params, _, _, _ = inspect.getargspec(handler)
+		h_params = inspect.getfullargspec(handler).args
 		if 'allow_tco' in h_params:
 			return handler(node, keys, allow_tco)
 		return handler(node, keys)
