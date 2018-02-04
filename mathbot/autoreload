@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+# Derived from: https://github.com/stevekrenzel/autoreload
+import os
+import sys
+import subprocess
+import time
+
+PATH = '.'
+COMMAND = ' '.join(sys.argv[1:])
+WAIT = 1
+
+process = None
+
+def file_filter(name):
+    return name.endswith('.py')
+
+
+def _interesting_files(path):
+    for root, dirs, files in os.walk(path):
+        for file in filter(file_filter, files):
+            yield os.path.join(root, file)
+
+
+def file_times(files):
+    for file in files:
+        yield os.stat(file).st_mtime
+
+
+def print_stdout(process):
+    stdout = process.stdout
+    if stdout != None:
+        print(stdout)
+
+
+def text_box(text):
+    print()
+    print(' +-' + '-' * len(text) + '-+')
+    print(' | ' + text + ' |')
+    print(' +-' + '-' * len(text) + '-+')
+    print()
+
+try:
+
+    text_box('Autorestart enabled')
+
+    interesting_files = list(_interesting_files(PATH))
+    process = subprocess.Popen(COMMAND, shell=True)
+    last_mtime = max(file_times(interesting_files), default = 0)
+    is_running = True
+
+    while True:
+        max_mtime = max(file_times(interesting_files), default = 0)
+        print_stdout(process)
+        if is_running and process.poll() is not None:
+            is_running = False
+            text_box('Process Terminated')
+        if max_mtime > last_mtime:
+            last_mtime = max_mtime
+            text_box('Restarting Process')
+            if process and process.poll() is not None:
+                process.kill()
+            process = subprocess.Popen(COMMAND, shell=True)
+            is_running = True
+        time.sleep(WAIT)
+
+finally:
+
+    if process and process.poll() is not None:
+            process.kill()

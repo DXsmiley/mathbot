@@ -2,6 +2,7 @@ import io
 import core.blame
 import core.handles
 import discord
+import typing
 
 
 PM_PRIVACY_ERROR = '**Note:** The following message was supposed to be sent to you privately, but your privacy settings didn\'t allow for it.'
@@ -29,15 +30,15 @@ class Module:
 		return items
 
 
-	def collect_background_tasks(self):
+	def collect_background_tasks(self) -> typing.List[core.handles.BackgroundTask]:
 		''' Returns a list of the module's background tasks. '''
 		return self.collect_by_type(core.handles.BackgroundTask)
 
-	def collect_startup_tasks(self):
+	def collect_startup_tasks(self) -> typing.List[core.handles.StartupTask]:
 		''' Returns a list of the module's startup tasks. '''
 		return self.collect_by_type(core.handles.StartupTask)
 
-	def collect_command_handlers(self):
+	def collect_command_handlers(self) -> typing.List[core.handles.Command]:
 		''' Returns a list of the module's command handlers. '''
 		commands = []
 		for name, item in self.__class__.__dict__.items():
@@ -50,19 +51,19 @@ class Module:
 				commands.append(item)
 		return commands
 
-	def collect_message_handlers(self):
+	def collect_message_handlers(self) -> typing.List[core.handles.OnMessage]:
 		''' Returns a list of the module's message handlers. '''
 		return self.collect_by_type(core.handles.OnMessage)
 
-	def collect_edit_handlers(self):
+	def collect_edit_handlers(self) -> typing.List[core.handles.OnEdit]:
 		''' Returns a list of the module's edit handlers. '''
 		return self.collect_by_type(core.handles.OnEdit)
 
-	def collect_reaction_handlers(self):
+	def collect_reaction_handlers(self) -> typing.List[core.handles.ReactionHandler]:
 		''' Returns a list of the module's reaction handlers. '''
 		return self.collect_by_type(core.handles.ReactionHandler)
 
-	def collect_member_join_handlers(self):
+	def collect_member_join_handlers(self) -> typing.List[core.handles.OnMemberJoined]:
 		''' Returns a list of the module's member join handlers. '''
 		return self.collect_by_type(core.handles.OnMemberJoined)
 
@@ -76,17 +77,21 @@ class Module:
 		await core.blame.set_blame(result.id, blame)
 		return result
 
-	async def send_private_fallback(self, to, fallback, message, blame = None, supress_warning = False):
+	async def send_private_fallback(self, to: discord.Member, fallback: discord.Channel, message: str, blame = None, supress_warning = False) -> bool:
 		''' Try and send a private message to a user. If it fails,
 			post it publicly with a warning.
+
+			Return true if it posted privately.
 		'''
 		blame = blame or to
 		try:
 			await self.send_message(to, message, blame = blame)
-		except discord.errors.Forbidden:
+			return True
+		except (discord.errors.Forbidden, discord.errors.HTTPException):
 			if not supress_warning:
 				await self.send_message(fallback, PM_PRIVACY_ERROR, blame = blame)
 			await self.send_message(fallback, message, blame = blame)
+			return False
 
 	async def send_file(self, *args, blame = None, **kwargs):
 		''' Send a file and assign a blame to the message.

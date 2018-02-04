@@ -5,14 +5,36 @@
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata|Josefin+Sans:300|Titillium+Web:300" rel="stylesheet">
 		<link rel="stylesheet" href="style.css">
 		<title>MathBot</title>
+		<script type="text/javascript">
+			function toggleDiv(id) {
+				var sty = document.getElementById(id).style;
+				if (sty.display == 'none' || sty.display == '') sty.display = 'block';
+				else sty.display = 'none';
+			}
+		</script>
 	</head>
 	<body>
 		<div class="navbox">
+			<p class="float-left" id="server-count-widgit">
+				<a href="https://discordbots.org/bot/134073775925886976">
+					<img src="https://discordbots.org/api/widget/servers/134073775925886976.png?noavatar=true&rightcolor=1CBEE9&righttextcolor=FFFFFF&leftcolor=FFFFFF&lefttextcolor=2E2E2E"/>
+				</a>
+			</p>
 			<p>
 				<a href="docs.html">Documentation</a>
 				<a href="https://github.com/DXsmiley/mathbot">Source</a>
 				<a class="orange" href="https://www.patreon.com/dxsmiley">Support Me!</a>
 			</p>
+		</div>
+		<div class="mobile-navbox">
+			<button onclick="toggleDiv('mobile-menu')">Menu</button>
+			<div id="mobile-menu">
+				<ul>
+					<li><p><a href="docs.html">Documentation</a></p></li>
+					<li><p><a href="https://github.com/DXsmiley/mathbot">Source</a></p></li>
+					<li><p><a class="orange" href="https://www.patreon.com/dxsmiley">Support Me!</a></p></li>
+				</ul>
+			</div>
 		</div>
 		<div class="banner banner-large center-content">
 			<div class="center-content">

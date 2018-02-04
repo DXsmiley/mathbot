@@ -1,6 +1,14 @@
 
 <!DOCTYPE html>
 <html>
+	<!--
+
+		WARNING!
+
+		This file is auto-generated. Do not edit it manualy.
+		See generate_docs_page.py for details on how it is created.
+
+	-->
 	<head>
 		<meta charset="utf-8">
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata|Josefin+Sans:300|Titillium+Web:300" rel="stylesheet">
@@ -280,14 +288,14 @@ If you are still having problems you can ask <a href="https://discord.gg/JbJbRZS
 <h1 id="h-blame">Blame</h1>
 
 <p>The <code>=blame</code> command is used to find who caused the bot to post a certain message.</p>
-<p>Usage: <code>=blame message_id</code></p>
-<p>The <code>message_id</code> should be the id of the message that the bot posted. You can find this by enabling developer tools, and then right-clicking on the message you wish to investigate.</p>
+<p>Usage: <code>=blame message_id</code> or <code>=blame recent</code></p>
+<p>The <code>message_id</code> should be the id of the message that the bot posted. You can find this by enabling developer tools, and then right-clicking on the message you wish to investigate. Using <code>recent</code> will get the blame for the most recent message that the bot posted in this channel.</p>
 <p>The bot keeps message blames for only 50 hours. After this, blame records are removed to conserve space.</p>
 
 <h1 id="h-purge">Purge</h1>
 
 <p><code>=purge number</code></p>
-<p>This command will search through most recent <code>number</code> messages and delete any <em>that were sent by the bot</em>. The bot will not search more than the 500 most recent messages.</p>
+<p>This command will search through most recent <code>number</code> messages and delete any <em>that were sent by the bot</em>. The bot will not search more than the 200 most recent messages.</p>
 <p>This command can only be run by users who have the <em>manage messages</em> permission in the respective channel. It will <em>not</em> work in any private channels.</p>
 			</div>
 		</div>

@@ -31,9 +31,6 @@ def repeat(equation, start, end):
 		r = calculator.calculate(equation, tick_limit = TIMEOUT)
 		assert start <= r <= end
 
-def unknown(equation):
-	calculator.calculate(equation, tick_limit = TIMEOUT)
-
 def throws(equation):
 	with pytest.raises(calculator.errors.EvaluationError):
 		calculator.calculate(equation, tick_limit = TIMEOUT)
@@ -92,6 +89,7 @@ def test_math_functions():
 	doit("int(-E)", int(-sympy.E))
 	# doit("round(E)", round(sympy.E))
 	# doit("round(-E)", round(-sympy.E))
+
 
 def test_power():
 	doit("2^3^2", 2**3**2)
@@ -279,13 +277,13 @@ def test_if_statement():
 	doit('x = if, x(2, 3, 4)', 3)
 
 def test_map():
-	doit("' \ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 2)
-	doit("' \ \ \ \ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 8)
-	doit("' \ map((x) ~> x() * 2, list(0, 1, 2, 3, 4, 5))", 2)
-	doit("' \ \ \ map(sin, list(0, 1, 2, 3, 4))", sympy.sin(3))
-	doit("' \ map((x) -> x * 2, range(0, 6))", 2)
-	doit("' \ \ \ \ map((x) -> x * 2, range(0, 6))", 8)
-	throws("' \ \ \ \ map((a, b) -> a + b, list(0, 1, 2, 3, 4, 5))")
+	doit("' \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	doit("' \\ \\ \\ \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 8)
+	doit("' \\ map((x) ~> x() * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	doit("' \\ \\ \\ map(sin, list(0, 1, 2, 3, 4))", sympy.sin(3))
+	doit("' \\ map((x) -> x * 2, range(0, 6))", 2)
+	doit("' \\ \\ \\ \\ map((x) -> x * 2, range(0, 6))", 8)
+	throws("' \\ \\ \\ \\ map((a, b) -> a + b, list(0, 1, 2, 3, 4, 5))")
 	doit("length(list(1, 2, 3))", 3)
 	doit("f = (x) -> x * 2, length(map(f, list()))", 0)
 

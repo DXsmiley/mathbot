@@ -100,13 +100,22 @@ class Disk(Interface):
 				with open(self.filename) as f:
 					stored = json.load(f)
 					self.data.update(stored)
+					for key, value in self.data.items():
+						if isinstance(value['value'], list):
+							value['value'] = collections.deque(value['value'])
 			except FileNotFoundError:
 				pass
 
 	def save(self):
 		if self.filename:
 			with open(self.filename, 'w') as f:
-				blob = dict(self.data)
+				blob = {
+					key : {
+						'value': list(value['value']) if isinstance(value['value'], collections.deque) else value['value'],
+						'expires': value['expires']
+					}
+					for key, value in self.data.items()
+				}
 				json.dump(blob, f, indent = 4)
 
 	def is_expired(self, key):
@@ -132,21 +141,22 @@ class Disk(Interface):
 		self.save()
 
 	async def delete(self, key):
-		del self.data[key]
+		if key in self.data:
+			del self.data[key]
 
 	async def expire(self, key, seconds):
 		self.data[key]['expires'] = time.time() + seconds
 		self.save()
 
 	async def lpush(self, key, value):
-		if not isinstance(self.data[key]['value'], list):
-			await self.set(key, collections.deque)
+		if not isinstance(self.data[key]['value'], collections.deque):
+			await self.set(key, collections.deque())
 		self.data[key]['value'].appendleft(value)
 		self.save()
 
-	async def rpop(self, key, value):
-		if not isinstance(self.data[key]['value'], list):
-			await self.set(key, collections.deque)
+	async def rpop(self, key):
+		if not isinstance(self.data[key]['value'], collections.deque):
+			await self.set(key, collections.deque())
 		if len(self.data[key]['value']) == 0:
 			return None
 		return self.data[key]['value'].pop()

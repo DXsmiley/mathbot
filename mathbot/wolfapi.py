@@ -17,6 +17,10 @@ ASSUMPTION_EMOJI = '🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴
 UNKNOWN_EMOJI = '❔'
 
 
+class RequestFailed(Exception):
+	pass
+
+
 async def echo(x):
 	return x
 
@@ -37,14 +41,16 @@ def listify(x):
 
 
 async def web_get_text_multiple_attempts(session, server, payload, timeout, attempts = 2):
-	try:
-		async with session.get(server, params = payload, timeout = timeout) as result:
-			result.raise_for_status()
-			return await result.text()
-	except Exception:
-		if attempts > 1:
-			return await web_get_text_multiple_attempts(session, server, payload, timeout, attempts - 1)
-		raise
+	while attempts > 0:
+		try:
+			async with session.get(server, params = payload, timeout = timeout) as result:
+				result.raise_for_status()
+				return await result.text()
+		except Exception:
+			attempts -= 1
+			if attempts == 0:
+				raise RequestFailed
+	raise Exception('This point of the code should never have been reached.')
 
 
 class Assumptions:

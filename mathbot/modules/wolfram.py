@@ -39,13 +39,18 @@ ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?
 """
 
+ERROR_MESSAGE_FAILED = '''Failed to make the request.
+Maybe you should try again?
+
+If this error keeps recurring, you should report it to DXsmiley on the \
+official MathBot server: https://discord.gg/JbJbRZS
+'''
+
 ERROR_MESSAGE_TIMEOUT = """Wolfram|Alpha query timed out.
 Maybe you should try again?
 
 If this error keeps recurring, you should report it to DXsmiley on the \
 official MathBot server: https://discord.gg/JbJbRZS
-
-Query: `{}`
 """
 
 ERROR_MESSAGE_ACCOUNT_BLOCKED = """MathBot has exceeded the total number of \
@@ -55,16 +60,9 @@ You should report this error to DXsmiley on the official MathBot \
 server: https://discord.gg/JbJbRZS
 """
 
-FOOTER_MESSAGE = """\
-Query made by {mention}
+FOOTER_LINK = """\
 Data sourced from Wolfram|Alpha: <http://www.wolframalpha.com/input/?{query}>
-**Do more with Wolfram|Alpha Pro**: <http://www.wolframalpha.com/pro/>
-"""
-
-FOOTER_MESSAGE_SHORT = """\
-Query made by {mention}
-Data sourced from Wolfram|Alpha: <http://www.wolframalpha.com>
-**Do more with Wolfram|Alpha Pro**: <http://www.wolframalpha.com/pro/>
+Do more with Wolfram|Alpha Pro: <http://www.wolframalpha.com/pro/>
 """
 
 IGNORE_MESSAGE_SERVER = """\
@@ -206,6 +204,13 @@ class AssumptionDataScope:
 			await core.keystore.set_json('wolfram', 'message', self.message.id, self.data, expire = 60 * 60 * 30)
 
 
+# Dummy message. This is a sign that I need to work on the settings module somewhat.
+class Dummy:
+	def __init__(self, channel):
+		self.channel = channel
+		self.server = channel.server
+
+
 class WolframModule(core.module.Module):
 
 	# sent_footer_messages = {}
@@ -300,14 +305,9 @@ class WolframModule(core.module.Module):
 		text = []
 		error = 0
 		error_message = 'No details'
-		# Dummy message. This is a sign that I need to work on the settings module somewhat.
-		class Dummy:
-			def __init__(self, channel):
-				self.channel = channel
-				self.server = channel.server
 		enable_filter = False
 		if not channel.is_private:
-			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
+			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
 		if enable_filter and wordfilter.is_bad(query):
 			await self.send_message(channel, FILTER_FAILURE, blame = blame)
 			return
@@ -317,7 +317,7 @@ class WolframModule(core.module.Module):
 			print('Done?')
 		except asyncio.TimeoutError:
 			print('W|A timeout:', query)
-			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame = blame)
+			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT, blame = blame)
 		except aiohttp.ClientError as e:
 			print('Wolf: HTTP processing error:', e.message)
 			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
@@ -352,9 +352,7 @@ class WolframModule(core.module.Module):
 					await self.send_image(channel, img, 'result.png', blame = blame)
 					await asyncio.sleep(1.05)
 				# Text section
-				url = urllib.parse.urlencode({'i': query})
-				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
-				adm += '\n**This command is in development.** Suggest improvements on the MathBot server (type `=about` for the link).'
+				adm = await self.format_adm(channel, blame, query, is_pup = True)
 				posted = await self.send_message(channel, adm, blame = blame)
 				print('Done.')
 
@@ -372,7 +370,7 @@ class WolframModule(core.module.Module):
 				self.server = channel.server
 		enable_filter = False
 		if not channel.is_private:
-			enable_filter = await core.settings.channel_get_setting(Dummy(channel), 'f-wolf-filter', 'nsfw' not in channel.name)
+			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
 			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'channel'))
 			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'server'))
 			# print(enable_filter)
@@ -383,6 +381,8 @@ class WolframModule(core.module.Module):
 			print('Making request')
 			result = await api.request(query, assumptions, debug = debug)
 			print('Done?')
+		except wolfapi.RequestFailed:
+			await self.send_message(channel, ERROR_MESSAGE_FAILED, blame = blame)
 		except asyncio.TimeoutError:
 			print('W|A timeout:', query)
 			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame = blame)
@@ -441,12 +441,15 @@ class WolframModule(core.module.Module):
 				textout_joined = ''.join(textitems)
 				url = urllib.parse.urlencode({'i': query})
 				# Determine if the footer should be long or short
-				adm = FOOTER_MESSAGE.format(mention = blame.mention, query = url)
-				if len(textout_joined) + len(adm) > 1950:
-					adm = FOOTER_MESSAGE_SHORT.format(mention = blame.mention)
+				adm = await self.format_adm(channel, blame, query, False)
+				output = textout_joined + adm
+				too_long = False
+				if len(output) >= 2000:
+					too_long = True
+					output = adm
 				# Send the result
-				posted = await self.send_message(channel, textout_joined + adm, blame = blame)
-				if result.assumptions.count - result.assumptions.count_unknown > 0:
+				posted = await self.send_message(channel, output, blame = blame)
+				if result.assumptions.count - result.assumptions.count_unknown > 0 and not too_long:
 					try:
 						if hidden_assumptions:
 							await self.client.add_reaction(posted, EXPAND_EMOJI)
@@ -471,21 +474,38 @@ class WolframModule(core.module.Module):
 				# Complete!
 				print('Done.')
 
+	async def format_adm(self, channel, blame, query, is_pup = False):
+		result = []
+		url = urllib.parse.urlencode({'i': query})
+		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
+			result.append('Query made by {}\n'.format(blame.mention))
+		url = urllib.parse.urlencode({'i': query})
+		result.append(FOOTER_LINK.format(query = url))
+		if not is_pup:
+			result.append('🐺 **Try out the new `=pup` command!** It\'s much more concise.\n')
+		return ''.join(result)
+
 	def get_assumption_text(self, assumptions):
 		if assumptions.count == 0:
 			return ''
 		return '**Assumptions**\n{}\n\n'.format(str(assumptions))
 
 	async def add_reaction_emoji(self, message, assumptions):
-		if assumptions.emoji_count <= MAX_REACTIONS_IN_MESSAGE:
-			for i in range(assumptions.emoji_count):
-				emoji = assumptions.get_emoji(i)
-				if emoji:
-					# Whenever we add a reaction, it automatically exhausts the bucket.
-					# This seems strange, but whatever.
-					await self.client.add_reaction(message, emoji)
-					await asyncio.sleep(0.3)
-		await self.client.add_reaction(message, RERUN_EMOJI)
+		''' Adds assumption emoji to a message. '''
+		try:
+			if assumptions.emoji_count <= MAX_REACTIONS_IN_MESSAGE:
+				for i in range(assumptions.emoji_count):
+					emoji = assumptions.get_emoji(i)
+					if emoji:
+						# Whenever we add a reaction, it automatically exhausts the bucket.
+						# This seems strange, but whatever.
+						await self.client.add_reaction(message, emoji)
+						await asyncio.sleep(0.3)
+			await self.client.add_reaction(message, RERUN_EMOJI)
+		except discord.errors.NotFound:
+			# The message could potentially get deleted part way through
+			# adding emoji. If this happens we should ignore it.
+			print('Message disappeared in the middle of adding reactions.')
 
 
 

@@ -4,7 +4,7 @@
 
 MathBot has a number of settings that can be changed in order to modify its behaviour.
 
-Most notably, server admins are able to enable or disable certain commands on their own servers, on a per-channel basis.
+Server admins are able to enable or disable certain commands on their own servers, on a per-channel basis.
 
 There are also settings for customising command output.
 
@@ -16,15 +16,9 @@ The general structure of the settings command is:
 {{prefix}}set context setting value
 ```
 
-`context` should be one of the following:
-
-- `server` - to apply the setting to the current server
-- `channel` - to apply the setting to the current channel
-- `self` - to apply the setting to yourself
-
+`context` should be either `channel` or `server`.
 `setting` should be the name of one of the settings, listed below.
-
-`value` should be a valid value for the setting. See below for details.
+`value` should be a valid value for the setting. Either `enable`, `disable` or `reset`.
 
 :::page-break
 
@@ -32,14 +26,18 @@ The general structure of the settings command is:
 
 These settings can be applied to the `server` and `channel` contexts, but only by server admins.
 
-`value` should be either `enable`, `disable`, or `original`. `enable` will allow people to use the command in the given context and `disable` will stop people from using it. `original` will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to `original` will mean that it defers to the setting used by the server.
+`value` should be either `enable`, `disable`, or `reset`. `enable` will allow people to use the command in the given context and `disable` will stop people from using it. `reset` will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to `reset` will mean that it defers to the setting used by the server.
 
-- `c-tex` : Enable or disable the `{{prefix}}tex` command. Default: Enabled
-- `c-calc` : Enable or disable the `{{prefix}}calc` command. Default: Enabled
-- `c-wolf` : Enable or disable the `{{prefix}}wolf` command. Default: Enabled
-- `f-calc-shortcut` : Enable or disable the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: Enabled
+- `c-calc` : Enable or disable the `{{prefix}}calc` command. Default: *Enabled*
+- `c-tex` : Enable or disable the `{{prefix}}tex` command. Default: *Enabled*
+- `c-wolf` : Enable or disable the `{{prefix}}wolf` command. Default: *Enabled*
+- `f-calc-shortcut` : Enable or disable the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: *Enabled*
+- `f-tex-inline`: Enable or disable the ability to add inline tex to messages. See `=help tex` for details. Default: *Disabled*.
+- `f-tex-delete`: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: *Disabled*.
 - `f-wolf-filter`: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
-- `f-inline-tex`: Enable or disable the ability to add inline tex to messages. See `=help tex` for details. Default: **Disabled**.
+- `f-wolf-mention`: Enable or disable the `@mention` in the footer of W|A results.
+
+:::page-break
 
 ## Examples
 
@@ -58,3 +56,7 @@ If you are still having problems you can ask on the official server: {{server_li
 :::webpage
 If you are still having problems you can ask [on the official server]({{server_link}}).
 :::endblock
+
+## Extra tools
+
+To check which settings apply to a particular channel, run the `{{prefix}}checkallsettings` command in that channel.

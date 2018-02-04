@@ -16,6 +16,9 @@ import re
 import imageutil
 import core.help
 import advertising
+import discord
+import json
+from open_relative import *
 
 
 core.help.load_from_file('./help/latex.md')
@@ -23,66 +26,22 @@ core.help.load_from_file('./help/latex.md')
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
-META_TEMPLATE = r'''
-\documentclass{article}
 
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{mathrsfs}
-\usepackage{chemfig}
-\usepackage{tikz}
-\usepackage{color}
-\usepackage{xcolor}
-\usepackage{cancel}
-\usepackage[a5paper]{geometry}
+# Load data from external files
 
-\newfam\hebfam
-\font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
-\font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
-\font\tmp=rcjhbltx at5pt  \scriptscriptfont\hebfam=\tmp
-\edef\declfam{\ifcase\hebfam 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
-\mathchardef\shin   = "0\declfam 98
-\mathchardef\aleph  = "0\declfam 27
-\mathchardef\beth   = "0\declfam 62
-\mathchardef\gimel  = "0\declfam 67
-\mathchardef\daleth = "0\declfam 64
-\mathchardef\ayin   = "0\declfam 60
-\mathchardef\tsadi  = "0\declfam 76
-\mathchardef\qof    = "0\declfam 72
-\mathchardef\lamed  = "0\declfam 6C
-\mathchardef\mim    = "0\declfam 6D
-\newcommand{\bbR}{\mathbb{R}}
-\newcommand{\bbQ}{\mathbb{Q}}
-\newcommand{\bbC}{\mathbb{C}}
-\newcommand{\bbZ}{\mathbb{Z}}
-\newcommand{\bbN}{\mathbb{N}}
-\newcommand{\bbH}{\mathbb{H}}
-\newcommand{\bbK}{\mathbb{K}}
-\newcommand{\bbG}{\mathbb{G}}
-\newcommand{\bbP}{\mathbb{P}}
-\newcommand{\bbX}{\mathbb{X}}
-\newcommand{\bbD}{\mathbb{D}}
-\newcommand{\bbO}{\mathbb{O}}
-\newcommand{\bigO}{\mathcal{O}}
+def load_templates():
+	raw = open_relative('template.tex', encoding = 'utf-8').read()
+	# Remove any comments from the template
+	cleaned = re.sub(r'%.*\n', '', raw)
+	template = cleaned.replace('#BLOCK', 'gather*')
+	t_inline = cleaned.replace('#BLOCK', 'flushleft')
+	return template, t_inline
 
-\begin{document}
+TEMPLATE, TEMPLATE_INLINE = load_templates()
 
-\pagenumbering{gobble}
+repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
+TEX_REPLACEMENTS = json.loads(repl_json)
 
-\definecolor{my_colour}{HTML}{#COLOUR}
-\color{my_colour}
-
-\begin{#BLOCK}
-#CONTENT
-\end{#BLOCK}
-
-\end{document}
-'''
-
-TEMPLATE = META_TEMPLATE.replace('#BLOCK', 'gather*')
-TEMPLATE_INLINE = META_TEMPLATE.replace('#BLOCK', 'flushleft')
 
 # Error messages
 
@@ -93,64 +52,10 @@ I don't have permission to upload images here :frowning:
 The owner of this server should be able to fix this issue.
 '''
 
-TEX_REPLACEMENTS = {
-	# Capital greek letters
-	'Γ': r' \Gamma ',
-	'Δ': r' \Delta ',
-	'Θ': r' \Theta ',
-	'Λ': r' \Lambda ',
-	'Ξ': r' \Xi ',
-	'Π': r' \Pi ',
-	'Σ': r' \Sigma',
-	'Υ': r' \Upsilon',
-	'Φ': r' \Phi ',
-	'Ψ': r' \Psi ',
-	'Ω': r' \Omega',
-	# Lower case greek letters
-	'α': r' \alpha ',
-	'β': r' \beta ',
-	'γ': r' \gamma ',
-	'δ': r' \delta ',
-	'ε': r' \epsilon ',
-	'ζ': r' \zeta ',
-	'η': r' \eta ',
-	'θ': r' \theta ',
-	'ι': r' \iota ',
-	'κ': r' \kappa ',
-	'λ': r' \lambda ',
-	'μ': r' \mu ',
-	'ν': r' \nu ',
-	'ξ': r' \xi ',
-	'π': r' \pi ',
-	'ρ': r' \rho ',
-	'ς': r' \varsigma ',
-	'σ': r' \sigma ',
-	'τ': r' \tau ',
-	'υ': r' \upsilon ',
-	'φ': r' \phi ',
-	'χ': r' \chi ',
-	'ψ': r' \psi ',
-	'ω': r' \omega ',
-	# Cyrillic
-	# Mathematical symbols
-	'×': r' \times ',
-	'÷': r' \div ',
-	# Hebrew
-	'ש': r' \shin ',
-	'א': r' \alef ',
-	'ב': r' \beth ',
-	'ג': r' \gimel ',
-	'ד': r' \daleth ',
-	'ל': r' \lamed ',
-	'מ': r' \mim ',
-	'ם': r' \mim ',
-	'ע': r' \ayin ',
-	'צ': r' \tsadi ',
-	'ץ': r' \tsadi ',
-	'ק': r' \qof ',
-	'·': r' \cdot ',
-	'•': r' \cdot '
-}
+DELETE_PERMS_FAILURE = '''\
+The bot has been set up to delete `=tex` command inputs.
+It requires the **manage messages** permission in order to do this.
+'''
 
 
 class RenderingError(Exception):
@@ -160,7 +65,12 @@ class RenderingError(Exception):
 class LatexModule(core.module.Module):
 
 	def __init__(self):
-		# IDEA: Store this in redis
+		# Keep track of recently fulfilled requests
+		# Holds dictionaries of
+		# {
+		# 	'template': (either 'normal' or 'inline', depending on what was used),
+		# 	'message': the ID of the _output_ message
+		# }
 		self.connections = {}
 
 	@core.handles.command('tex latex rtex', '*', perm_setting = 'c-tex')
@@ -172,6 +82,14 @@ class LatexModule(core.module.Module):
 		else:
 			# print('Handling command:', latex)
 			await self.handle(message, latex, 'normal')
+			if await core.settings.get_setting(message, 'f-delete-tex'):
+				await asyncio.sleep(10)
+				try:
+					await self.client.delete_message(message)
+				except discord.errors.NotFound:
+					pass
+				except discord.errors.Forbidden:
+					await self.send_message(message.channel, DELETE_PERMS_FAILURE, blame = message.author)
 
 	@command_latex.edit(require_before = False, require_after = True)
 	async def handle_edit(self, before, after, latex):
@@ -186,7 +104,10 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_message()
 	async def inline_latex(self, message):
-		if not message.author.bot and not message.content.startswith('=') and message.content.count('$$') >= 2:
+		# The testing bot should not be ignored
+		ignore = message.author.bot and message.author.id != '309967930269892608'
+		server_prefix = await core.settings.get_server_prefix(message)
+		if not ignore and not message.content.startswith(server_prefix) and message.content.count('$$') >= 2:
 			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
@@ -194,7 +115,8 @@ class LatexModule(core.module.Module):
 
 	@core.handles.on_edit()
 	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
+		server_prefix = await core.settings.get_server_prefix(before)
+		if not after.content.startswith(server_prefix) and after.content.count('$$') >= 2 and before.content != after.content:
 			if after.channel.is_private or (await core.settings.get_setting(after, 'c-tex') and await core.settings.get_setting(after, 'f-inline-tex')):
 				blob = self.connections.get(before.id, {'template': 'inline'})
 				try:
@@ -227,22 +149,27 @@ class LatexModule(core.module.Module):
 			}
 
 	async def render_and_reply(self, message, latex, colour_back, colour_text):
+		get_timestamp = lambda : message.edited_timestamp or message.timestamp
+		original_timestamp = get_timestamp()
 		try:
 			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
 		except asyncio.TimeoutError:
 			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
 		except RenderingError:
 			print('Rendering Error')
-			return await self.send_message(message.channel,
-				'Rendering failed. Check your code. You can edit your existing message if needed.',
-				blame = message.author
-			)
+			if get_timestamp() == original_timestamp:
+				return await self.send_message(message.channel,
+					'Rendering failed. Check your code. You can edit your existing message if needed.',
+					blame = message.author
+				)
 		else:
 			print('Success!')
 			content = None
 			if await advertising.should_advertise_to(message.author, message.channel):
 				content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-			return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
+			# If the query message has been updated in this time, don't post the (now out of date) result
+			if get_timestamp() == original_timestamp:
+				return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
 
 
 async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
@@ -259,6 +186,7 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 				# print(jdata.get('status'))
 				# print(jdata.get('description'))
 				if jdata['status'] == 'error':
+					# print(json.dumps(jdata))
 					raise RenderingError
 				filename = jdata['filename']
 			# Now actually get the image
@@ -277,17 +205,14 @@ async def generate_image_online(latex, colour_back = None, colour_text = '000000
 
 
 async def get_colours(message):
-	colour_setting = await core.settings.get_setting(message, 'p-tex-colour')
-	if colour_setting == 'transparent':
-		colour_text = '737f8d'
-		colour_back = None
-	elif colour_setting == 'light':
-		colour_text = '202020'
-		colour_back = 'ffffff'
+	colour_setting = await core.keystore.get('p-tex-colour', message.author.id) or 'dark'
+	if colour_setting == 'light':
+		return 'ffffff', '202020'
 	elif colour_setting == 'dark':
-		colour_text = 'f0f0f0'
-		colour_back = '36393E'
-	return colour_back, colour_text
+		return '36393E', 'f0f0f0'
+	# Fallback in case of other weird things
+	return '36393E', 'f0f0f0'
+	# raise ValueError('{} is not a valid colour scheme'.format(colour_setting))
 
 
 def extract_inline_tex(content):
@@ -297,7 +222,11 @@ def extract_inline_tex(content):
 		while True:
 			word = next(parts)
 			if word != '':
-				latex += '{} '.format(word.replace('#', '\#').replace('$', '\$'))
+				latex += '{} '.format(
+					word.replace('#', '\#')
+						.replace('$', '\$')
+						.replace('%', '\%')
+				)
 			word = next(parts)
 			if word != '':
 				latex += '$\displaystyle {}$ '.format(word.strip('`'))

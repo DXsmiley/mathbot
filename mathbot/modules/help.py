@@ -23,20 +23,36 @@ class HelpModule(core.module.Module):
 
 	@core.handles.command('help', '*')
 	async def help_command(self, message, topic):
+		if message.author.bot:
+			return
 		topic = re.sub(r' +', ' ', topic.strip())
 		if topic in ['topics', 'topic', 'list']:
 			listing = ' - `' + '`\n - `'.join(core.help.listing()) + '`\n'
 			msg = 'The following help topics exist:\n{}'.format(listing)
 			# await self.send_message(message.channel, msg, blame = message.author)
-			await self.send_private_fallback(message.author, message.channel, msg)
+			if await self.send_private_fallback(message.author, message.channel, msg) and not message.channel.is_private:
+				await self.send_message(message.channel, 'A list of help topics has been sent to you privately.', blame = message.author)
 		else:
 			response = core.help.get(topic)
-			if response is not None:
+			if response is None:
+				suggestions = core.help.get_similar(topic)
+				if len(suggestions) == 0:
+					msg = "Help topic `{}` does not exist.".format(topic)
+				elif len(suggestions) == 1:
+					msg = "Help topic `{}` does not exist.\nMaybe you meant `{}`?".format(topic, suggestions[0])
+				else:
+					msg = "Help topic `{}` does not exist.\nMaybe you meant one of: {}?".format(
+						topic,
+						', '.join(map("`{}`".format, suggestions))
+					)
+				await self.send_message(message.channel, msg, blame = message.author)
+			else:
+				was_private = True
 				for index, page in enumerate(response):
 					if message.channel.is_private:
 						prefix = await core.keystore.get('last-seen-prefix', message.author.id) or '='
 					else:
-						prefix = await core.settings.get_server_prefix(message.server.id)
+						prefix = await core.settings.get_server_prefix(message.server)
 						await core.keystore.set('last-seen-prefix', message.author.id, prefix)
 					page = doubleformat(
 						page,
@@ -45,7 +61,11 @@ class HelpModule(core.module.Module):
 						**CONSTANTS
 					)
 					# await self.send_message(message.channel, page, blame = message.author)
-					await self.send_private_fallback(message.author, message.channel, page, supress_warning = index > 0)
-			else:
-				msg = "Help topic '{}' does not exist.".format(topic)
-				await self.send_message(message.channel, msg, blame = message.author)
+					if not await self.send_private_fallback(message.author, message.channel, page, supress_warning = index > 0):
+						was_private = False
+				if was_private and not message.channel.is_private:
+					if topic:
+						m = "Information on '{}' has been send to you privately.".format(topic)
+					else:
+						m = "Help has been sent to you privately."	
+					await self.send_message(message.channel, m, blame = message.author)
