@@ -123,7 +123,7 @@ def create_shard_manager(shard_id, shard_count):
 		modules.blame.BlameModule(),
 		modules.about.AboutModule(),
 		modules.latex.LatexModule(),
-		modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
+		modules.calcmod.CalculatorModule(),
 		modules.purge.PurgeModule(),
 		# Will only trigger stats if supplied with tokens
 		modules.analytics.AnalyticsModule(),
