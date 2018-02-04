@@ -390,26 +390,6 @@ def factorial(tokens):
 	return value
 
 
-def dieroll(tokens):
-	if tokens.peek(0, 'die_op'):
-		token = tokens.eat_details()
-		return {
-			'#': 'die',
-			'token': token,
-			'faces': expect(tokens, factorial)
-		}
-	left = factorial(tokens)
-	if tokens.peek(0, 'die_op'):
-		token = tokens.eat_details()
-		return {
-			'#': 'die',
-			'token': token,
-			'times': left,
-			'faces': expect(tokens, factorial)
-		}
-	return left
-
-
 SUPERSCRIPT_MAP = {
 	ord('⁰'): '0',
 	ord('¹'): '1',
@@ -424,7 +404,7 @@ SUPERSCRIPT_MAP = {
 }
 
 def superscript(tokens):
-	result = dieroll(tokens)
+	result = factorial(tokens)
 	while tokens.peek(0, 'superscript'):
 		tok = tokens.eat_details()
 		result = {

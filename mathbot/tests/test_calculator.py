@@ -297,7 +297,7 @@ def test_reduce():
 
 def test_filter():
 	doit('''
-		is_even = (x) -> (x % 2 == 0),
+		is_even = (x) -> (x ~mod 2 == 0),
 		length(filter(is_even, range(0, 100)))
 	''', 50)
 	doit('''

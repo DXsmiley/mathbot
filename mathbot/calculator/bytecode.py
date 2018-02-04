@@ -20,7 +20,6 @@ class I(enum.IntEnum):
 	BIN_POW = 7
 	BIN_AND = 8
 	BIN_OR_ = 9
-	BIN_DIE = 10
 	UNR_NOT = 11
 	UNR_MIN = 12
 	UNR_FAC = 13
