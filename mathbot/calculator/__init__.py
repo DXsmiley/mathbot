@@ -25,7 +25,7 @@ def calculate(equation, tick_limit=None, trace=False):
 	program_location = linker.add_segment(program)
 	interp = calculator.interpereter.Interpereter(linker.constructed(), trace=trace)
 	interp.run(start_address=runtime_location)
-	return interp.run(start_address=program_location, tick_limit=tick_limit, error_if_exhausted=True, expect_complete=True)
+	return interp.run(start_address=program_location, tick_limit=tick_limit, error_if_exhausted=True)
 
 async def calculate_async(equation):
 	''' Evaluate an expression asyncronously '''

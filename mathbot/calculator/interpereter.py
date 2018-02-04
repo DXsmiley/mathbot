@@ -281,7 +281,7 @@ class Interpereter:
 		self.stack.append(item)
 
 	def run(self, start_address=None, tick_limit=None, error_if_exhausted=False,
-			expect_complete=False, get_entire_stack=False):
+			get_entire_stack=False):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
 			error_if_exhausted - If True, an error will be thrown if execution is not finished in the
@@ -290,8 +290,6 @@ class Interpereter:
 		'''
 		if start_address is not None:
 			self.place = start_address
-		if expect_complete:
-			warnings.warn('expect_complete is deprecated', DeprecationWarning)
 		if tick_limit is None:
 			while self.head != bytecode.I.END:
 				self.tick()
@@ -303,9 +301,6 @@ class Interpereter:
 				# print(self.place, self.stack)
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
-		if expect_complete:
-			if len(self.stack) > 2:
-				raise SystemError('Execution finished with extra items on the stack. Is there a leak?')
 		if get_entire_stack:
 			return self.stack[1:]
 		return self.top
