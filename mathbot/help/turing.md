@@ -1,5 +1,3 @@
-:::topics turing
-
 # Turing Completeness
 
 The calculator is actually Turing complete, and can function as it's own small programming language, allowing you to perform more complicated operations.
@@ -9,7 +7,17 @@ Note that these features are currently in *beta* and may be unstable. More compl
  - Any variables that are assigned are contained to the channel that they are created in.
  - Values are purged at least once every 24 hours, so don't rely on the bot to store important information for you.
 
-## Assignments
+## A note on commas
+
+Commas are used in most programming languages to separate expressions, for example in lists of arguments. In the MathBot calculator, expressions are *mostly* optional, however may have to be used in some situations in order to prevent the parser joining adjacent expressions.
+
+For example `[x y z]` is the same as `[x, y, z]`. `[x y (z)]` is *not* the same as `[x, y, (z)]`. In the first case, `y(z)` is interpreted as a function call. Adding the comma prevents this from happening.
+
+Adding additional commas is a bad idea and will probably result in parsing errors.
+
+## Language Features
+
+### Assignments
 
 Assigning variables is simple:
 ```
@@ -21,65 +29,207 @@ Recalling them works the same as it normally would
 x
 ```
 
-Note that the single-letter variable name **d** *cannot* be used, since it clashes with the die-rolling operator.
-
-## If Statements
+### If Statements
 
 If statements are use as follows:
 ```
-if(condition, expression_if_true, expression_if_false)
+if (condition, expression_if_true, expression_if_false)
 ```
 
 So for instance `if(1 < 2, 3, 4)` would evaluate to `3`, but `if(1 > 2, 3, 4)` would evaluate to `4`.
 
 Unlike normal functions, the arguments that are passed to the `if` statement are only evaluated when they are used internally, not beforehand. This means that only one of `expression_if_true` and `expression_if_false` will ever be evaluated.
 
-:::page-break
-
-## Defining Functions
-
-Functions are defined using the following syntax
+Additional arguments can be passed in order to make the function act as an if-elif-else block.
 ```
-(arguments, ...) -> expression
+if (cond_1, expr_1,
+	cond_2, expr_2,
+	cond_3, expr_3,
+	otherwise
+)
+```
+
+Which is the same as
+```
+if (cond_1, expr_1,
+	if (cond_2, expr_2,
+		if (cond_3, expr_3,
+			otherwise
+		)
+	)
+)
+```
+
+### Defining Functions
+
+Anonymous functions are defined using the following syntax
+```
+(arg1 arg2 arg3 ...) -> expression
 ```
 
 Example:
 ```
-(x, y, z) -> (x * y) / z
+(x y z) -> (x * y) / z
 ```
 
-Functions are not given names, but they can be assigned to variables so that they may be used later.
+These can then be assigned to variables
 ```
-sum = (x, y) -> x + y
-sum(3, 5)
+double = (x) -> x * 2
 ```
 
-## Macro Functions
+Alternatively, functions defined at the top level can be given names.
+```
+add(x y) -> x + y
+```
+
+Lambda functions that take a single argument can be defined using a shorthand that excludes the parenthesis.
+```
+a -> a + 1
+```
+
+### Macro Functions
 
 Macros are similar to normal functions, with the difference that all arguments have to be evaluated on demand: Your function gets a series of functions, which take no arguments and return the original value.
 
-Macros are defined using the following syntax:
+Macros are defined using the following syntax.
 ```
-(arguments, ...) ~> expression
+(arg1 arg2 arg3 ...) ~> expression
 ```
+Note the use of `~>` instead of `->`.
 
 For example, the following snippet will evaluate to `8`
 ```
-sum = (x, y) ~> x() + y()
-sum(3, 5)
+sum_macro(x, y) ~> x() + y()
+sum_macro(3, 5)
 ```
 
-## Combining the two
+### Lists
 
-These tools are enough to create things such as the Fibonacci function:
+"Lists" are data structures that act like stacks: you can quickly access the head of a list, adding and removing things from it as required. You can access things further down a list but it'll be slower.
+
+Lists are defined with square braces: `[1 2 3 4]`. The empty list is declared with `[]`.
+
+The `:` operator inserts an item at the head of a list.
 ```
-fib = (n) -> if (n < 2, 1, fib(n - 2) + fib(n - 1))
+1:[2 3 4] # Results in [1 2 3 4]
 ```
 
-## Additional inbuilt functions
+The `'` operator retrieves an item from the head of a list.
+```
+'[1 2 3 4] # Results in 1
+```
 
-There are also a number of additional inbuilt functions designed to help with building more complicated systems. There are described as follows:
+The `\` operator retrieves an item from the head of a list.
+```
+\[1 2 3 4] # Results in [2 3 4]
+```
 
-    - `is_real(x)` - Determines whether x is a real number (an integer or a float).
-    - `is_complex(x)` - Determines whether x is a complex number.
-    - `is_function(x)` - Determines whether x is function (or a macro).
+# Standard Library
+
+## Binary operator equivalents
+```
+       sum (a b) -> a + b
+   product (a b) -> a * b
+difference (a b) -> a - b
+  quotient (a b) -> a / b
+     power (a b) -> a ^ b
+    modulo (a b) -> a ~mod b
+       and (a b) -> a && b
+        or (a b) -> a || b
+```
+
+## Comparisons
+```
+max (a b) -> if(a > b a b)
+min (a b) -> if(a < b a b)
+```
+
+## List manipulation
+
+### `repeat(item times)`
+
+Produce a list with `times` `item`s.
+
+Example:
+```
+repeat(0 4) # Produces [0 0 0 0]
+```
+
+### `reverse(list)`
+
+Produces a reversed list.
+
+Example:
+```
+reverse([1 2 3 4]) # Produces [4 3 2 1]
+```
+
+The implementation is optimised to use tail recursion, so runs in a constant amount of stack space.
+
+### `map(function list)`
+
+Applies `function` to each element of `list`, returning a new list.
+
+Example:
+```
+double(x) -> x * 2
+map(double [1 2 3 4]) # Produces [2 4 6 8]
+```
+
+### `filter(predicate list)`
+
+Returns a list with elements from `list` for which passing the item to `predicate` returns a truthy value.
+
+Example:
+```
+is_even(x) -> (x ~mod 2) == 0
+filter(is_even [0 1 2 3 4 5 6 7]) # Produces [0 2 4 6]
+```
+
+### `list(items ... )`
+
+Produces a list of any number of items. Variadic.
+
+### `join(lists ...)`
+
+Concatenates any number of lists.
+
+Example:
+```
+join([1 2] [3 4] [5 6]) # Produces [1 2 3 4 5 6]
+```
+
+### `sort(list)`
+
+Produces a list with the items of `list` in order, according to the `<`, `==` and `>` operators.
+
+Example:
+```
+sort([6 2 4 8 7 5 3 1]) # Produces [1 2 3 4 5 6 7 8]
+```
+
+# System details
+
+## Optimisations
+
+### Memoisation
+
+User-defined non-macro functions have memoisation applied to them automatically.
+
+Thus, the following code executes quickly, even for large `x`:
+```
+fib(x) -> if (x < 2, 1, fib(x - 2) + fib(x - 1))
+```
+
+The memoisation is not foolproof and could probably do with some improvement.
+
+### Tail recursion optimisation
+
+Simple situations for tail-recursion are optimised in order to conserve stack frames.
+
+For example, the standard library defines the `reverse` function as the following:
+```
+_reverse(input output) -> if(!input output _reverse(\input 'inputs:output))
+reverse(list) -> _reverse(input .)
+```
+Which works by repeatedly taking the top item from the input list and perpending it to the output list.
