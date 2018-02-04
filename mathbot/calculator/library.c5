@@ -15,7 +15,7 @@ product (a b) -> a * b
 difference (a b) -> a - b
 quotient (a b) -> a / b
 power (a b) -> a ^ b
-modulo (a b) -> a % b
+modulo (a b) -> a ~mod b
 and (a b) -> a && b
 or (a b) -> a || b
 

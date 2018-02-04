@@ -299,6 +299,18 @@ def atom(tokens):
 		return tokens.eat_details()
 
 
+def percentage(tokens):
+	if tokens.peek_sequence(0, 'number', 'percent_op'):
+		number = atom(tokens)
+		token = tokens.eat_details()
+		return {
+			'#': 'percent_op',
+			'token': token,
+			'value': number
+		}
+	return atom(tokens)
+
+
 def word(tokens):
 	if tokens.peek(0, 'word'):
 		return tokens.eat_details()
@@ -315,14 +327,14 @@ def wrapped_expression(tokens):
 		return ensure_completed(expression, tokens.eat_details())
 	if tokens.peek(0, BracketType.SQUARE):
 		return ensure_completed(list_literal, tokens.eat_details())
-	return atom(tokens)
+	return percentage(tokens)
 
 
 def function_call(tokens):
 	# Slightly 'intelligent' parsing, since integers
 	# cannot be called as functions
 	if tokens.peek(0, 'number'):
-		return atom(tokens)
+		return percentage(tokens)
 	value = wrapped_expression(tokens)
 	calls = []
 	while tokens.peek(0, BracketType.ROUND) and not tokens.peek(1, 'function_definition'):
@@ -708,7 +720,8 @@ def parse(string, source_name = '__unknown__'):
 			# ('die_op', r'd'),
 			('pow_op', r'\^'),
 			('superscript', r'[⁰¹²³⁴⁵⁶⁷⁸⁹]+'),
-			('mod_op', r'\%'),
+			('percent_op', r'\%'),
+			('mod_op', r'~mod'),
 			('mul_op', r'[/÷]', '/'),
 			('mul_op', r'[*×]', '*'),
 			('add_op', r'[+-]'),

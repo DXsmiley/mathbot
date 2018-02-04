@@ -72,9 +72,9 @@ def test_4func():
 	# doit("6.02E23 x 8.048", 6.02E23 * 8.048)
 
 def test_modulo():
-	doit('5 % 2', 1)
-	doit('10 % 4', 2)
-	throws('10 % 0')
+	doit('5 ~mod 2', 1)
+	doit('10 ~mod 4', 2)
+	throws('10 ~mod 0')
 
 def test_constants():
 	doit("PI * PI / 10", sympy.pi * sympy.pi / 10)
@@ -365,3 +365,8 @@ def test_lists():
 	doit("length(.)", 0)
 	doit("length([])", 0)
 	doit("'\\\\\\\\join([1 2 3] [4 5 6])", 5)
+
+def test_percentage():
+	doit('100%', 1)
+	doit('1%', 0.01)
+	doit('1 + 1%', 1.01)

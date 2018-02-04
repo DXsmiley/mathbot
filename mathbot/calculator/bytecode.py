@@ -90,7 +90,7 @@ OPERATOR_DICT = {
 	'*': I.BIN_MUL,
 	'/': I.BIN_DIV,
 	'^': I.BIN_POW,
-	'%': I.BIN_MOD,
+	'~mod': I.BIN_MOD,
 	'&&': I.BIN_AND,
 	'||': I.BIN_OR_,
 	'<': I.BIN_LESS,
@@ -412,6 +412,11 @@ class CodeSegment:
 	def btcfy_uminus(self, node, keys):
 		self.bytecodeify(node['value'], keys)
 		self.push(I.UNR_MIN, error = node['token']['source'])
+
+	def btcfy_percent_op(self, node, keys):
+		self.bytecodeify({'#': 'number', 'string': '100'}, keys)
+		self.bytecodeify(node['value'], keys)
+		self.push(I.BIN_DIV, error = node['token']['source'])
 
 	def btcfy_word(self, node, keys):
 		scope, depth, index = keys['scope'].find_value(node['string'].lower())
