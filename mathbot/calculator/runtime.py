@@ -89,27 +89,6 @@ def array_length(x):
 	return len(x)
 
 
-def array_splice(array, start, end):
-	if not isinstance(array, Array):
-		raise EvaluationError('Cannot splice non-array')
-	if not isinstance(start, int) or not isinstance(end, int):
-		raise EvaluationError('Non-integer indexes passed to splice')
-	# Todo: Make this efficient
-	return Array(array.items[start:end])
-
-
-# Todo: Make this more efficient
-def array_join(*items):
-	if len(items) == 0:
-		raise EvaluationError('Cannot join no arrays together.')
-	result = []
-	for i in items:
-		if not isinstance(i, Array):
-			raise EvaluationError('Cannot call join on non-array')
-		result += i.items
-	return Array(result)
-
-
 def array_expand(*arrays):
 	for i in arrays:
 		if not isinstance(i, (Array, ListBase)):
@@ -172,8 +151,6 @@ BUILTIN_FUNCTIONS = {
 	'ln': sympy.log,
 	'is_function': is_function,
 	'length': array_length,
-	'join': array_join,
-	'splice': array_splice,
 	'expand': array_expand,
 	# 'range': make_range,
 	'int': sympy.Integer,
@@ -306,7 +283,7 @@ def _prepare_runtime(exportable=False):
 	yield calculator.bytecode.ast_to_bytecode(ast, unsafe=True)
 
 
-@functools.lru_cache
+@functools.lru_cache(4)
 def prepare_runtime(**kwargs):
 	return list(_prepare_runtime(**kwargs))
 

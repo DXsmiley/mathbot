@@ -111,11 +111,11 @@ class SimpleFormatter:
                     self._collector.print(i.value)
             self.fmt('"')
         else:
-            self.fmt('list(')
+            self.fmt('[')
             for i in list:
                 self.fmt(i, ', ')
             self.drop()
-            self.fmt(')')
+            self.fmt(']')
 
     def fmt_py_list(self, lst):
         ''' Formay a python list '''

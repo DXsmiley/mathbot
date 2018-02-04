@@ -110,11 +110,15 @@ class Terminal:
         if self.allow_special_commands and line == ':tree':
             self.show_tree = not self.show_tree
         elif self.allow_special_commands and line == ':parsepoint':
-            show_parsepoint = not show_parsepoint
+            self.show_parsepoint = not self.show_parsepoint
         elif self.allow_special_commands and line == ':trace':
             self.interpereter.trace = not self.interpereter.trace
         elif self.allow_special_commands and line == ':type':
             self.show_result_type = not self.show_result_type
+        elif self.allow_special_commands and line == ':dump':
+            c = self.linker.constructed()
+            for byte, elnk in zip(c.bytecode, c.error_link):
+                print(byte, elnk)
         elif self.allow_special_commands and line == ':cache':
             for key, value in self.interpereter.calling_cache.values.items():
                 prt('{:40} : {:20}'.format(str(key), str(value)))

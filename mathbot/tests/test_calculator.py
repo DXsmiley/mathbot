@@ -358,3 +358,12 @@ def test_strings():
 	doit('\'"Hello"', 'H')
 	doit('\\"Hello"', 'ello')
 	doit(';a:; :"string"', "a string")
+
+def test_lists():
+	doit("'[1 2 3]", 1)
+	doit("'\\[1 2 3]", 2)
+	doit("'\\\\[1 2 3]", 3)
+	doit("length([1 2 3])", 3)
+	doit("length(.)", 0)
+	doit("length([])", 0)
+	doit("'\\\\\\\\join([1 2 3] [4 5 6])", 5)

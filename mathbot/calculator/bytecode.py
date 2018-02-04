@@ -525,6 +525,12 @@ class CodeSegment:
 		self.bytecodeify(node['expression'], keys)
 		self.push(I.LIST_EXTRACT_REST, error = node['token']['source'])
 
+	def btcfy_list_literal(self, node, keys):
+		self.push(I.LIST_CREATE_EMPTY)
+		for item in node['items'][::-1]:
+			self.bytecodeify(item, keys)
+			self.push(I.LIST_PREPEND)
+
 	def btcfy_function_call(self, node, keys, allow_tco):
 		args = node.get('arguments', {'items': []})['items']
 		function_name = node['function']['string'].lower() if node['function']['#'] == 'word' else None

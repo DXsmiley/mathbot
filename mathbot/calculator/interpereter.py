@@ -313,7 +313,7 @@ class Interpereter:
 	async def run_async(self, get_entire_stack=False):
 		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
-			self.run(self.yield_rate)
+			self.run(tick_limit = self.yield_rate)
 			# Yield so that other coroutines may run
 			await asyncio.sleep(0)
 		if get_entire_stack:
@@ -325,15 +325,13 @@ class Interpereter:
 		if self.trace:
 			print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
-		if inst is None:
-			print('Tried to run unknown instruction:', self.head)
-			raise EvaluationError('Tried to run unknown instruction: ' + repr(self.head))
-		else:
-			try:
-				inst()
-			except EvaluationError as error:
-				error._linking = self.erlnk[self.place]
-				self.panic(error)
+		try:
+			if not isinstance(self.head, bytecode.I) or inst is None:
+				raise SystemError('Tried to run unknown instruction: ' + repr(self.head))
+			inst()
+		except EvaluationError as error:
+			error._linking = self.erlnk[self.place]
+			self.panic(error)
 		self.place += 1
 
 	def panic(self, error):

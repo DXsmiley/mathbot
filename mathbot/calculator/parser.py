@@ -304,9 +304,17 @@ def word(tokens):
 		return tokens.eat_details()
 
 
+def list_literal(tokens):
+	r = _argument_list(tokens)
+	r['#'] = 'list_literal'
+	return r
+
+
 def wrapped_expression(tokens):
 	if tokens.peek(0, BracketType.ROUND):
 		return ensure_completed(expression, tokens.eat_details())
+	if tokens.peek(0, BracketType.SQUARE):
+		return ensure_completed(list_literal, tokens.eat_details())
 	return atom(tokens)
 
 
