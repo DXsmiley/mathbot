@@ -37,14 +37,6 @@ def except_math_error(f, name = None):
 	return internal
 
 
-def maybe_complex(f_real, f_complex):
-	def internal(x):
-		if isinstance(x, complex):
-			return f_complex(x)
-		return f_real(x)
-	return except_math_error(internal)
-
-
 # Changes a trig function to take degrees as its arguments
 def fdeg(func):
 	return lambda x : func(math.radians(x))
@@ -144,6 +136,12 @@ def make_range(start, end):
 def mylog(e, b = 10):
 	return sympy.log(e, b)
 
+def to_degrees(r):
+	return r * sympy.Number(180) / sympy.pi
+
+def to_radians(d):
+	return d * sympy.pi / sympy.Number(180)
+
 BUILTIN_FUNCTIONS = {
 	# 'is_real': is_real,
 	# 'is_complex': is_complex,
@@ -154,7 +152,9 @@ BUILTIN_FUNCTIONS = {
 	'expand': array_expand,
 	# 'range': make_range,
 	'int': sympy.Integer,
-	'subs': lambda expr, symbol, value: expr.subs(symbol, value)
+	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
+	'deg': to_degrees,
+	'rad': to_radians
 }
 
 # FIXED_VALUES = {
@@ -173,6 +173,7 @@ BUILTIN_FUNCTIONS = {
 FIXED_VALUES = {
 	'π': sympy.pi,
 	'τ': sympy.pi * 2,
+	'tau': sympy.pi * 2,
 	'true': sympy.Integer(1),
 	'false': sympy.Integer(0)
 }

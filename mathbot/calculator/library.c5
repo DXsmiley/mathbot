@@ -87,3 +87,18 @@ sort(x) -> if(!x .
 		     filter(i -> i == 'x, x)
 		sort(filter(i -> i >  'x, x))
 	))
+
+# Trig functions for degrees
+sind(d) -> sin(rad(d))
+cosd(d) -> cos(rad(d))
+tand(d) -> tan(rad(d))
+cotd(d) -> cot(rad(d))
+cscd(d) -> csc(rad(d))
+secd(d) -> sec(rad(d))
+asind(d) -> deg(asin(d))
+acosd(d) -> deg(acos(d))
+atand(d) -> deg(atan(d))
+acotd(d) -> deg(acot(d))
+acscd(d) -> deg(acsc(d))
+asecd(d) -> deg(asec(d))
+

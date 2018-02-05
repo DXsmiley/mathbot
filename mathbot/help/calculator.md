@@ -49,24 +49,22 @@ The following constants exist:
 
 The following functions are available:
 
-    - `sin(x)` : sine of an angle (radians)
-    - `cos(x)` : cosine of an angle (radians)
-    - `tan(x)` : tan of an angle (radians)
-    - `sind(x)` : sine of an angle (degrees)
-    - `cosd(x)` : cosine of an angle (degrees)
-    - `tand(x)` : tan of an angle (degrees)
-    - `asin(x)` : inverse sine (radians)
-    - `acos(x)` : inverse cosine (radians)
-    - `atan(x)` : inverse tan (radians)
-    - `asind(x)` : inverse sine (degrees)
-    - `acosd(x)` : inverse cosine (degrees)
-    - `atand(x)` : inverse tan (degrees)
-    - `sinh(x)` : hyperbolic sine function
-    - `cosh(x)` : hyperbolic cosine function
-    - `tanh(x)` : hyperbolic tan function
-    - `asinh(x)` : inverse hyperbolic sine
-    - `acosh(x)` : inverse hyperbolic cosine
-    - `atanh(x)` : inverse hyperbolic tan
+```
+|------------------------------------------------------------------|
+| function | radians | degress | inverse radians | inverse degrees |
+|------------------------------------------------------------------|
+| Sine     | sin     | sind    | asin            | asind           |
+| Cosine   | cos     | cosd    | acos            | acosd           |
+| Tangent  | tan     | tand    | atan            | atand           |
+| Cosecant | csc     | cscd    | acsc            | acscd           |
+| Secant   | sec     | secd    | asec            | asecd           |
+| Cotan    | cot     | cotd    | acot            | acotd           |
+| Hyp-Sin  | sinh    |         | asinh           |                 |
+| Hyp-Cos  | cosh    |         | acosh           |                 |
+| Hyp-Tan  | tanh    |         | atanh           |                 |
+|------------------------------------------------------------------|
+```
+
     - `deg(r)` : converts radians to degrees
     - `rad(d)` : converts degrees to radians
     - `log(x)` : log in base 10
