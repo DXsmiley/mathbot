@@ -18,6 +18,9 @@ On line {line_num} at position {position}
 {carat}'''
 
 
+TAB_WITH = 8
+
+
 class AccessGlobalMissHook:
 
     def __init__(self, interpereter, linker):
@@ -39,13 +42,14 @@ class AccessGlobalMissHook:
 
 class Terminal:
 
-    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100, load_on_demand=True):
+    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100, load_on_demand=True, colour_output=False):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
         self.linker = calculator.bytecode.Linker()
         self.allow_special_commands = allow_special_commands
         self.load_on_demand = load_on_demand
+        self.colour_output = colour_output
         if not load_on_demand:
             try:
                 runtime = calculator.runtime.prepare_runtime()
@@ -209,11 +213,16 @@ def format_error_place(string, position):
     while line < len(lines) - 2 and position > len(lines[line]):
         position -= len(lines[line]) + 1
         line += 1
+    tabs_to_the_left = lines[line][:position].count('\t')
     return ERROR_TEMPLATE.format(
         line_num = line,
         position = position + 1,
-        prev = lines[line - 1],
-        cur = lines[line],
-        next = lines[line + 1],
-        carat = ' ' * position + '^'
+        prev = cleanup_line(lines[line - 1]),
+        cur = cleanup_line(lines[line]),
+        next = cleanup_line(lines[line + 1]),
+        carat = ' ' * (position + tabs_to_the_left * (TAB_WITH - 1)) + '^'
     )
+
+
+def cleanup_line(l):
+    return l.replace('\t', ' ' * TAB_WITH)
