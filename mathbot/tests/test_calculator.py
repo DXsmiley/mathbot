@@ -395,3 +395,10 @@ def test_percentage():
 	doit('100%', 1)
 	doit('1%', 0.01)
 	doit('1 + 1%', 1.01)
+
+def test_try_catch():
+	doit('try(1, x)', 1)
+	doit('try(x, 2)', 2)
+	doit('try(x, 2, 3, 4, 5)', 2)
+	doit('try(x, x, 3, 4, 5)', 3)
+	doit('try(x, 8, x)', 8)

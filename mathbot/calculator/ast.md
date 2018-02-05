@@ -66,11 +66,6 @@ This does not differentiate between macros and normal functions.
 - `variable`:  A `word`.
 - `value`: AST.
 
-## `statement_list` (this is effectively a program)
-
-- `statement`: AST of a statement.
-- `next`: Either None, or a `statement_list`.
-
 ## `program` (DEPRECATED?)
 
 - `items`: List of statements?

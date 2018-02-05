@@ -142,14 +142,6 @@ class GlobalToken:
 		self.name = name
 
 
-class BytecodeAddress:
-
-	__slots__ = ['location']
-
-	def __init__(self, location):
-		self.location = location
-
-
 class Scope:
 
 	__slots__ = ['superscope', 'name_mapping']
@@ -273,8 +265,6 @@ class Linker:
 		for v in segment.bytecode:
 			if isinstance(v, GlobalToken):
 				v = self.resolve_name(v.name)
-			if isinstance(v, BytecodeAddress):
-				v = v.address + start_address
 			if isinstance(v, Pointer):
 				v = v.destination.location
 			if isinstance(v, Destination):
@@ -464,11 +454,6 @@ class CodeSegment:
 		self.push(I.DECLARE_SYMBOL)
 		self.push(index)
 		self.push(name)
-
-	def btcfy_statement_list(self, node, keys):
-		self.bytecodeify(node['statement'], keys)
-		if node['next'] is not None:
-			self.bytecodeify(node['next'], keys)
 
 	def btcfy_program(self, node, keys):
 		for i in node['items']:
