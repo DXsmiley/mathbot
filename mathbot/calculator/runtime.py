@@ -17,62 +17,21 @@ import calculator.operators as operators
 import calculator.parser as parser
 
 
-def except_math_error(f, name = None):
-	name = name or f.__name__
-	def internal(*x):
-		try:
-			return f(*x)
-		except EvaluationError as e:
-			raise e
-		except Exception:
-			if len(x) == 0:
-				raise EvaluationError('Can\'t run {} function with no arguments.'.format(name))
-			elif len(x) == 1:
-				formatted = calculator.errors.format_value(x[0])
-				raise EvaluationError('Can\'t run {} function on value {}'.format(name, formatted))
-			else:
-				formatted = ', '.join(map(calculator.errors.format_value, x))
-				raise EvaluationError('Can\'t run {} function on values ({})'.format(name, formatted))
-	internal.__name__ = name
-	return internal
+ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
 
 
-# Changes a trig function to take degrees as its arguments
-def fdeg(func):
-	return lambda x : func(math.radians(x))
-
-
-# Changes a trig function to produce degrees as its output
-def adeg(func):
-	return lambda x : math.degrees(func(x))
-
-
-def m_choose(n, k):
-	return calculator.operators.operator_division(
-		calculator.operators.function_factorial(n),
-		calculator.operators.operator_multiply(
-			calculator.operators.function_factorial(k),
-			calculator.operators.function_factorial(
-				calculator.operators.operator_subtract(
-					n,
-					k
-				)
-			)
-		)
-	)
+def protect_sympy_function(func):
+	def replacement(*args):
+		for i in args:
+			if not isinstance(i, ALL_SYMPY_CLASSES):
+				raise TypeError
+		return func(*args)
+	replacement.__name__ = func.__name__
+	return replacement
 
 
 def is_function(x):
 	return int(isinstance(x, Function) or isinstance(x, BuiltinFunction))
-
-
-def is_real(x):
-	return int(isinstance(x, int) or isinstance(x, float))
-
-
-def is_complex(x):
-	return int(isinstance(x, complex))
-
 
 
 def array_length(x):
@@ -100,74 +59,32 @@ def make_range(start, end):
 	return Interval(start, 1, end - start)
 
 
-# BUILTIN_MATH_FUNCTIONS = {
-# 	# 'interval': lambda a, b: List(range(a, b)),
-# 	'sin': maybe_complex(math.sin, cmath.sin),
-# 	'cos': maybe_complex(math.cos, cmath.cos),
-# 	'tan': maybe_complex(math.tan, cmath.tan),
-# 	'sind': fdeg(math.sin),
-# 	'cosd': fdeg(math.cos),
-# 	'tand': fdeg(math.tan),
-# 	'asin': maybe_complex(math.asin, cmath.asin),
-# 	'acos': maybe_complex(math.acos, cmath.acos),
-# 	'atan': maybe_complex(math.atan, cmath.atan),
-# 	'asind': adeg(math.asin),
-# 	'acosd': adeg(math.acos),
-# 	'atand': adeg(math.atan),
-# 	'sinh': maybe_complex(math.sinh, cmath.sinh),
-# 	'cosh': maybe_complex(math.cosh, cmath.cosh),
-# 	'tanh': maybe_complex(math.tanh, cmath.tanh),
-# 	'asinh': maybe_complex(math.asinh, cmath.asinh),
-# 	'acosh': maybe_complex(math.acosh, cmath.acosh),
-# 	'atanh': maybe_complex(math.atanh, cmath.atanh),
-# 	'deg': math.degrees,
-# 	'rad': math.radians,
-# 	'log': calculator.operators.function_logarithm,
-# 	'ln': maybe_complex(math.log, cmath.log),
-# 	'round': round,
-# 	'int': int,
-# 	'sqrt': lambda x : x ** 0.5,
-# 	'gamma': lambda x: calculator.operators.function_factorial(x - 1),
-# 	'gcd': calculator.operators.function_gcd,
-# 	'lcm': calculator.operators.function_lcm,
-# 	'choose': m_choose
-# }
-
+@protect_sympy_function
 def mylog(e, b = 10):
 	return sympy.log(e, b)
 
+
+@protect_sympy_function
 def to_degrees(r):
 	return r * sympy.Number(180) / sympy.pi
 
+
+@protect_sympy_function
 def to_radians(d):
 	return d * sympy.pi / sympy.Number(180)
 
+
 BUILTIN_FUNCTIONS = {
-	# 'is_real': is_real,
-	# 'is_complex': is_complex,
 	'log': mylog,
 	'ln': sympy.log,
 	'is_function': is_function,
 	'length': array_length,
 	'expand': array_expand,
-	# 'range': make_range,
 	'int': sympy.Integer,
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
 	'deg': to_degrees,
 	'rad': to_radians
 }
-
-# FIXED_VALUES = {
-# 	'e': math.e,
-# 	'pi': math.pi,
-# 	'π': math.pi,
-# 	'tau': math.pi * 2,
-# 	'τ': math.pi * 2,
-# 	'i': 1j,
-# 	'euler_gamma': 0.577215664901,
-# 	'true': 1,
-# 	'false': 0
-# }
 
 
 FIXED_VALUES = {
@@ -195,18 +112,6 @@ EXTRACT_FROM_SYMPY = '''
 	tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
 	exp root sqrt pi E I gcd lcm gamma factorial
 '''
-# Things not used:
-# polar_lift periodic_argument principal_branch diff integrate
-
-ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
-
-def protect_sympy_function(func):
-	def replacement(*args):
-		for i in args:
-			if not isinstance(i, ALL_SYMPY_CLASSES):
-				raise TypeError
-		return func(*args)
-	return replacement
 
 
 for i in EXTRACT_FROM_SYMPY.split():
@@ -221,9 +126,6 @@ for i in EXTRACT_FROM_SYMPY.split():
 # Code that is really useful to it's included by default
 with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
-
-
-# CodeSegment.bytecodeify.btcfy__exact_item_hack = lambda s, n, _: s.push(n['value'])
 
 
 def _assignment_code(name, value, add_terminal_byte=False):

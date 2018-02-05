@@ -102,3 +102,5 @@ acotd(d) -> deg(acot(d))
 acscd(d) -> deg(acsc(d))
 asecd(d) -> deg(asec(d))
 
+choose(n, k) -> n! / k! / (n - k)!
+
