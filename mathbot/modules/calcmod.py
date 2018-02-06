@@ -197,6 +197,6 @@ def history_grouping(commands):
 			yield '```\n{}\n```'.format(''.join(current))
 			current = []
 			current_size = 0
-		current.append(i + '\n\n')
+		current.append(i + '\n')
 		current_size += i_size
 	yield '```\n{}\n```'.format(''.join(current))
