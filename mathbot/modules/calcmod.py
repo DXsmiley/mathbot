@@ -116,10 +116,9 @@ class CalculatorModule(core.module.Module):
 			elif result.count('\n') > 0:
 				result = '```\n{}\n```'.format(result)
 			else:
-				result = result.replace('*', '\\*')
-				result = result.replace('_', '\\_')
-				result = result.replace('#', '\\#')
-				result = result.replace('@', '\\@')
+				for special_char in ('*', '\\', '_', '~~', '`'):
+					result = result.replace(special_char, '\\' + special_char)
+				result = result.replace('@', '\N{zero width non-joiner}@')
 			if result == '':
 				result = ':thumbsup:'
 			elif len(result) > 2000:
