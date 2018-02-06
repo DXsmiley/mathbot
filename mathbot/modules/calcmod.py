@@ -118,6 +118,8 @@ class CalculatorModule(core.module.Module):
 			else:
 				result = result.replace('*', '\\*')
 				result = result.replace('_', '\\_')
+				result = result.replace('#', '\\#')
+				result = result.replace('@', '\\@')
 			if result == '':
 				result = ':thumbsup:'
 			elif len(result) > 2000:
