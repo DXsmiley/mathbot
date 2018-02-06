@@ -344,6 +344,9 @@ def test_invalid_syntax():
 	parse_fail('== = ==')
 	parse_fail('= = =')
 	parse_fail('== == ==')
+	parse_fail('3 -> 3')
+	parse_fail('[] -> 3')
+	parse_fail('-> -> x')
 
 def test_compile_failures():
 	compile_fail('(if) -> 0')

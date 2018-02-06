@@ -297,6 +297,7 @@ def eat_optionally_delimited(subrule, delimiters, binding, type, allow_nothing =
 def atom(tokens):
 	if tokens.peek(0, 'number', 'word', 'period', 'string', 'glyph'):
 		return tokens.eat_details()
+	raise UnableToFinishParsing(tokens)
 
 
 def percentage(tokens):
@@ -476,7 +477,7 @@ def power(tokens):
 			'operator': '^',
 			'token': t,
 			'left': left,
-			'right': uminus(tokens)
+			'right': expect(tokens, uminus)
 		}
 	return left
 
@@ -533,7 +534,7 @@ def function_definition(tokens, allow_equal_sign = False):
 			}
 			is_variadic = False
 		else:
-			raise ParseFailed(tokens)
+			raise UnableToFinishParsing(tokens)
 		kind = tokens.eat_details()
 		expr = expression(tokens)
 		return {
