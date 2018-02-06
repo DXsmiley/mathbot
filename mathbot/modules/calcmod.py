@@ -118,7 +118,7 @@ class CalculatorModule(core.module.Module):
 			else:
 				for special_char in ('*', '\\', '_', '~~', '`'):
 					result = result.replace(special_char, '\\' + special_char)
-				result = result.replace('@', '\N{zero width non-joiner}@')
+				result = result.replace('@', '@\N{zero width non-joiner}')
 			if result == '':
 				result = ':thumbsup:'
 			elif len(result) > 2000:
