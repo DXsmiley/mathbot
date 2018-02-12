@@ -378,7 +378,7 @@ IMAGE_Y_PADDING = 10
 
 def process_images(sections, is_dark):
 	strip = sections_to_image_strip(sections)
-	strip = retheme_images(strip) if is_dark else map(lambda x: x[0], sections)
+	strip = retheme_images(strip) if is_dark else map(lambda x: x[0], strip)
 	background_colour = hex_to_tuple_a('36393EFF') if is_dark else hex_to_tuple_a('FFFFFFFF')	
 	for img in conjoin_image_results(strip, background_colour):
 		img = paste_to_background(img, background_colour)
