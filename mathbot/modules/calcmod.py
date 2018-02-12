@@ -128,30 +128,6 @@ class CalculatorModule(core.module.Module):
 			if await core.settings.get_setting(message, 'f-calc-shortcut'):
 				return core.handles.Redirect('calc', arg[2:])
 
-	# Loads a module from the module server. This is currently down and you
-	# really shouldn't be playing around with the feature. The command is
-	# also not documented
-	# If I ever get back to working on this feature, it'll need a parameter
-	# to change the url of ther server
-	@core.handles.command('loadmodule', 'string', perm_setting = 'c-calc')
-	async def handle_load_module(self, message, argument):
-		if core.parameters('calculator loadmodule'):
-			if patrons.tier(message.author.id) == patrons.TIER_NONE:
-				await self.send_message(message.channel,
-					'This command is user development and currently only avaiable to patrons.\nSupport the bot here: https://www.patreon.com/dxsmiley',
-					blame = message.author
-				)
-			else:
-				code = None
-				async with aiohttp.ClientSession() as session:
-					url = 'https://dxbot.herokuapp.com'
-					if self.is_dev:
-						url = 'http://localhost:5000'
-					async with session.get(url + '/api/get/' + argument) as response:
-						jdata = await response.json()
-						code = jdata['content']
-				await self.perform_calculation(code.strip(), message)
-
 
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message, should_sort = False):
