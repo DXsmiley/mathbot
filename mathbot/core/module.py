@@ -69,11 +69,15 @@ class Module:
 
 	# Functions used by the end user
 
-	async def send_message(self, *args, blame = None, **kwargs):
+	async def send_message(self, destination, *args, blame = None, **kwargs):
 		''' Send a message and assign blame to it. *args are the
 			arguments passed to discord.py's Client.send_message
 		'''
-		result = await self.client.send_message(*args, **kwargs)
+		if isinstance(destination, discord.Message):
+			if blame is None:
+				blame = destination.author
+			destination = destination.channel
+		result = await self.client.send_message(destination, *args, **kwargs)
 		await core.blame.set_blame(result.id, blame)
 		return result
 

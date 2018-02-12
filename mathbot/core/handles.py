@@ -127,6 +127,16 @@ def add_reaction(emoji = ANY_EMOJI, allow_self = False):
 	return applier
 
 
+# I'm not sure if this belongs here either
+def reply_with_return(function):
+	async def replacement(module, message, *args, **kwargs):
+		reply = await function(module, message, *args, **kwargs)
+		if reply:
+			await module.send_message(message, reply)
+	replacement.__name__ = reply_with_return.__name__
+	return replacement
+
+
 # I don't think this belongs here
 class Redirect:
 	''' Return this from a command to redirect the command

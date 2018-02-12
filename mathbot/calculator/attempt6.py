@@ -199,7 +199,8 @@ def dieroll(tokens):
 		tokens.eat()
 		return {
 			'#': 'die',
-			'faces': factorial(tokens)
+			'faces': factorial(tokens),
+			'warning': 'Dice rolling is deprecated. Use the `=roll` command instead.'
 		}
 	left = factorial(tokens)
 	if tokens[0] == 'd':
@@ -207,7 +208,8 @@ def dieroll(tokens):
 		return {
 			'#': 'die',
 			'times': left,
-			'faces': factorial(tokens)
+			'faces': factorial(tokens),
+			'warning': 'Dice rolling is deprecated. Use the `=roll` command instead.'
 		}
 	return left
 

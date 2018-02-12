@@ -97,6 +97,7 @@ def create_shard_manager(shard_id, shard_count):
 	import modules.analytics
 	import modules.reporter
 	import modules.greeter
+	import modules.dice
 
 	assert(0 <= shard_id < shard_count)
 
@@ -119,6 +120,7 @@ def create_shard_manager(shard_id, shard_count):
 		# Will only trigger stats if supplied with tokens
 		modules.analytics.AnalyticsModule(),
 		modules.reporter.ReporterModule(),
+		modules.dice.DiceModule()
 	)
 
 	if RELEASE == 'production':
