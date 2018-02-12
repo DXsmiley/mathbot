@@ -201,7 +201,7 @@ class Manager:
 	async def exec_command(self, message, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(message, perm)
+		allowed = perm is None or await core.settings.resolve_message(perm, message)
 		if not allowed:
 			if await core.settings.resolve_message('m-disabled-cmd', message):
 				result = await self.client.send_message(message.channel, DISALLOWED_COMMAND_ERROR)
@@ -224,7 +224,7 @@ class Manager:
 	async def exec_edit_command(self, before, after, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(after, perm)
+		allowed = perm is None or await core.settings.resolve_message(perm, after)
 		if not allowed:
 			# TODO: Fix this up once the blame thing is moved
 			result = await self.client.send_message(after.channel, DISALLOWED_COMMAND_ERROR)

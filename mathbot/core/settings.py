@@ -68,7 +68,7 @@ async def resolve_message(setting, message):
 
 
 async def get_setting(message, setting):
-	warnings.warn('core.settings.get_setting is deprecated')
+	warnings.warn('core.settings.get_setting is deprecated', stacklevel = 2)
 	return await resolve_message(setting, message)
 
 
