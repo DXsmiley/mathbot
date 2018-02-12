@@ -23,6 +23,9 @@ core.help.load_from_file('./help/calculator_sort.md')
 core.help.load_from_file('./help/turing.md')
 
 
+WARNING_LINK_MESSAGE = 'See the official server for more information about these warnings (type `=support`)'
+
+
 def wrap_if_plus(s):
 	if '+' in s or '-' in s:
 		return '(' + s + ')'
@@ -44,7 +47,7 @@ def format_result(x):
 			return '0'
 		if abs(x) > 1e10 or abs(x) < 1e-6:
 			s = '{:.8e}'.format(x)
-			return re.sub(r'\.?0*e', 'e', s)
+			return re.sub(r'\.?0*err', 'err', s)
 		return '{:.8f}'.format(x).rstrip('0').rstrip('.')
 	return '"{}"'.format(str(x))
 
@@ -109,19 +112,23 @@ def format_parse_error(message, string, position):
 
 class CalculatorModule(core.module.Module):
 
+
 	def __init__(self, is_dev):
 		core.module.Module.__init__(self)
 		self.is_dev = is_dev
 
-	@core.handles.command('calc', '*', perm_setting = 'c-calc')
+
+	@core.handles.command('calc', '*', perm_setting='c-calc')
 	@core.handles.reply_with_return
 	async def handle_calc(self, message, arg):
-		return await self.perform_calculation(arg.strip(), message)
+		return await self._perform_calculation(arg.strip(), message)
 
-	@core.handles.command('sort csort', '*', perm_setting = 'c-calc')
+
+	@core.handles.command('sort csort', '*', perm_setting='c-calc')
 	@core.handles.reply_with_return
 	async def hande_calc_sorted(self, message, arg):
-		return await self.perform_calculation(arg.strip(), message, should_sort = True)
+		return await self._perform_calculation(arg.strip(), message, should_sort=True)
+
 
 	# Trigger the calculator when the message is prefixed by "=="
 	@core.handles.on_message()
@@ -133,48 +140,48 @@ class CalculatorModule(core.module.Module):
 
 
 	# Perform a calculation and spits out a result!
-	async def perform_calculation(self, arg, message, should_sort = False):
+	async def _perform_calculation(self, arg, msg, should_sort=False):
 		if arg == '':
 			# If no equation was given, spit out the help.
-			if not message.content.startswith('=='):
+			if not msg.content.startswith('=='):
 				return 'Type `=help calc` for information on how to use this command.'
 		elif arg == 'help':
 			return SHORTCUT_HELP_CLARIFICATION
 		else:
 			if arg.count(':') > 1:
 				return 'There are too many `:` characters in that equation.'
-			scope = SCOPES[message.channel.id]
+			scope = SCOPES[msg.channel.id]
 			# Determine the stack size and time limit depending on whether
 			# the person has the sufficient patreon reward tier
 			limits = {'stack_size': 200, 'warnings': True}
 			time_limit = 10
-			if patrons.tier(message.author.id) >= patrons.TIER_QUADRATIC:
+			if patrons.tier(msg.author.id) >= patrons.TIER_QUADRATIC:
 				limits['stack_size'] = 500
 				time_limit = 20
 			# Actually run the command, and handles the errors
 			try:
 				future = process_command(arg, scope, limits)
-				warnings, values = await asyncio.wait_for(future, timeout = time_limit)
+				warnings, values = await asyncio.wait_for(future, timeout=time_limit)
 			except asyncio.TimeoutError:
 				return 'Calculation took too long'
-			except calculator.EvaluationError as e:
-				message = 'Error: ' + str(e)
-				return message if len(message) <= 2000 else 'An error occurred, but it was too large to display.'
-			except calculator.attempt6.ImbalancedBraces as e:
+			except calculator.EvaluationError as err:
+				reply = 'Error: ' + str(err)
+				return reply if len(reply) <= 2000 else 'An error occurred, but it was too large to display.'
+			except calculator.attempt6.ImbalancedBraces as err:
 				return 'Invalid syntax: Imbalanced braces'
-			except calculator.attempt6.TokenizationFailed as e:
-				return format_parse_error('Invalid token', arg, e.position)
-			except calculator.attempt6.ParseFailed as e:
-				return format_parse_error('Invalid syntax', arg, e.position)
+			except calculator.attempt6.TokenizationFailed as err:
+				return format_parse_error('Invalid token', arg, err.position)
+			except calculator.attempt6.ParseFailed as err:
+				return format_parse_error('Invalid syntax', arg, err.position)
 			else:
-				if len(values) == 0:
+				if not values:
 					return 'There were no results :thinking:'
 				if should_sort:
 					values.sort()
 				if warnings:
-					warnings.append('See the official server for more information about these warnings (type `=support`)')
+					warnings.append(WARNING_LINK_MESSAGE)
 				result = '\n'.join(warnings + ['']) + ' '.join(map(format_result, values))
-				if len(result) < 1000 and await advertising.should_advertise_to(message.author, message.channel):
+				if len(result) < 1000 and await advertising.should_advertise_to(msg.author, msg.channel):
 					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
 				if len(result) > 2000:
 					return 'Result was too big :('
