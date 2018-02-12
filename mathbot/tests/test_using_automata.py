@@ -169,3 +169,14 @@ async def test_calc5_token_failure(interface):
 @automata_test
 async def test_calc5_syntax_failure(interface):
     await interface.assert_reply_contains('=calc 4 + 6 -', 'Invalid syntax at position 7')
+
+
+@automata_test
+async def test_dice_rolling(interface):
+    for i in ['', 'x', '1 2 3', '3d']:
+        await interface.assert_reply_contains('=roll ' + i, 'Format your rolls like')
+    for i in ['1000000', '100001', '800000 d 1', '500000 500000']:
+        await interface.assert_reply_contains('=roll ' + i, 'Values are too large.')
+    for i in ['6', 'd6', '1d6', '1 6', '1 d 6']:
+        message = await interface.wait_for_reply('=roll ' + i)
+        assert(int(message.content[2:]) in range(1, 7))
