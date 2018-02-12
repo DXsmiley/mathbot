@@ -59,6 +59,7 @@ async def process_command(arg, scope, limits):
 	warnings = []
 	if ':' in arg:
 		s = arg.split(':')
+		warnings.append('Use of `:` to repeat commands is deprecated.')
 		w, reps = await calculator.calculate_async(s[1], scope = scope, limits = limits)
 		warnings += w
 		reps = min(50, int(reps))
@@ -113,12 +114,14 @@ class CalculatorModule(core.module.Module):
 		self.is_dev = is_dev
 
 	@core.handles.command('calc', '*', perm_setting = 'c-calc')
+	@core.handles.reply_with_return
 	async def handle_calc(self, message, arg):
-		await self.perform_calculation(arg.strip(), message)
+		return await self.perform_calculation(arg.strip(), message)
 
 	@core.handles.command('sort csort', '*', perm_setting = 'c-calc')
+	@core.handles.reply_with_return
 	async def hande_calc_sorted(self, message, arg):
-		await self.perform_calculation(arg.strip(), message, should_sort = True)
+		return await self.perform_calculation(arg.strip(), message, should_sort = True)
 
 	# Trigger the calculator when the message is prefixed by "=="
 	@core.handles.on_message()
@@ -134,51 +137,45 @@ class CalculatorModule(core.module.Module):
 		if arg == '':
 			# If no equation was given, spit out the help.
 			if not message.content.startswith('=='):
-				await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
+				return 'Type `=help calc` for information on how to use this command.'
 		elif arg == 'help':
-			prefix = await core.settings.get_channel_prefix(message.channel)
-			await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
+			return SHORTCUT_HELP_CLARIFICATION
 		else:
-			safe.sprint('Doing calculation:', arg)
 			if arg.count(':') > 1:
-				await self.send_message(message.channel, 'There are too many `:` characters in that equation.', blame = message.author)
+				return 'There are too many `:` characters in that equation.'
+			scope = SCOPES[message.channel.id]
+			# Determine the stack size and time limit depending on whether
+			# the person has the sufficient patreon reward tier
+			limits = {'stack_size': 200, 'warnings': True}
+			time_limit = 10
+			if patrons.tier(message.author.id) >= patrons.TIER_QUADRATIC:
+				limits['stack_size'] = 500
+				time_limit = 20
+			# Actually run the command, and handles the errors
+			try:
+				future = process_command(arg, scope, limits)
+				warnings, values = await asyncio.wait_for(future, timeout = time_limit)
+			except asyncio.TimeoutError:
+				return 'Calculation took too long'
+			except calculator.EvaluationError as e:
+				message = 'Error: ' + str(e)
+				return message if len(message) <= 2000 else 'An error occurred, but it was too large to display.'
+			except calculator.attempt6.ImbalancedBraces as e:
+				return 'Invalid syntax: Imbalanced braces'
+			except calculator.attempt6.TokenizationFailed as e:
+				return format_parse_error('Invalid token', arg, e.position)
+			except calculator.attempt6.ParseFailed as e:
+				return format_parse_error('Invalid syntax', arg, e.position)
 			else:
-				error = None
-				scope = SCOPES[message.channel.id]
-				# Determine the stack size and time limit depending on whether
-				# the person has the sufficient patreon reward tier
-				limits = {'stack_size': 200, 'warnings': True}
-				time_limit = 10
-				if patrons.tier(message.author.id) >= patrons.TIER_QUADRATIC:
-					limits['stack_size'] = 500
-					time_limit = 20
-				# Actually run the command, and handles the errors
-				try:
-					future = process_command(arg, scope, limits)
-					warnings, values = await asyncio.wait_for(future, timeout = time_limit)
-				except asyncio.TimeoutError:
-					result = 'Calculation took too long'
-				except calculator.EvaluationError as e:
-					# traceback.print_exc()
-					result = 'Error: ' + str(e)
-					if len(result) > 2000:
-						result = 'An error occurred, but it was too large to display.'
-				except calculator.attempt6.ImbalancedBraces as e:
-					result = 'Invalid syntax: Imbalanced braces'
-				except calculator.attempt6.TokenizationFailed as e:
-					result = format_parse_error('Invalid token', arg, e.position)
-				except calculator.attempt6.ParseFailed as e:
-					result = format_parse_error('Invalid syntax', arg, e.position)
-				else:
-					if should_sort:
-						values.sort()
-					if len(values) == 0:
-						result = 'There were no results :thinking:'
-					else:
-						result = '\n'.join(warnings + ['']) + ' '.join(map(format_result, values))
-					if len(result) > 2000:
-						result = 'Result was too big :('
-					if len(result) < 1000 and await advertising.should_advertise_to(message.author, message.channel):
-						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-				safe.sprint(result)
-				await self.send_message(message.channel, result, blame = message.author)
+				if len(values) == 0:
+					return 'There were no results :thinking:'
+				if should_sort:
+					values.sort()
+				if warnings:
+					warnings.append('See the official server for more information about these warnings (type `=support`)')
+				result = '\n'.join(warnings + ['']) + ' '.join(map(format_result, values))
+				if len(result) < 1000 and await advertising.should_advertise_to(message.author, message.channel):
+					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
+				if len(result) > 2000:
+					return 'Result was too big :('
+				return result
