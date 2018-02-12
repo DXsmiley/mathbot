@@ -203,9 +203,9 @@ class Manager:
 		# TODO: Set the default override, check defaults work
 		allowed = perm is None or await core.settings.get_setting(message, perm)
 		if not allowed:
-			# TODO: Fix this up once the blame thing is moved
-			result = await self.client.send_message(message.channel, DISALLOWED_COMMAND_ERROR)
-			await core.blame.set_blame(result.id, message.author)
+			if await core.settings.resolve_message('m-disabled-cmd', message):
+				result = await self.client.send_message(message.channel, DISALLOWED_COMMAND_ERROR)
+				await core.blame.set_blame(result.id, message.author)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)

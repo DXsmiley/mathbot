@@ -18,7 +18,8 @@ SETTINGS = {
 	'f-inline-tex': {'default': False},
 	'f-delete-tex': {'default': False},
 	'f-tex-inline': {'redirect': 'f-inline-tex'},
-	'f-tex-delete': {'redirect': 'f-delete-tex'}
+	'f-tex-delete': {'redirect': 'f-delete-tex'},
+	'm-disabled-cmd': {'default': True}
 }
 
 
@@ -44,6 +45,8 @@ async def get_single(setting, context):
 
 
 async def resolve(setting, *contexts, default = None2):
+	if not isinstance(setting, str):
+		raise TypeError('First argument of core.settings.resolve(setting, *contexts) should be a string.')
 	setting = redirect(setting)
 	for i in contexts:
 		result = await get_single(setting, i)

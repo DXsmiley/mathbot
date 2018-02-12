@@ -28,14 +28,15 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 
 `value` should be either `enable`, `disable`, or `reset`. `enable` will allow people to use the command in the given context and `disable` will stop people from using it. `reset` will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to `reset` will mean that it defers to the setting used by the server.
 
-- `c-calc` : Enable or disable the `{{prefix}}calc` command. Default: *Enabled*
-- `c-tex` : Enable or disable the `{{prefix}}tex` command. Default: *Enabled*
-- `c-wolf` : Enable or disable the `{{prefix}}wolf` command. Default: *Enabled*
-- `f-calc-shortcut` : Enable or disable the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: *Enabled*
-- `f-tex-inline`: Enable or disable the ability to add inline tex to messages. See `=help tex` for details. Default: *Disabled*.
+- `c-calc` : Toggles the `{{prefix}}calc` command. Default: *Enabled*
+- `c-tex` : Toggles the `{{prefix}}tex` command. Default: *Enabled*
+- `c-wolf` : Toggles the `{{prefix}}wolf` command. Default: *Enabled*
+- `f-calc-shortcut` : Toggles the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: *Enabled*
+- `f-tex-inline`: Toggles the ability to add inline tex to messages. See `=help tex` for details. Default: *Disabled*.
 - `f-tex-delete`: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: *Disabled*.
-- `f-wolf-filter`: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
-- `f-wolf-mention`: Enable or disable the `@mention` in the footer of W|A results.
+- `f-wolf-filter`: Toggles the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
+- `f-wolf-mention`: Toggles the `@mention` in the footer of W|A results. Default: *Enabled*.
+- `m-disabled-cmd`: Toggles the "That command cannot be used in this location" message. Default: *Enabled*.
 
 :::page-break
 

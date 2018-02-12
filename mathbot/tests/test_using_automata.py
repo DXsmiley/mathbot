@@ -60,6 +60,19 @@ async def test_permissions(interface):
 
 
 @automata_test
+async def test_supress_permission_warning(interface):
+    err = 'That command may not be used in this location.'
+    await interface.assert_reply_equals('=calc 1+1', '2')
+    await interface.assert_reply_contains('=set channel c-calc disable', 'applied')
+    await interface.assert_reply_contains('=calc 1+1', err)
+    await interface.assert_reply_contains('=set channel m-disabled-cmd disable', 'applied')
+    await interface.send_message('=calc 1+1')
+    await interface.ensure_silence()
+    await interface.assert_reply_contains('=set channel c-calc original', 'applied')
+    await interface.assert_reply_contains('=set channel m-disabled-cmd original', 'applied')
+
+
+@automata_test
 async def test_latex(interface):
     for message in ['=tex Hello', '=tex\nHello', '=tex `Hello`']:
         await interface.send_message(message)
