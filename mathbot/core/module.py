@@ -41,7 +41,7 @@ class Module:
 	def collect_command_handlers(self) -> typing.List[core.handles.Command]:
 		''' Returns a list of the module's command handlers. '''
 		commands = []
-		for name, item in self.__class__.__dict__.items():
+		for _, item in self.__class__.__dict__.items():
 			if isinstance(item, core.handles.Command):
 				# print('Registered command:', item.name, '(', item.format, ')')
 				# if item.perm_setting:
@@ -69,17 +69,8 @@ class Module:
 
 	# Functions used by the end user
 
-	async def send_message(self, destination, *args, blame = None, **kwargs):
-		''' Send a message and assign blame to it. *args are the
-			arguments passed to discord.py's Client.send_message
-		'''
-		if isinstance(destination, discord.Message):
-			if blame is None:
-				blame = destination.author
-			destination = destination.channel
-		result = await self.client.send_message(destination, *args, **kwargs)
-		await core.blame.set_blame(result.id, blame)
-		return result
+	async def send_message(self, *args, **kwargs):
+		return await self.master.send_message(*args, **kwargs)
 
 	async def send_private_fallback(self, to: discord.Member, fallback: discord.Channel, message: str, blame = None, supress_warning = False) -> bool:
 		''' Try and send a private message to a user. If it fails,
