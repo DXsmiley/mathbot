@@ -22,6 +22,8 @@ class DiceModule(core.module.Module):
 		dice, faces = match.group(1, 2)
 		dice  = int(dice or 1)
 		faces = int(faces or 6)
+		if faces <= 0:
+			return '🎲 Dice must have a positive number of faces.'
 		if faces > 100000 or dice > 100000:
 			return '🎲 Values are too large. Cannot be greater than 100000.'
 
