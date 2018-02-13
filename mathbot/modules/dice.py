@@ -23,5 +23,12 @@ class DiceModule(core.module.Module):
 		faces = int(faces or 6)
 		if faces > 100000 or dice > 100000:
 			return '🎲 Values are too large. Cannot be greater than 100000.'
-		total = sum(random.randint(1, faces) for i in range(dice))
-		return f'🎲 {total}'
+
+		rolls, total = self.formatted_roll(dice, faces)
+		message = f'🎲 {rolls}'
+		return message if len(message) <= 2000 else f'🎲 total: {total}'
+	
+	def formatted_roll(self, dice, faces):
+		rolls = [random.randint(1, faces) for _ in range(dice)]
+		s = f'{str.join(" ", (str(i) for i in rolls))} (total: {sum(rolls)})'
+		return s, sum(rolls)
