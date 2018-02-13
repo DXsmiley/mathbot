@@ -12,7 +12,7 @@ FORMAT_REGEX = re.compile(r'^(?:(\d*)[ d]+)?(\d+)$')
 
 class DiceModule(core.module.Module):
 
-	@core.handles.command('roll', '*')
+	@core.handles.command('roll', '*', perm_setting='c-roll')
 	@core.handles.reply_with_return
 	async def command_roll(self, message, arg):
 		match = FORMAT_REGEX.match(arg.strip('`'))
