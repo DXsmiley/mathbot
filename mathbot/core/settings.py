@@ -18,8 +18,8 @@ SETTINGS = {
 	'f-wolf-mention': {'default': True},
 	'f-inline-tex': {'default': False},
 	'f-delete-tex': {'default': False},
-	'f-tex-inline': {'redirect': 'f-inline-tex'},
-	'f-tex-delete': {'redirect': 'f-delete-tex'},
+	'f-tex-inline': {'redirect': 'f-inline-tex', 'cannon-name': True},
+	'f-tex-delete': {'redirect': 'f-delete-tex', 'cannon-name': True},
 	'm-disabled-cmd': {'default': True}
 }
 
@@ -128,3 +128,11 @@ def redirect(setting):
 
 def details(setting):
 	return SETTINGS.get(redirect(setting))
+
+def get_cannon_name(setting):
+	if setting not in SETTINGS:
+		raise KeyError(f'{setting} is not a valid setting')
+	for name, details in SETTINGS.items():
+		if details.get('redirect', name) == setting and details.get('cannon-name'):
+			return name
+	return setting

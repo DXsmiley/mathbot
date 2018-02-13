@@ -208,7 +208,14 @@ class SettingsModule(core.module.Module):
 			lines = [' Setting          | Channel  | Server   | Default',
 					 '------------------+----------+----------+----------'
 			]
-			for setting, s_details in core.settings.SETTINGS.items():
+			items = sorted(
+				map(
+					lambda x: (core.settings.get_cannon_name(x[0]), x[1]),
+					core.settings.SETTINGS.items()
+				),
+				key=lambda x: x[0]
+			)
+			for setting, s_details in items:
 				if 'redirect' not in s_details:
 					value_channel = await core.settings.get_single(setting, message.channel)
 					value_server  = await core.settings.get_single(setting, message.server)
