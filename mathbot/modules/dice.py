@@ -41,6 +41,7 @@ class DiceModule(core.module.Module):
 		# this is the minimal length of this query
 		min_len = 2 * dice + 9 + math.log10(dice)
 
+		# gaussian roll is faster so try that if we can't show all the rolls
 		if min_len >= limit:
 			total = 0
 			try:
@@ -60,7 +61,7 @@ class DiceModule(core.module.Module):
 		'''This method gets the character limit for messages.'''
 		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
 		print(unlimited)
-		return 100 if not unlimited else 2000
+		return 200 if not unlimited else 2000
 
 	def formatted_roll(self, dice, faces):
 		'''
@@ -76,10 +77,13 @@ class DiceModule(core.module.Module):
 		many times as neccessary to avoid float inaccuracy, unless that means
 		rolling more times than limit.
 		'''
+
+		# if it passes this first test, then it's safe to do it in one roll
 		if math.log10(dice) < 16 and\
 			math.log10(faces) < 8 and\
 			math.log10(dice * faces) < 16:
 			return self.gaussian_roll_single(dice, faces)
+		# passing this second test means we can do multiple rolls safely
 		elif math.log10(faces) < 8:
 			dice_per = 16 - round(math.log10(faces))
 			times = round(dice / 10**(dice_per))
