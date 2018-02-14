@@ -36,7 +36,7 @@ class DiceModule(core.module.Module):
 		if faces <= 0:
 			return '🎲 Dice must have a positive number of faces.'
 
-		limit = await self.get_limit(message)		
+		limit = await self.get_limit(message)
 
 		# this is the minimal length of this query
 		min_len = 2 * dice + 9 + math.log10(dice)
@@ -57,16 +57,25 @@ class DiceModule(core.module.Module):
 			return final_message if len(final_message) <= limit else f'🎲 total: {total}'
 
 	async def get_limit(self, message):
+		'''This method gets the character limit for messages.'''
 		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
 		print(unlimited)
 		return 100 if not unlimited else 2000
 
 	def formatted_roll(self, dice, faces):
+		'''
+		This will roll dice and return a string of the results as well as the total.
+		'''
 		rolls = [random.randint(1, faces) for _ in range(dice)]
 		s = f'{str.join(" ", (str(i) for i in rolls))} (total: {sum(rolls)})'
 		return s, sum(rolls)
 
-	def gaussian_roll(self, dice, faces):
+	def gaussian_roll(self, dice, faces, limit=100000):
+		'''
+		This method simulates a roll using normal distributions. It'll do it as
+		many times as neccessary to avoid float inaccuracy, unless that means
+		rolling more times than limit.
+		'''
 		if math.log10(dice) < 16 and\
 			math.log10(faces) < 16 and\
 			math.log10(dice * faces) < 16:
@@ -74,13 +83,21 @@ class DiceModule(core.module.Module):
 		elif math.log10(faces) < 16:
 			dice_per = 16 - round(math.log10(faces))
 			times = round(dice / 10**(dice_per))
-			if times > 100000:
+			if times > limit:
 				raise TooManyDiceException()
 			return sum([self.gaussian_roll_single(dice_per, faces) for _ in range(times)])
 		else:
 			raise TooManyFacesException()
 
 	def gaussian_roll_single(self, dice, faces):
+		'''
+		This method uses a normal distribution to roll some dice, it'll hit float
+		inaccuracies rather easily. In order to avoid float inaccuracy you'll need
+		to make sure that:
+		1. dice has fewer than 16 digits
+		2. faces has fewer than 16 digits
+		3. dice and faces have fewer than 16 digits combined
+		'''
 		mean = (faces + 1) * dice / 2
 		std = math.sqrt((dice * (faces * faces - 1)) / 12)
 		return int(random.gauss(mean, std))
