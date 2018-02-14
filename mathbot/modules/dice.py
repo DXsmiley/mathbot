@@ -14,10 +14,7 @@ core.help.load_from_file('./help/roll.md')
 FORMAT_REGEX = re.compile(r'^(?:(\d*)[ d]+)?(\d+)$')
 
 
-class TooManyFacesException(Exception): pass
-
-
-class TooManyDiceException(Exception): pass
+class TooBigValuesException(Exception): pass
 
 
 class DiceModule(core.module.Module):
@@ -46,10 +43,8 @@ class DiceModule(core.module.Module):
 			total = 0
 			try:
 				total = self.gaussian_roll(dice, faces)
-			except TooManyDiceException:
-				return '🎲 You have tried to roll too many dice.'
-			except TooManyFacesException:
-				return '🎲 You have tried to roll too many faces.'
+			except TooBigValuesException:
+				return '🎲 Values are too large.'
 
 			return f'🎲 total: {total}'
 		else:
@@ -79,19 +74,19 @@ class DiceModule(core.module.Module):
 		'''
 
 		# if it passes this first test, then it's safe to do it in one roll
-		if math.log10(dice) < 16 and\
-			math.log10(faces) < 8 and\
-			math.log10(dice * faces) < 16:
+		if math.log2(dice) < 53 and\
+			math.log2(faces) < 26 and\
+			math.log2(dice * faces) < 53:
 			return self.gaussian_roll_single(dice, faces)
 		# passing this second test means we can do multiple rolls safely
-		elif math.log10(faces) < 8:
-			dice_per = 16 - round(math.log10(faces))
-			times = round(dice / 10**(dice_per))
+		elif math.log2(faces) < 26:
+			dice_per = 53 - round(math.log2(faces))
+			times = round(dice / 2**(dice_per))
 			if times > limit:
-				raise TooManyDiceException()
+				raise TooBigValuesException()
 			return sum([self.gaussian_roll_single(dice_per, faces) for _ in range(times)])
 		else:
-			raise TooManyFacesException()
+			raise TooBigValuesException()
 
 	def gaussian_roll_single(self, dice, faces):
 		'''
