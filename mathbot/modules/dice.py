@@ -6,6 +6,7 @@ import core.module
 import core.handles
 import core.help
 import core.settings
+import math
 
 core.help.load_from_file('./help/roll.md')
 
@@ -24,14 +25,19 @@ class DiceModule(core.module.Module):
 		faces = int(faces or 6)
 		if faces <= 0:
 			return '🎲 Dice must have a positive number of faces.'
-		if faces > 100000 or dice > 100000:
-			return '🎲 Values are too large. Cannot be greater than 100000.'
 
-		rolls, total = self.formatted_roll(dice, faces)
-		final_message = f'🎲 {rolls}'
-		limit = await self.get_limit(message)
-		print(limit)
-		return final_message if len(final_message) <= limit else f'🎲 total: {total}'
+		limit = await self.get_limit(message)		
+
+		# this is the minimal length of this query
+		min_len = 2 * dice + 9 + math.log10(dice)
+
+		if min_len >= limit:
+			total = self.gaussian_roll(faces, dice)
+			return f'🎲 total: {total}'
+		else:
+			rolls, total = self.formatted_roll(dice, faces)
+			final_message = f'🎲 {rolls}'
+			return final_message if len(final_message) <= limit else f'🎲 total: {total}'
 
 	async def get_limit(self, message):
 		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
@@ -42,3 +48,8 @@ class DiceModule(core.module.Module):
 		rolls = [random.randint(1, faces) for _ in range(dice)]
 		s = f'{str.join(" ", (str(i) for i in rolls))} (total: {sum(rolls)})'
 		return s, sum(rolls)
+
+	def gaussian_roll(self, dice, faces):
+		mean = (faces + 1) * dice / 2
+		std = math.sqrt((dice * (faces * faces - 1)) / 12)
+		return int(random.gauss(mean, std))
