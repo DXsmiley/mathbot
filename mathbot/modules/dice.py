@@ -77,10 +77,10 @@ class DiceModule(core.module.Module):
 		rolling more times than limit.
 		'''
 		if math.log10(dice) < 16 and\
-			math.log10(faces) < 16 and\
+			math.log10(faces) < 8 and\
 			math.log10(dice * faces) < 16:
 			return self.gaussian_roll_single(dice, faces)
-		elif math.log10(faces) < 16:
+		elif math.log10(faces) < 8:
 			dice_per = 16 - round(math.log10(faces))
 			times = round(dice / 10**(dice_per))
 			if times > limit:
@@ -95,7 +95,7 @@ class DiceModule(core.module.Module):
 		inaccuracies rather easily. In order to avoid float inaccuracy you'll need
 		to make sure that:
 		1. dice has fewer than 16 digits
-		2. faces has fewer than 16 digits
+		2. faces has fewer than 8 digits
 		3. dice and faces have fewer than 16 digits combined
 		'''
 		mean = (faces + 1) * dice / 2
