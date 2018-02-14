@@ -119,13 +119,11 @@ class CalculatorModule(core.module.Module):
 
 
 	@core.handles.command('calc', '*', perm_setting='c-calc')
-	@core.handles.reply_with_return
 	async def handle_calc(self, message, arg):
 		return await self._perform_calculation(arg.strip(), message)
 
 
 	@core.handles.command('sort csort', '*', perm_setting='c-calc')
-	@core.handles.reply_with_return
 	async def hande_calc_sorted(self, message, arg):
 		return await self._perform_calculation(arg.strip(), message, should_sort=True)
 

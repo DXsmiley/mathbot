@@ -6,18 +6,23 @@ ANY_EMOJI = '<any>'
 
 class Command:
 
-	def __init__(self, names, format, func, perm_setting, perm_default):
+	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public):
 		self.names = names.split(' ')
 		self.name = self.names[0]
-		self.format = format
+		self.format = fmt
 		self.func = func
 		self.perm_setting = perm_setting
 		self.perm_default = perm_default
 		self.on_edit = None
 		self.require_before = True
 		self.require_after = True
+		self.no_dm = no_dm
+		self.no_public = no_public
 
-	def edit(self, require_before = True, require_after = True):
+	def edit(self, require_before=True, require_after=True):
+		self.require_before = require_before
+		self.require_after = require_after
+		''' Returns a decorator that can be used to hook an edit handler to the function '''
 		def applier(function):
 			self.on_edit = function
 			return None # Not really sure if this is a good idea...
@@ -71,10 +76,21 @@ class OnMemberJoined:
 		self.servers = servers
 
 
-def command(name, format, perm_setting = None, perm_default = None):
-	assert(isinstance(format, str))
+def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=False, no_public=False) -> Command:
+	''' Flags a function as a command.
+		name - the name of the command, so it will be invoked with =name
+		fmt - the argument format specification, use * to just grab the entire string.
+		perm_setting - Permissions setting.
+		perm_default - Override for the default value of the permission.
+		no_dm - Specifies that a command cannot be used in private channels.
+		no_public - Specifies that a command cannot be used in public channels.
+	'''
+	if not isinstance(name, str):
+		raise TypeError('Command names should be strings')
+	if not isinstance(fmt, str):
+		raise TypeError('Command argument format specifiers should be strings')
 	def applier(func):
-		return Command(name, format, func, perm_setting, perm_default)
+		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public)
 	return applier
 
 
@@ -125,16 +141,6 @@ def add_reaction(emoji = ANY_EMOJI, allow_self = False):
 	def applier(func):
 		return ReactionHandler(func, emoji, allow_self)
 	return applier
-
-
-# I'm not sure if this belongs here either
-def reply_with_return(function):
-	async def replacement(module, message, *args, **kwargs):
-		reply = await function(module, message, *args, **kwargs)
-		if reply:
-			await module.send_message(message, reply)
-	replacement.__name__ = reply_with_return.__name__
-	return replacement
 
 
 # I don't think this belongs here
