@@ -1,3 +1,4 @@
+# encoding: utf-8
 ''' Module to allow the user to roll dice '''
 
 import re
@@ -14,7 +15,10 @@ core.help.load_from_file('./help/roll.md')
 FORMAT_REGEX = re.compile(r'^(?:(\d*)[ d]+)?(\d+)$')
 
 
-class TooBigValuesException(Exception): pass
+class DiceException(Exception): pass
+
+
+class ValuesTooBigException(DiceException): pass
 
 
 class DiceModule(core.module.Module):
@@ -35,7 +39,13 @@ class DiceModule(core.module.Module):
 
 		limit = await self.get_limit(message)
 
-		# this is the minimal length of this query
+		# this is the minimal length of this query, it is used to determine
+		# whether it's possible for the result to be short enough to fit
+		# within the limit.
+		#
+		# I got this by assuming each die rolled 1, plus 1 space per die
+		# giving me 2 * dice. Then i add the length of the total, and the
+		# length of the extra stuff that's always in the result.
 		min_len = 2 * dice + 9 + math.log10(dice)
 
 		# gaussian roll is faster so try that if we can't show all the rolls
@@ -43,7 +53,7 @@ class DiceModule(core.module.Module):
 			total = 0
 			try:
 				total = self.gaussian_roll(dice, faces)
-			except TooBigValuesException:
+			except ValuesTooBigException:
 				return '🎲 Values are too large.'
 
 			return f'🎲 total: {total}'
@@ -55,7 +65,6 @@ class DiceModule(core.module.Module):
 	async def get_limit(self, message):
 		'''This method gets the character limit for messages.'''
 		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
-		print(unlimited)
 		return 200 if not unlimited else 2000
 
 	def formatted_roll(self, dice, faces):
@@ -63,30 +72,35 @@ class DiceModule(core.module.Module):
 		This will roll dice and return a string of the results as well as the total.
 		'''
 		rolls = [random.randint(1, faces) for _ in range(dice)]
-		s = f'{str.join(" ", (str(i) for i in rolls))} (total: {sum(rolls)})'
-		return s, sum(rolls)
+		total = sum(rolls)
+		s = f'{str.join(" ", map(str, rolls))} (total: {total})'
+		return s, total
 
 	def gaussian_roll(self, dice, faces, limit=100000):
-		'''
+		'''[random.randint(1, faces) for _ in range(dice)]
 		This method simulates a roll using normal distributions. It'll do it as
 		many times as neccessary to avoid float inaccuracy, unless that means
 		rolling more times than limit.
 		'''
-
 		# if it passes this first test, then it's safe to do it in one roll
-		if math.log2(dice) < 53 and\
-			math.log2(faces) < 26 and\
-			math.log2(dice * faces) < 53:
+		# 53 is how many bits of precision we have with python's doubles. This
+		# means that if we have a number which is greater than 2.0^53 the
+		# precision will fall and we can only generate even numbers
+		#
+		# faces gets squared in the formula, so we need to check against half of 26
+		PREC = 53
+
+		if math.log2(faces) < (PREC / 2) and math.log2(dice * faces) < PREC:
 			return self.gaussian_roll_single(dice, faces)
 		# passing this second test means we can do multiple rolls safely
-		elif math.log2(faces) < 26:
-			dice_per = 53 - round(math.log2(faces))
+		elif math.log2(faces) < (PREC / 2):
+			dice_per = PREC - round(math.log2(faces))
 			times = round(dice / 2**(dice_per))
 			if times > limit:
-				raise TooBigValuesException()
+				raise ValuesTooBigException()
 			return sum([self.gaussian_roll_single(dice_per, faces) for _ in range(times)])
 		else:
-			raise TooBigValuesException()
+			raise ValuesTooBigException()
 
 	def gaussian_roll_single(self, dice, faces):
 		'''
