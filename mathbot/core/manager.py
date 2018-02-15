@@ -9,17 +9,12 @@ import core.parse_arguments
 import core.blame
 
 
-DISALLOWED_COMMAND_ERROR = """\
-That command may not be used in this location.\
-"""
+DISALLOWED_COMMAND_ERROR = 'That command may not be used in this location.'
+NO_DM_ERROR = 'That command may not be used in private channels.'
+NO_PUBLIC_ERROR = 'That command may not be used in public channels.'
+INSUFFICIENT_PERMS_ERROR = 'You do not have the required permissions to use that command here.'
 
-NO_DM_ERROR = '''\
-That command may not be used in private channels.
-'''
-
-NO_PUBLIC_ERROR = '''\
-That command may not be used in public channels.
-'''
+GLOBAL_PERM_ELEVATION = ['133804143721578505']
 
 
 class CommandConflictError(Exception):
@@ -219,6 +214,11 @@ class Manager:
 			await self.send_message(message, NO_DM_ERROR)
 		elif command.no_public and not message.channel.is_private:
 			await self.send_message(message, NO_PUBLIC_ERROR)
+		elif (
+				not message.channel.is_private
+				and not message.author.permissions_in(message.channel).is_superset(command.discord_perms)
+				and message.author.id not in GLOBAL_PERM_ELEVATION):
+			await self.send_message(message, INSUFFICIENT_PERMS_ERROR)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)

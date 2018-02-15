@@ -1,4 +1,5 @@
 import asyncio
+import discord
 
 
 ANY_EMOJI = '<any>'
@@ -6,7 +7,7 @@ ANY_EMOJI = '<any>'
 
 class Command:
 
-	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public):
+	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public, discord_perms):
 		self.names = names.split(' ')
 		self.name = self.names[0]
 		self.format = fmt
@@ -18,6 +19,7 @@ class Command:
 		self.require_after = True
 		self.no_dm = no_dm
 		self.no_public = no_public
+		self.discord_perms = discord_perms
 
 	def edit(self, require_before=True, require_after=True):
 		self.require_before = require_before
@@ -76,7 +78,7 @@ class OnMemberJoined:
 		self.servers = servers
 
 
-def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=False, no_public=False) -> Command:
+def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=False, no_public=False, discord_perms='') -> Command:
 	''' Flags a function as a command.
 		name - the name of the command, so it will be invoked with =name
 		fmt - the argument format specification, use * to just grab the entire string.
@@ -89,8 +91,10 @@ def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=
 		raise TypeError('Command names should be strings')
 	if not isinstance(fmt, str):
 		raise TypeError('Command argument format specifiers should be strings')
+	d_perms = discord.Permissions.none()
+	d_perms.update(**{p: True for p in discord_perms.split()})
 	def applier(func):
-		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public)
+		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public, d_perms)
 	return applier
 
 

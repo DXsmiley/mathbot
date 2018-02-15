@@ -7,68 +7,9 @@ import core.settings
 import core.module
 
 
-SETTING_COMMAND_ARG_ERROR = """
-Invalid number of arguments.
-Usage:
-	`=set context setting value`
-Type `=help settings` for more information.\
-"""
-
-
-SETTING_COMMAND_PRIVATE_ERROR = """
-The `settings` command cannot be used in a private channel.
-Type `=help settings` for more information.\
-"""
-
-
-SETTING_COMMAND_PERMS_ERROR = """
-You need to be an admin on this server to use this command here.
-"""
-
-
-SETTING_COMMAND_RESPONSE = """\
-The following setting has been applied:
-```
-Setting: {setting}
-Value: {value}
-Context: {context}
-```
-"""
-
-
 core.help.load_from_file('./help/settings.md')
 core.help.load_from_file('./help/theme.md')
 core.help.load_from_file('./help/prefix.md')
-
-
-INVALID_SETTING_MESSAGE = '''\
-Invalid setting "{setting}".
-
-The following settings exist:
-{valid_settings}
-
-See `=help settings` for more details.
-'''
-
-
-INVALID_CONTEXT_MESSAGE = '''\
-Invalid context parameter "{context}".
-
-Setting "{setting}" supports the following contexts:
-{valid_contexts}
-
-See `=help settings` for more details.
-'''
-
-
-INVALID_VALUE_MESSAGE = '''\
-Invalid value parameter "{value}".
-
-Setting "{setting}" supports the following values:
-{valid_values}
-
-See `=help settings` for more details.
-'''
 
 
 CHECKSETTING_TEMPLATE = '''\
@@ -79,24 +20,6 @@ Server:  {}
 Default: {}
 ```
 '''
-
-
-def format_bullet_points(l):
-	return '\n'.join(map(lambda c: ' - ' + c, l))
-
-
-GLOBAL_ELEVATION = {
-	'133804143721578505' # DXsmiley
-}
-
-
-def is_admin_message(m, prevent_global_elevation = False):
-	if m.channel.is_private:
-		return True
-	if m.author.id in GLOBAL_ELEVATION and not prevent_global_elevation:
-		return True
-	perms = m.channel.permissions_for(m.author)
-	return perms.administrator or perms.manage_server
 
 
 class ProblemReporter:
@@ -144,7 +67,7 @@ class SettingsModule(core.module.Module):
 		False: 'disabled'
 	}.get
 
-	@core.handles.command('settings setting set', 'string string string', no_dm=True)
+	@core.handles.command('settings setting set', 'string string string', no_dm=True, discord_perms='manage_server')
 	async def command_set(self, message, context, setting, value):
 		try:
 			async with ProblemReporter(self, message.channel) as problem:
@@ -194,7 +117,6 @@ class SettingsModule(core.module.Module):
 			)
 			await self.send_message(message, reply)
 
-
 	@core.handles.command('checkallsettings', '', no_dm=True)
 	async def command_check_all_settings(self, message):
 		lines = [
@@ -218,19 +140,18 @@ class SettingsModule(core.module.Module):
 		reply = '```\n{}\n```'.format('\n'.join(lines))
 		await self.send_message(message, reply)
 
-
 	@core.handles.command('prefix', '*', no_dm=True)
 	async def command_prefix(self, message, arg):
-		if arg == '':
-			prefix = await core.settings.get_server_prefix(message.server)
-			if prefix is None or prefix == '=':
-				reply = 'The prefix for this server is `=`, which is the default.'
-			else:
-				reply = 'The prefix for this server is `{}`, which has been customised.'.format(prefix)
-			await self.send_message(message, reply)
-		elif not is_admin_message(message):
-			await self.send_message(message, 'You must be an admin on this server to change the prefix')
-		else:
-			prefix = arg.strip().replace('`', '')
-			await core.settings.set_server_prefix(message.server, prefix)
-			await self.send_message(message, 'Bot prefix for this server has been changed to `{}`.'.format(prefix))
+		if arg:
+			return core.handles.Redirect('setprefix', arg)
+		prefix = await core.settings.get_server_prefix(message.server)
+		if prefix is None or prefix == '=':
+			return 'The prefix for this server is `=`, which is the default.'
+		return 'The prefix for this server is `{}`, which has been customised.'.format(prefix)
+
+
+	@core.handles.command('setprefix', '*', no_dm=True, discord_perms='manage_server')
+	async def command_set_prefix(self, message, arg):
+		prefix = arg.strip().replace('`', '')
+		await core.settings.set_server_prefix(message.server, prefix)
+		await self.send_message(message, 'Bot prefix for this server has been changed to `{}`.'.format(prefix))
