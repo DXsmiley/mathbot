@@ -86,11 +86,11 @@ class SettingsModule(core.module.Module):
 			await core.settings.set(setting, ctx, val)
 			await self.send_message(message.channel, 'Setting applied.', blame = message.author)
 
-	@core.handles.command('theme', 'string')
+	@core.handles.command('theme', 'string|lower')
 	async def command_theme(self, message, theme):
 		theme = theme.lower()
 		if theme not in ['light', 'dark']:
-			m = '`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
+			return '`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
 
 			key = 'p-tex-colour:' + message.author.id
@@ -101,21 +101,19 @@ class SettingsModule(core.module.Module):
 	@core.handles.command('checksetting', 'string', no_dm=True)
 	async def command_checksetting(self, message, setting):
 		if core.settings.details(setting) is None:
-			await self.send_message(message.channel, '`{}` is not a valid setting. See `=help settings` for a list of valid settings.'.format(setting), blame = message.author)
-		else:
-			value_server = await core.settings.get_single(setting, message.server)
-			value_channel = await core.settings.get_single(setting, message.channel)
-			print('Details for', setting)
-			print('Server: ', value_server)
-			print('Channel:', value_channel)
-			default = core.settings.details(setting).get('default')
-			reply = CHECKSETTING_TEMPLATE.format(
-				setting,
-				SettingsModule.expand_value(value_channel),
-				SettingsModule.expand_value(value_server),
-				SettingsModule.expand_value(default)
-			)
-			await self.send_message(message, reply)
+			return '`{}` is not a valid setting. See `=help settings` for a list of valid settings.'
+		value_server = await core.settings.get_single(setting, message.server)
+		value_channel = await core.settings.get_single(setting, message.channel)
+		print('Details for', setting)
+		print('Server: ', value_server)
+		print('Channel:', value_channel)
+		default = core.settings.details(setting).get('default')
+		return CHECKSETTING_TEMPLATE.format(
+			setting,
+			SettingsModule.expand_value(value_channel),
+			SettingsModule.expand_value(value_server),
+			SettingsModule.expand_value(default)
+		)
 
 	@core.handles.command('checkallsettings', '', no_dm=True)
 	async def command_check_all_settings(self, message):
