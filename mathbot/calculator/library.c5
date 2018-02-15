@@ -104,3 +104,18 @@ asecd(d) -> deg(asec(d))
 
 choose(n, k) -> n! / k! / (n - k)!
 
+# String manipulation functions
+startswith(x z) -> if(!z, true, (x && ('x == 'z) && startswith(\x \z)))
+drop(x n) -> if (n == 0 x drop(\x n - 1))
+
+_split(x z) -> ifelse (
+	!x              [""],
+	startswith(x z) "":split(drop(x length(z)) z),
+	(k -> ('x:'k):\k)(_split(\x z))
+)
+split(x z) -> filter(i -> i, _split(x z))
+
+display(x.) -> \join(expand(map(i -> ; :str(i), x)))
+
+chrs(s) -> map(chr s)
+ords(s) -> map(ord s)

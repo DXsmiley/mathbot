@@ -13,8 +13,8 @@ import functools
 from calculator.bytecode import *
 from calculator.functions import *
 from calculator.errors import EvaluationError
-import calculator.operators as operators
 import calculator.parser as parser
+import calculator.formatter as formatter
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
@@ -30,14 +30,46 @@ def protect_sympy_function(func):
 	return replacement
 
 
-def is_function(x):
-	return int(isinstance(x, Function) or isinstance(x, BuiltinFunction))
+def is_function(val):
+	return int(isinstance(val, (Function, BuiltinFunction)))
 
 
-def array_length(x):
-	if not isinstance(x, (Array, Interval, ListBase)):
+def is_sequence(val):
+	return int(isinstance(val, (Array, ListBase)))
+
+
+def format_normal(val):
+	try:
+		string = formatter.format(val, limit=5000)
+	except calculator.errors.TooMuchOutputError:
+		raise calculator.errors.EvaluationError('repr function received object that was too large')
+	else:
+		glyphs = list(map(Glyph, string))
+		return create_list(glyphs)
+
+
+def is_string(val):
+	return is_sequence(val) and all(isinstance(i, Glyph) for i in val)
+
+
+def format_smart(val):
+	if is_string(val):
+		if not val:
+			return EMPTY_LIST
+		try:
+			string = formatter.format(val, limit=5000)
+		except calculator.errors.TooMuchOutputError:
+			raise calculator.errors.EvaluationError('repr function received object that was too large')
+		else:
+			glyphs = list(map(Glyph, string[1:-1]))
+			return create_list(glyphs)
+	return format_normal(val)
+
+
+def array_length(val):
+	if not isinstance(val, (Array, Interval, ListBase)):
 		raise EvaluationError('Cannot get the length of non-array object')
-	return len(x)
+	return len(val)
 
 
 def array_expand(*arrays):
@@ -78,12 +110,16 @@ BUILTIN_FUNCTIONS = {
 	'log': mylog,
 	'ln': sympy.log,
 	'is_function': is_function,
+	'is_sequence': is_sequence,
 	'length': array_length,
 	'expand': array_expand,
 	'int': sympy.Integer,
+	'float': sympy.Number,
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
 	'deg': to_degrees,
-	'rad': to_radians
+	'rad': to_radians,
+	'repr': format_normal,
+	'str': format_smart
 }
 
 
@@ -106,21 +142,22 @@ FIXED_VALUES_EXPORTABLE = {
 }
 
 
-EXTRACT_FROM_SYMPY = '''
-	re im sign Abs arg conjugate 
-	sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
-	tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
-	exp root sqrt pi E I gcd lcm gamma factorial
-'''
 
-
-for i in EXTRACT_FROM_SYMPY.split():
-	value = getattr(sympy, i)
-	name = i.lower()
-	if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
-		BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
-	else:
-		FIXED_VALUES[name] = value
+def _extract_from_sympy():
+	names = '''
+		re im sign Abs arg conjugate 
+		sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
+		tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
+		exp root sqrt pi E I gcd lcm gamma factorial
+	'''
+	for i in names.split():
+		value = getattr(sympy, i)
+		name = i.lower()
+		if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
+			BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
+		else:
+			FIXED_VALUES[name] = value
+_extract_from_sympy()
 
 
 # Code that is really useful to it's included by default

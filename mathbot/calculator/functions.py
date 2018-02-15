@@ -12,6 +12,9 @@ class Glyph:
 	def __init__(self, value):
 		self.value = value
 
+	def __eq__(self, other):
+		return isinstance(other, Glyph) and self.value == other.value
+
 	def __str__(self):
 		return self.value
 
@@ -97,6 +100,8 @@ class Array:
 
 
 class ListBase:
+
+	__slots__ = ['head', 'rest', 'size']
 
 	def __iter__(self):
 		current = self
@@ -267,3 +272,11 @@ class Expanded:
 			while cur:
 				yield cur.head
 				cur = cur.rest
+
+
+def create_list(sequence):
+	sequence = list(sequence)
+	return FlatList(sequence, EMPTY_LIST) if sequence else EMPTY_LIST
+
+
+EMPTY_LIST = EmptyList()

@@ -350,9 +350,8 @@ class Interpereter:
 
 	def inst_constant_string(self):
 		''' Push a string to the stack '''
-		s = self.next()
-		a = list(map(Glyph, s))
-		self.push(FlatList(a, EmptyList()))
+		string = self.next()
+		self.push(create_list(map(Glyph, string)))
 
 	def inst_constant_glyph(self):
 		''' Push a glyph to the stack '''
@@ -634,6 +633,8 @@ class Interpereter:
 				raise EvaluationError('Failed to call {} on {}', function, arguments[0])
 			else:
 				raise EvaluationError('Failed to call {} on {}', function, arguments)
+		except EvaluationError:
+			raise
 		self.push(result)
 		self.place = return_to
 
