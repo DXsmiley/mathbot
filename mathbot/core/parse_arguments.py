@@ -95,7 +95,7 @@ def iter_mark_last(iterable):
 
 def parse(format_string, argstring):
 	if format_string.startswith('*'):
-		_, manip = _parse_format_spec_item(argstring)
+		_, manip = _parse_format_spec_item(format_string)
 		return [manip(argstring)]
 	elif format_string == '':
 		if argstring.strip() != '':
