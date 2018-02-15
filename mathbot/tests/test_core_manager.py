@@ -67,10 +67,29 @@ class MockMessage(discord.Message):
 		self.content = content
 		self.channel = MockChannel(False)
 		self.server = MockServer()
+		self.author = MockUser()
+
+
+class MockUser: # pylint: disable=too-few-public-methods
+	''' A mock object representing a user.
+		Contains the bare minimum amount of information
+		required to pass the tests.
+	'''
+
+	def __init__(self):
+		self.perms = discord.Permissions.none()
+		self.id = '012345678901234567' # pylint: disable=invalid-name
+
+	def permissions_in(self, channel):
+		''' Returns the permissions that a user would have if they
+			were operating in a given channel.
+		'''
+		assert isinstance(channel, MockChannel)
+		return self.perms
 
 
 @pytest.mark.asyncio
-async def test_message_handler(manager):
+async def test_message_handler(manager): # pylint: disable=redefined-outer-name
 	manager.add_modules(ExampleModule())
 	manager.setup()
 	await manager.handle_message(MockMessage('=echo'))
