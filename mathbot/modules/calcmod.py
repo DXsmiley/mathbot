@@ -144,7 +144,8 @@ class CalculatorModule(core.module.Module):
 			if not msg.content.startswith('=='):
 				return 'Type `=help calc` for information on how to use this command.'
 		elif arg == 'help':
-			return SHORTCUT_HELP_CLARIFICATION
+			prefix = await core.settings.get_channel_prefix(msg.channel)
+			return SHORTCUT_HELP_CLARIFICATION.format(prefix=prefix)
 		else:
 			if arg.count(':') > 1:
 				return 'There are too many `:` characters in that equation.'
