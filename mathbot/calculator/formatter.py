@@ -8,6 +8,7 @@
 import sympy
 import calculator.functions
 import calculator.errors
+import re
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes) # pylint: disable=no-member
@@ -85,8 +86,10 @@ class SimpleFormatter:
 
 	def fmt_glyph(self, glyph):
 		''' Format a single glyph '''
-		escaped = '\\`' if glyph.value == '`' else repr(glyph.value)[1:-1]
-		self.fmt('`', escaped, '`')
+		print(glyph.value)
+		o = '\\n' if glyph.value == '\n' else '\\t' if glyph.value == '\t' else glyph.value
+		self.fmt(o)
+		# self.fmt('`', glyph.value, '`')
 
 	def fmt_array(self, array):
 		''' Format an array '''
@@ -137,3 +140,10 @@ def format(*values, limit=None): # pylint: disable=redefined-builtin
 	fmtr = SimpleFormatter(limit=limit)
 	fmtr.fmt(*values)
 	return str(fmtr)
+
+
+ESCAPE_REGEX = re.compile(r'\\(.)')
+ESCAPE_DICT = {'n': '\n', 't': '\t'}
+
+def string_backslash_escaping(string):
+	return ESCAPE_REGEX.sub(lambda x: ESCAPE_DICT.get(x.group(1), x.group(1)), string)

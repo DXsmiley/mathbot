@@ -26,6 +26,11 @@ def doit(equation, expected):
 		or isinstance(result, sympy.boolalg.BooleanAtom) and bool(result) == expected \
 		or sympy.simplify(result - expected) == 0
 
+def doformatted(equation, expected):
+	result = calculator.calculate(equation, tick_limit = TIMEOUT)
+	formatted = calculator.formatter.format(result)
+	assert formatted == expected
+
 def repeat(equation, start, end):
 	for i in range(20):
 		r = calculator.calculate(equation, tick_limit = TIMEOUT)
@@ -405,3 +410,18 @@ def test_try_catch():
 	doit('try(x, 2, 3, 4, 5)', 2)
 	doit('try(x, x, 3, 4, 5)', 3)
 	doit('try(x, 8, x)', 8)
+
+def test_unicode():
+	tokens = calculator.parser.tokenizer(';🐱', calculator.parser.TOKEN_SPEC)
+	strings = list(map(lambda x: x['string'], tokens))
+	assert strings == ['', ';🐱', '']
+
+	result = calculator.calculate(';🐱')
+	assert isinstance(result, calculator.functions.Glyph)
+	assert result.value == '🐱'
+	assert calculator.formatter.format(result) == '🐱'
+
+	doformatted(';🐱', '🐱')
+	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
+	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
+	doformatted('"🐶🦊"', '"🐶🦊"')

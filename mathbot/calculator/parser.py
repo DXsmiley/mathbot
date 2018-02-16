@@ -687,42 +687,41 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 	return result
 
 
+TOKEN_SPEC = [
+	('__remove__', r'#.*'),
+	('kw_symbol', r'symbol'),
+	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
+	('string', r'"(?:\\.|[^\\"])*"'),
+	('glyph', r';\\.|;[^\\]'),
+	# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
+	('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),
+	# ('die_op', r'd'),
+	('pow_op', r'\^'),
+	('superscript', r'[⁰¹²³⁴⁵⁶⁷⁸⁹]+'),
+	('percent_op', r'\%'),
+	('mod_op', r'~mod'),
+	('mul_op', r'[/÷]', '/'),
+	('mul_op', r'[*×]', '*'),
+	('add_op', r'[+-]'),
+	('comp_op', r'<=|>=|<|>|!=|=='),
+	('paren', r'\(|\)'),
+	('bracket', r'\[|\]'),
+	('function_definition', r'~>|->'),
+	('comma', r','),
+	('assignment', r'='),
+	('land_op', r'&&'),
+	('lor_op', r'\|\|'),
+	('bang', r'!'),
+	('period', r'\.'),
+	('head_op', r'\''),
+	('tail_op', r'\\'),
+	('prepend_op', r':'),
+	('concat_op', r'\+\+')
+]
+
+
 def parse(string, source_name = '__unknown__'):
-	tokens = tokenizer(
-		string,
-		[
-			('__remove__', r'#.*'),
-			('kw_symbol', r'symbol'),
-			('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
-			('string', r'"(?:\\.|[^\\"])*"'),
-			('glyph', r';\\?.'),
-			# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
-			('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),
-			# ('die_op', r'd'),
-			('pow_op', r'\^'),
-			('superscript', r'[⁰¹²³⁴⁵⁶⁷⁸⁹]+'),
-			('percent_op', r'\%'),
-			('mod_op', r'~mod'),
-			('mul_op', r'[/÷]', '/'),
-			('mul_op', r'[*×]', '*'),
-			('add_op', r'[+-]'),
-			('comp_op', r'<=|>=|<|>|!=|=='),
-			('paren', r'\(|\)'),
-			('bracket', r'\[|\]'),
-			('function_definition', r'~>|->'),
-			('comma', r','),
-			('assignment', r'='),
-			('land_op', r'&&'),
-			('lor_op', r'\|\|'),
-			('bang', r'!'),
-			('period', r'\.'),
-			('head_op', r'\''),
-			('tail_op', r'\\'),
-			('prepend_op', r':'),
-			('concat_op', r'\+\+')
-		],
-		source_name = source_name
-	)
+	tokens = tokenizer(string, TOKEN_SPEC, source_name = source_name)
 	nested = process_tokens(tokens)
 	package = TokenRoot(string, tokens, nested)
 	result = ensure_completed(program, package.tokens)

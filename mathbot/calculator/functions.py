@@ -10,7 +10,10 @@ class Glyph:
 	__slots__ = ['value']
 
 	def __init__(self, value):
-		self.value = value
+		if isinstance(value, str) and len(value) == 1:
+			self.value = value
+		else:
+			raise TypeError(f'Cannot create a glyph from a {value.__class__}')
 
 	def __eq__(self, other):
 		return isinstance(other, Glyph) and self.value == other.value
