@@ -389,6 +389,7 @@ def test_strings():
 	doit('\'"Hello"', 'H')
 	doit('\\"Hello"', 'ello')
 	doit(';a:; :"string"', "a string")
+	doformatted()
 
 def test_lists():
 	doit("'[1 2 3]", 1)
@@ -425,3 +426,5 @@ def test_unicode():
 	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
 	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
 	doformatted('"🐶🦊"', '"🐶🦊"')
+	doformatted('ord(;🐱)', '128049')
+	doformatted('chr(ord(;🐱))', '🐱')

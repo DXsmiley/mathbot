@@ -119,3 +119,9 @@ display(x.) -> \join(expand(map(i -> ; :str(i), x)))
 
 chrs(s) -> map(chr s)
 ords(s) -> map(ord s)
+
+replace(s x r) -> if(
+	!s ""
+	startswith(s x) r:
+	's:replace(\s x r)
+) 

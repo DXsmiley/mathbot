@@ -106,6 +106,18 @@ def to_radians(d):
 	return d * sympy.pi / sympy.Number(180)
 
 
+def glyph_to_int(glyph):
+	if not isinstance(glyph, Glyph):
+		raise EvaluationError('ord received non-glyph')
+	return sympy.Integer(ord(glyph.value))
+
+
+def int_to_glyph(integer):
+	if not isinstance(integer, (int, sympy.Integer)):
+		raise EvaluationError('chr received non-integer')
+	return Glyph(chr(int(integer)))
+
+
 BUILTIN_FUNCTIONS = {
 	'log': mylog,
 	'ln': sympy.log,
@@ -114,12 +126,14 @@ BUILTIN_FUNCTIONS = {
 	'length': array_length,
 	'expand': array_expand,
 	'int': sympy.Integer,
-	'float': sympy.Number,
+	'decimal': lambda x: sympy.Number(float(x)),
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
 	'deg': to_degrees,
 	'rad': to_radians,
 	'repr': format_normal,
-	'str': format_smart
+	'str': format_smart,
+	'ord': glyph_to_int,
+	'chr': int_to_glyph
 }
 
 

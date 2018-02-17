@@ -344,14 +344,14 @@ class CodeSegment:
 		''' Bytecodifies a glyph node '''
 		string = node['string'][1:]
 		# string = bytes(string, 'utf-8').decode('unicode_escape')
-		print(string, calculator.formatter.string_backslash_escaping(string))
+		# print(string, calculator.formatter.string_backslash_escaping(string))
 		self.push(I.CONSTANT_GLYPH, calculator.formatter.string_backslash_escaping(string))
 
 	def btcfy_string(self, node, _):
 		''' Bytecodifies a string node '''
 		string = node['string'][1:-1]
 		# string = bytes(string, 'utf-8').decode('unicode_escape')
-		print(string)
+		# print(string)
 		self.push(I.CONSTANT_STRING, calculator.formatter.string_backslash_escaping(string))
 
 	def btcfy_bin_op(self, node, keys):
