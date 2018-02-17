@@ -383,7 +383,7 @@ def test_commaless():
 
 def test_strings():
 	doit(';a', 'a')
-	doit(';\\;', '`')
+	doit(';\\;', ';')
 	doit(';\\\\', '\\')
 	doit('"Hello"', "Hello")
 	doit('\'"Hello"', 'H')

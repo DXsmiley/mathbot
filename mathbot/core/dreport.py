@@ -42,7 +42,7 @@ async def send(client, origin, query, extra = ''):
 	'''
 	channel_id = core.parameters.get('error-reporting channel')
 	# Error message to user immidiately
-	query_clean = query.replace('```', '\`\`\`')
+	query_clean = query.replace('```', '\\`\\`\\`')
 	message = ERROR_MESSAGE_EXCEPTION.format(query_clean)
 	if len(message) > 2000:
 		message = ERROR_MESSAGE_TOO_LONG
