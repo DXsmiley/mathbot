@@ -2,23 +2,16 @@
 
 ## Operator replacements
 
-### `sum(a, b)`
-Returns `a + b`.
-
-### `product(a, b)`
-Returns `a * b`.
-
-### `difference(a, b)`
-Returns `a - b`.
-
-### `quotient(a, b)`
-Returns `a / b`.
-
-### `power(a, b)`
-Returns `a ^ b`.
-
-### `modulo(a, b)`
-Returns `a % b`.
+```
+       sum (a b) -> a + b
+   product (a b) -> a * b
+difference (a b) -> a - b
+  quotient (a b) -> a / b
+     power (a b) -> a ^ b
+    modulo (a b) -> a ~mod b
+       and (a b) -> a && b
+        or (a b) -> a || b
+```
 
 ## Comparitor utilities
 

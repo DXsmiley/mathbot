@@ -30,8 +30,8 @@ For example, `2 < 5 < 8` evaluates to `True`, whereas `3 == 6` equates to `False
 
 The following logical operators are supported:
 
-    - `|` : Or  (`x | y`)
-    - `&` : And (`x & y`)
+    - `||` : Or  (`x || y`)
+    - `&&` : And (`x && y`)
     - `!` : Not (`!x`)
 
 The value `0` is considered falsy. Everything else is truthy.
@@ -82,18 +82,6 @@ The following functions are available:
 
 :::page-break
 
-You can use the following notation to roll dice:
-
-    - `dX` : rolls an `X`-sided die. (e.g. `d20`)
-    - `YdX` : rolls `Y` `X`-sided dice. (e.g. `2d6`) and gives the total.
-
-You cannot roll more than 1000 dice at once.
-
-Appending the equation with `: R`, where `R` is an integer will repeat
-the calculation that many times. Useful only if you want to roll many
-dice at once. Using the `{{prefix}}csort` or `{{prefix}}sort` command will sort the numbers
-in increasing order. `R` may not be greater than 50.
-
 ## Examples
 
 `{{prefix}}calc 2 ^ (1 + 3) * 5`
@@ -104,4 +92,6 @@ in increasing order. `R` may not be greater than 50.
 
 `{{prefix}}calc (4 + 3i) ^ 3`
 
-`{{prefix}}calc 8d6 : 10`
+## Extended language
+
+[Extended Language Reference](https://github.com/DXsmiley/mathbot/blob/calculator-refactor/mathbot/help/turing.md)

@@ -1,5 +1,9 @@
 # Turing Completeness
 
+[Standard Library Reference](https://github.com/DXsmiley/mathbot/blob/calculator-refactor/mathbot/help/turing_functions.md)
+
+## Introduction
+
 The calculator is actually Turing complete, and can function as it's own small programming language, allowing you to perform more complicated operations.
 
 Note that these features are currently in *beta* and may be unstable. More complete documentation will be coming later.
@@ -122,90 +126,6 @@ The `'` operator retrieves an item from the head of a list.
 The `\` operator retrieves an item from the head of a list.
 ```
 \[1 2 3 4] # Results in [2 3 4]
-```
-
-# Standard Library
-
-## Binary operator equivalents
-```
-       sum (a b) -> a + b
-   product (a b) -> a * b
-difference (a b) -> a - b
-  quotient (a b) -> a / b
-     power (a b) -> a ^ b
-    modulo (a b) -> a ~mod b
-       and (a b) -> a && b
-        or (a b) -> a || b
-```
-
-## Comparisons
-```
-max (a b) -> if(a > b a b)
-min (a b) -> if(a < b a b)
-```
-
-## List manipulation
-
-### `repeat(item times)`
-
-Produce a list with `times` `item`s.
-
-Example:
-```
-repeat(0 4) # Produces [0 0 0 0]
-```
-
-### `reverse(list)`
-
-Produces a reversed list.
-
-Example:
-```
-reverse([1 2 3 4]) # Produces [4 3 2 1]
-```
-
-The implementation is optimised to use tail recursion, so runs in a constant amount of stack space.
-
-### `map(function list)`
-
-Applies `function` to each element of `list`, returning a new list.
-
-Example:
-```
-double(x) -> x * 2
-map(double [1 2 3 4]) # Produces [2 4 6 8]
-```
-
-### `filter(predicate list)`
-
-Returns a list with elements from `list` for which passing the item to `predicate` returns a truthy value.
-
-Example:
-```
-is_even(x) -> (x ~mod 2) == 0
-filter(is_even [0 1 2 3 4 5 6 7]) # Produces [0 2 4 6]
-```
-
-### `list(items ... )`
-
-Produces a list of any number of items. Variadic.
-
-### `join(lists ...)`
-
-Concatenates any number of lists.
-
-Example:
-```
-join([1 2] [3 4] [5 6]) # Produces [1 2 3 4 5 6]
-```
-
-### `sort(list)`
-
-Produces a list with the items of `list` in order, according to the `<`, `==` and `>` operators.
-
-Example:
-```
-sort([6 2 4 8 7 5 3 1]) # Produces [1 2 3 4 5 6 7 8]
 ```
 
 # System details
