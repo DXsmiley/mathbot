@@ -183,8 +183,11 @@ class CalculatorModule(core.module.Module):
 def expression_has_side_effect(expr):
 	# This is a hack. The only way a command is actually 'important' is
 	# if it assignes a variable. Variables are assigned through the = or -> operators.
-	# This can safely return a false positive, but should never return a false negitive
-	return '=' in expr or '->' in expr or '~>' in expr
+	# This can safely return a false positive, but should never return a false negitive.
+	expr.replace('==', '')
+	expr.replace('>=', '')
+	expr.replace('<=', '')
+	return any(map(expr.__contains__, ['=', '->', '~>', 'unload?']))
 
 
 def history_grouping(commands):
