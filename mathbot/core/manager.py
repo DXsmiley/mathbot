@@ -9,9 +9,12 @@ import core.parse_arguments
 import core.blame
 
 
-DISALLOWED_COMMAND_ERROR = """\
-That command may not be used in this location.\
-"""
+DISALLOWED_COMMAND_ERROR = 'That command may not be used in this location.'
+NO_DM_ERROR = 'That command may not be used in private channels.'
+NO_PUBLIC_ERROR = 'That command may not be used in public channels.'
+INSUFFICIENT_PERMS_ERROR = 'You do not have the required permissions to use that command here.'
+
+GLOBAL_PERM_ELEVATION = ['133804143721578505']
 
 
 class CommandConflictError(Exception):
@@ -58,6 +61,7 @@ class Manager:
 			# Tell the modules which shard the bot is, give them the client object
 			module.shard_id = self.shard_id
 			module.shard_count = self.shard_count
+			module.master = self
 			module.client = self.client
 			# Assign the background tasks
 			for task in module.collect_background_tasks():
@@ -124,7 +128,7 @@ class Manager:
 			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
 
 	# Handle an incoming message
-	async def handle_message(self, message, redirect_count = 0):
+	async def handle_message(self, message, redirect_count=0):
 		# print(message.author, self.client.user)
 		try:
 			for handler in self.raw_handlers_message:
@@ -138,8 +142,8 @@ class Manager:
 				cmd_string = await self.check_prefixes(message)
 				if cmd_string:
 					await self.handle_redirect(message, cmd_string)
-		except Exception as e:
-			await self.catch_handler_exception(e, message)
+		except Exception as err:
+			await self.catch_handler_exception(err, message)
 
 	# Handle an incoming meddage edit event
 	async def handle_edit(self, before, after):
@@ -156,7 +160,7 @@ class Manager:
 			await self.catch_handler_exception(e, after)
 
 	# Handle redirects. Command handlers are allowed to redirect to other command handlers.
-	async def handle_redirect(self, message, cmd_string, redirect_count = 0, is_edit = False):
+	async def handle_redirect(self, message, cmd_string, redirect_count=0, is_edit=False):
 		if redirect_count > 20:
 			raise TooManyRedirects
 		command, arguments = self.find_command_handler(cmd_string)
@@ -165,6 +169,8 @@ class Manager:
 			if isinstance(result, core.handles.Redirect):
 				message.content = result.destination
 				await self.handle_redirect(message, result.destination, redirect_count + 1)
+			elif isinstance(result, str):
+				await self.send_message(message, result)
 		else:
 			if redirect_count > 0:
 				raise RedirectionFailed
@@ -201,11 +207,18 @@ class Manager:
 	async def exec_command(self, message, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(message, perm)
-		if not allowed:
-			# TODO: Fix this up once the blame thing is moved
-			result = await self.client.send_message(message.channel, DISALLOWED_COMMAND_ERROR)
-			await core.blame.set_blame(result.id, message.author)
+		if perm is not None and not await core.settings.resolve_message(perm, message):
+			if await core.settings.resolve_message('m-disabled-cmd', message):
+				await self.send_message(message, DISALLOWED_COMMAND_ERROR)
+		elif command.no_dm and message.channel.is_private:
+			await self.send_message(message, NO_DM_ERROR)
+		elif command.no_public and not message.channel.is_private:
+			await self.send_message(message, NO_PUBLIC_ERROR)
+		elif (
+				not message.channel.is_private
+				and not message.author.permissions_in(message.channel).is_superset(command.discord_perms)
+				and message.author.id not in GLOBAL_PERM_ELEVATION):
+			await self.send_message(message, INSUFFICIENT_PERMS_ERROR)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)
@@ -224,7 +237,7 @@ class Manager:
 	async def exec_edit_command(self, before, after, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(after, perm)
+		allowed = perm is None or await core.settings.resolve_message(perm, after)
 		if not allowed:
 			# TODO: Fix this up once the blame thing is moved
 			result = await self.client.send_message(after.channel, DISALLOWED_COMMAND_ERROR)
@@ -280,6 +293,20 @@ class Manager:
 				await core.dreport.custom_report(self.client, m)
 				results[i] = str(v)
 		return [i for i in results if i is not None]
+
+	async def send_message(self, destination, *args, blame=None, **kwargs):
+		''' Send a message and assigns blame to it.
+			If destination is a Message, then the reply will be in
+			wherever the message was, and the blame will be on the
+			person who sent that message.
+		'''
+		if isinstance(destination, discord.Message):
+			if blame is None:
+				blame = destination.author
+			destination = destination.channel
+		result = await self.client.send_message(destination, *args, **kwargs)
+		await core.blame.set_blame(result.id, blame)
+		return result
 
 
 def create_client(manager, shard_id, shard_count):

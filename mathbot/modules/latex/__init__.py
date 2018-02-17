@@ -223,13 +223,13 @@ def extract_inline_tex(content):
 			word = next(parts)
 			if word != '':
 				latex += '{} '.format(
-					word.replace('#', '\#')
-						.replace('$', '\$')
-						.replace('%', '\%')
+					word.replace('#', '\\#')
+						.replace('$', '\\$')
+						.replace('%', '\\%')
 				)
 			word = next(parts)
 			if word != '':
-				latex += '$\displaystyle {}$ '.format(word.strip('`'))
+				latex += '$\\displaystyle {}$ '.format(word.strip('`'))
 	except StopIteration:
 		pass
 	return latex.rstrip()

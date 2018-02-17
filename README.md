@@ -7,7 +7,7 @@ It's primary features are:
 - Querying Wolfram|Alpha
 - A Turing complete calculator
 
-The bot is currently developed for python `3.6.2`.
+The bot is currently developed for python `3.6.4`.
 
 ## Links
 

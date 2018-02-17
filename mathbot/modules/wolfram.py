@@ -1,37 +1,42 @@
-import time
-import shutil
-import requests
-import os
-import safe
-import asyncio
+''' 
+
+	Wolfram module
+
+	Enables users to query Wolfram|Alpha.
+
+	Commands:
+		=wolf <query>
+		=pup <query>
+
+'''
+
 import collections
 import urllib.parse
+import re
+import itertools
+import typing
+
+import asyncio
+import aiohttp
+import discord
 import PIL
 import PIL.Image
 import PIL.ImageOps
 import PIL.ImageDraw
-# import PIL.Draw
 import PIL.ImageFont
-import io
+import xml
+
+import safe
 import wolfapi
-# import skytrails
-import gc
-import traceback
+import wordfilter
 import core.help
 import core.module
 import core.handles
 import core.settings
 import core.keystore
 import core.parameters
-import aiohttp
-import json
-import wordfilter
-import discord
-import xml
-import re
-import itertools
-
 from imageutil import *
+
 
 core.help.load_from_file('./help/wolfram.md')
 
@@ -102,87 +107,21 @@ RERUN_EMOJI = '🔄'
 EXPAND_EMOJI = '\U000025B6' # ▶️
 MAX_REACTIONS_IN_MESSAGE = 18
 
-ASSUMPTIONS_MADE_MESSAGE = '**Assumptions were made**\nPress {} to show them.\n\n'.format(EXPAND_EMOJI)
+ASSUMPTIONS_MADE_MESSAGE = \
+	'**Assumptions were made**\nPress {} to show them.\n\n'.format(EXPAND_EMOJI)
 
 api_key = core.parameters.get('wolfram key')
 api = None
 if api_key is not None:
 	api = wolfapi.Client(api_key)
 
-server_locks = set()
-dm_locks = set()
-
-def download_image(url):
-	response = requests.get(url, stream = True)
-	return PIL.Image.open(response.raw).convert('RGB')
-
-
-MAX_GROUP_HEIGHT = 300
-IMAGE_Y_PADDING = 10
-
-
-def group_images(images):
-	temp = []
-	height = 0
-	for i in images:
-		if height != 0 and height + i.height + IMAGE_Y_PADDING > MAX_GROUP_HEIGHT:
-			yield temp
-			temp = []
-			height = 0
-		temp.append(i)
-		height += i.height + IMAGE_Y_PADDING
-	if len(temp) > 0:
-		yield temp
-
-
-def conjoin_image_results(images, background_colour = (255, 255, 255, 0)):
-	for group in group_images(images):
-		height = sum(map(lambda x: x.height + IMAGE_Y_PADDING, group))
-		width = max(map(lambda x: x.width + 10, group))
-		result = PIL.Image.new('RGBA', (width, height), background_colour)
-		y = 0
-		for i in group:
-			result.paste(i, (5, y, 5 + i.width, y + i.height))
-			y += i.height + IMAGE_Y_PADDING
-		yield result
-		# await send_image(message.channel, result, 'result.png', blame = message.author)
-		# await asyncio.sleep(1.05)
-
-
-# Result is a list of tuples of the form: (image, section, is_title)
-def sections_to_image_strip(sections):
-	result = []
-	for section in sections:
-		result.append((textimage(section.title), section, True))
-		for image in section.images:
-			# replace_colour(image, (255, 255, 255, 255), (255, 255, 255, 0))
-			# result.append(image)
-			result.append((trim_image(image), section, False))
-	return result
-
-
-def has_required_perms(channel, member):
-	if channel.is_private:
-		return True
-	perms = channel.permissions_for(member)
-	return perms.attach_files
-
-
-def image_recolour_to_dark_theme(img):
-	image_invert(img)
-	image_scale_channels(img, hex_to_tuple('36393E'), hex_to_tuple('FFFFFF'))
-
-
-def retheme_images(strip, processor):
-	for image, section, is_title in strip:
-		if is_title or (not re.search(r'^Image:|:Colou?rData$', section.id)):
-			processor(image)
-		yield image
+server_locks = set() # type: typing.Set[typing.Any]
+dm_locks = set() # type: typing.Set[typing.Any]
 
 
 class AssumptionDataScope:
 
-	def __init__(self, message, client):
+	def __init__(self, message: discord.Message, client: discord.Client) -> None:
 		# self.message_id = message.id
 		self.client = client
 		self.data = None
@@ -215,27 +154,27 @@ class WolframModule(core.module.Module):
 
 	# sent_footer_messages = {}
 
-	@core.handles.command('wolf', '*', perm_setting = 'c-wolf')
-	async def command_wolf(self, message, query):
+	@core.handles.command('wolf', '*', perm_setting='c-wolf')
+	async def command_wolf(self, msg, query):
 		if api is None:
-			await self.send_message(message.channel, NO_API_ERROR, blame = message.author)
+			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
 		elif query in ['', 'help']:
 			return core.handles.Redirect('help wolfram')
-		elif not message.channel.is_private and not has_required_perms(message.channel, message.server.me):
-			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
+		elif not msg.channel.is_private and not has_required_perms(msg.channel, msg.server.me):
+			await self.send_message(msg.channel, PERMS_FAILURE, blame=msg.author)
 		else:
-			await self.lock_wolf(message.channel, message.author, query)
+			await self.lock_wolf(msg.channel, msg.author, query)
 
-	@core.handles.command('pup', '*', perm_setting = 'c-wolf')
-	async def command_pup(self, message, query):
+	@core.handles.command('pup', '*', perm_setting='c-wolf')
+	async def command_pup(self, msg, query):
 		if api is None:
-			await self.send_message(message.channel, NO_API_ERROR, blame = message.author)
+			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
 		elif query in ['', 'help']:
 			return core.handles.Redirect('help wolfram')
-		elif not message.channel.is_private and not has_required_perms(message.channel, message.server.me):
-			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
+		elif not msg.channel.is_private and not has_required_perms(msg.channel, msg.server.me):
+			await self.send_message(msg.channel, PERMS_FAILURE, blame=msg.author)
 		else:
-			await self.lock_wolf(message.channel, message.author, query, pup = True)
+			await self.lock_wolf(msg.channel, msg.author, query, pup=True)
 
 	@core.handles.add_reaction(RERUN_EMOJI)
 	async def rerun_rection(self, reaction, user):
@@ -283,13 +222,9 @@ class WolframModule(core.module.Module):
 			lock_set.add(lock_id)
 			did_work = True
 			try:
-				if pup:
-					await self.answer_query_short(query, channel, blame)
-				else:
-					await self.answer_query(query, channel, blame, assumptions = assumptions)
+				await self.answer_query(query, channel, blame, assumptions = assumptions, small=pup)
 			finally:
 				lock_set.remove(lock_id)
-				# A return statement in here swallows the exception.
 		else:
 			await self.send_message(
 				channel,
@@ -298,194 +233,110 @@ class WolframModule(core.module.Module):
 			)
 		return did_work
 
-	async def answer_query_short(self, query, channel, blame):
+	async def answer_query(self, query, channel, blame, assumptions=[], small=False, debug = False):
 		safe.sprint('wolfram|alpha :', blame.name, ':', query)
 		await self.client.send_typing(channel)
-		images = []
-		text = []
-		error = 0
-		error_message = 'No details'
 		enable_filter = False
 		if not channel.is_private:
 			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
 		if enable_filter and wordfilter.is_bad(query):
-			await self.send_message(channel, FILTER_FAILURE, blame = blame)
+			await self.send_message(channel, FILTER_FAILURE, blame=blame)
 			return
 		try:
 			print('Making request')
-			result = await api.request(query, [], debug = False)
-			print('Done?')
+			result = await api.request(query, assumptions, debug=debug)
+		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
+			await self.send_message(channel, ERROR_MESSAGE_FAILED, blame=blame)
 		except asyncio.TimeoutError:
 			print('W|A timeout:', query)
-			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT, blame = blame)
-		except aiohttp.ClientError as e:
-			print('Wolf: HTTP processing error:', e.message)
-			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
-		except xml.parsers.expat.ExpatError as e:
-			print('Wolf: XML processing error:', e.message)
-			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame = blame)
+			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame=blame)
+		except aiohttp.ClientError as error:
+			print('Wolf: HTTP processing error:', error.message)
+			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame=blame)
+		except xml.parsers.expat.ExpatError as error:
+			print('Wolf: XML processing error:', error)
+			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame=blame)
 		else:
-			# print(json.dumps(result.sections, indent = 4))
-			if len(result.sections) == 0:
-				await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame = blame)
-			elif result.did_fail:
-				m = 'Something went wrong: {}'.format(result.error_text)
-				await self.send_message(channel, m, blame = blame)
-			else:
-				# for i in result.sections:
-				# 	print(' -', i.title)
-				sections_reduced = list(cleanup_section_list(itertools.chain(
-					[find_first(section_is_input, result.sections, None)],
-					list(filter(section_is_important, result.sections))
-					or [find_first(section_is_not_input, result.sections, None)]
-				)))
-				is_dark = ((await core.keystore.get('p-tex-colour', blame.id)) == 'dark')
-				# Send the image results
-				background_colour = hex_to_tuple_a('36393EFF' if is_dark else 'FFFFFFFF')
-				strip = sections_to_image_strip(sections_reduced)
-				if is_dark:
-					strip = retheme_images(strip, image_recolour_to_dark_theme)
-				else:
-					strip = (i for i, _, _ in strip)
-				for img in conjoin_image_results(strip, background_colour):
-					img = paste_to_background(img, background_colour)
-					await self.send_image(channel, img, 'result.png', blame = blame)
-					await asyncio.sleep(1.05)
-				# Text section
-				adm = await self.format_adm(channel, blame, query, is_pup = True)
-				posted = await self.send_message(channel, adm, blame = blame)
-				print('Done.')
 
-	async def answer_query(self, query, channel, blame, assumptions = [], debug = False):
-		safe.sprint('wolfram|alpha :', blame.name, ':', query)
-		await self.client.send_typing(channel)
-		images = []
-		text = []
-		error = 0
-		error_message = 'No details'
-		# Dummy message. This is a sign that I need to work on the settings module somewhat.
-		class Dummy:
-			def __init__(self, channel):
-				self.channel = channel
-				self.server = channel.server
-		enable_filter = False
-		if not channel.is_private:
-			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
-			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'channel'))
-			# print(core.get_setting_context(Dummy(channel), 'f-wolf-filter', 'server'))
-			# print(enable_filter)
-		if enable_filter and wordfilter.is_bad(query):
-			await self.send_message(channel, FILTER_FAILURE, blame = blame)
-			return
-		try:
-			print('Making request')
-			result = await api.request(query, assumptions, debug = debug)
-			print('Done?')
-		except wolfapi.RequestFailed:
-			await self.send_message(channel, ERROR_MESSAGE_FAILED, blame = blame)
-		except asyncio.TimeoutError:
-			print('W|A timeout:', query)
-			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame = blame)
-		except aiohttp.ClientError as e:
-			print('Wolf: HTTP processing error:', e.message)
-			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame = blame)
-		except xml.parsers.expat.ExpatError as e:
-			print('Wolf: XML processing error:', e)
-			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame = blame)
-		else:
 			if len(result.sections) == 0:
 				await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame = blame)
-			elif result.did_fail:
-				m = 'Something went wrong: {}'.format(result.error_text)
-				await self.send_message(channel, m, blame = blame)
-			else:
-				# Get theme setting (TODO: Don't construct this myself)
-				key = 'p-tex-colour:' + blame.id
-				theme = await core.keystore.get(key)
-				is_dark = (theme == 'dark')
-				# print('The theme:', theme)
-				# Send the image results
-				background_colour = hex_to_tuple_a('36393EFF') if is_dark else hex_to_tuple_a('FFFFFFFF')
-				if not debug:
-					strip = sections_to_image_strip(result.sections)
-					strip = retheme_images(strip, image_recolour_to_dark_theme if is_dark else lambda x : None)
-					for img in conjoin_image_results(strip, background_colour):
-						img = paste_to_background(img, background_colour)
-						# await self.send_image(channel, img, 'result.png', blame = blame)
-						# if theme == 'dark':
-						# 	image_recolour_to_dark_theme(img)
-						await self.send_image(channel, img, 'result.png', blame = blame)
-						await asyncio.sleep(1.05)
-				# Text section
-				textitems = []
-				# Assumptions
+				return
+
+			is_dark = (await core.keystore.get('p-tex-colour:' + blame.id)) == 'dark'
+
+			sections_reduced = result.sections if not small else list(
+				cleanup_section_list(
+					itertools.chain(
+						[find_first(section_is_input, result.sections, None)],
+						list(filter(section_is_important, result.sections))
+						or [find_first(section_is_not_input, result.sections, None)]
+					)
+				)
+			)
+
+			# Post images
+			for img in process_images(sections_reduced, is_dark):
+				await self.send_image(channel, img, 'result.png', blame=blame)
+				await asyncio.sleep(1.05)
+
+			# Assumptions
+			assumption_text = ''
+			if not small:
 				assumption_text = self.get_assumption_text(result.assumptions)
 				hidden_assumptions = assumption_text.count('\n') > 5
 				if hidden_assumptions:
 					assumption_text = ASSUMPTIONS_MADE_MESSAGE
-				textitems.append(assumption_text)
-				# Tips
-				if len(result.tips) > 0:
-					textitems += [
-						'**Tips**\n',
-						'\n'.join(result.tips),
-						'\n\n'
-					]
-				# Timeouts
-				if len(result.timeouts) > 0:
-					textitems += [
-						'**Timeouts**\n',
-						', '.join(result.timeouts),
-						'\n\n'
-					]
-				textout_joined = ''.join(textitems)
-				url = urllib.parse.urlencode({'i': query})
-				# Determine if the footer should be long or short
-				adm = await self.format_adm(channel, blame, query, False)
-				output = textout_joined + adm
-				too_long = False
-				if len(output) >= 2000:
-					too_long = True
-					output = adm
-				# Send the result
-				posted = await self.send_message(channel, output, blame = blame)
-				if result.assumptions.count - result.assumptions.count_unknown > 0 and not too_long:
-					try:
-						if hidden_assumptions:
-							await self.client.add_reaction(posted, EXPAND_EMOJI)
-						else:
-							await self.add_reaction_emoji(posted, result.assumptions)
-						payload = {
-							'assumptions': result.assumptions.to_json(),
-							'query': query,
-							'used': False,
-							'blame': blame.id,
-							'channel id': posted.channel.id,
-							'message id': posted.id,
-							'no change warning': False,
-							'hidden': hidden_assumptions
-						}
-						print(json.dumps(payload, indent = 4))
-						# self.sent_footer_messages[str(posted.id)] = payload
-						await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
-						print(self.shard_id, 'Footer message id:', posted.id)
-					except discord.errors.Forbidden:
-						await self.send_message(channel, REACTION_PERM_FAILURE, blame = blame)
-				# Complete!
-				print('Done.')
 
-	async def format_adm(self, channel, blame, query, is_pup = False):
+			url = urllib.parse.urlencode({'i': query})
+
+			# Determine if the footer should be long or short
+			adm = await self.format_adm(channel, blame, query, small)
+			output = assumption_text + adm
+			too_long = False
+			if len(output) >= 2000:
+				too_long = True
+				output = adm
+
+			# Send the result
+			posted = await self.send_message(channel, output, blame=blame)
+			if not small and result.assumptions.count_known > 0 and not too_long:
+				try:
+					if hidden_assumptions:
+						await self.client.add_reaction(posted, EXPAND_EMOJI)
+					else:
+						await self.add_reaction_emoji(posted, result.assumptions)
+					payload = {
+						'assumptions': result.assumptions.to_json(),
+						'query': query,
+						'used': False,
+						'blame': blame.id,
+						'channel id': posted.channel.id,
+						'message id': posted.id,
+						'no change warning': False,
+						'hidden': hidden_assumptions
+					}
+					# print(json.dumps(payload, indent=4))
+					# self.sent_footer_messages[str(posted.id)] = payload
+					await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
+					# print(self.shard_id, 'Footer message id:', posted.id)
+				except discord.errors.Forbidden:
+					await self.send_message(channel, REACTION_PERM_FAILURE, blame=blame)
+
+			print('Done.')
+
+	@staticmethod
+	async def format_adm(channel, blame, query, small):
 		result = []
-		url = urllib.parse.urlencode({'i': query})
 		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
 			result.append('Query made by {}\n'.format(blame.mention))
 		url = urllib.parse.urlencode({'i': query})
-		result.append(FOOTER_LINK.format(query = url))
-		if not is_pup:
+		result.append(FOOTER_LINK.format(query=url))
+		if not small:
 			result.append('🐺 **Try out the new `=pup` command!** It\'s much more concise.\n')
 		return ''.join(result)
 
-	def get_assumption_text(self, assumptions):
+	@staticmethod
+	def get_assumption_text(assumptions):
 		if assumptions.count == 0:
 			return ''
 		return '**Assumptions**\n{}\n\n'.format(str(assumptions))
@@ -508,8 +359,8 @@ class WolframModule(core.module.Module):
 			print('Message disappeared in the middle of adding reactions.')
 
 
-
 SHOULD_ERROR = object()
+
 
 def find_first(predicate, iterator, default = SHOULD_ERROR):
 	''' Return the first item from iterator that conforms to the predicate '''
@@ -521,7 +372,82 @@ def find_first(predicate, iterator, default = SHOULD_ERROR):
 	return default
 
 
+MAX_GROUP_HEIGHT = 300
+IMAGE_Y_PADDING = 10
+
+
+def process_images(sections, is_dark):
+	strip = sections_to_image_strip(sections)
+	strip = retheme_images(strip) if is_dark else map(lambda x: x[0], strip)
+	background_colour = hex_to_tuple_a('36393EFF') if is_dark else hex_to_tuple_a('FFFFFFFF')	
+	for img in conjoin_image_results(strip, background_colour):
+		img = paste_to_background(img, background_colour)
+		yield img
+
+
+# Result is a list of tuples of the form: (image, section, is_title)
+def sections_to_image_strip(sections):
+	for section in sections:
+		yield (textimage(section.title), section, True)
+		for image in section._images:
+			yield (trim_image(image), section, False)
+
+
+def retheme_images(strip):
+	''' Takes a strip of (image, section, is_title) things and
+		recolours the ones that need to me
+	'''
+	for image, section, is_title in strip:
+		if is_title or (not re.search(r'^Image:|:Colou?rData$', section.id)):
+			image_recolour_to_dark_theme(image)
+		yield image
+
+
+def conjoin_image_results(images, background_colour = (255, 255, 255, 0)):
+	''' Takes a list of images and stitches some of them together to reduce the number
+		of images that need to be sent - but prevents individual images from being too tall
+	'''
+	for group in group_images(images):
+		height = sum(map(lambda x: x.height + IMAGE_Y_PADDING, group))
+		width = max(map(lambda x: x.width + 10, group))
+		result = PIL.Image.new('RGBA', (width, height), background_colour)
+		y = 0
+		for i in group:
+			result.paste(i, (5, y, 5 + i.width, y + i.height))
+			y += i.height + IMAGE_Y_PADDING
+		yield result
+
+
+def group_images(images):
+	''' Takes a sqeunce of images and groups them such that no group is too high '''
+	temp = []
+	height = 0
+	for i in images:
+		if height != 0 and height + i.height + IMAGE_Y_PADDING > MAX_GROUP_HEIGHT:
+			yield temp
+			temp = []
+			height = 0
+		temp.append(i)
+		height += i.height + IMAGE_Y_PADDING
+	if len(temp) > 0:
+		yield temp
+
+
+def has_required_perms(channel, member):
+	if channel.is_private:
+		return True
+	perms = channel.permissions_for(member)
+	return perms.attach_files
+
+
+def image_recolour_to_dark_theme(img):
+	''' Takes an image and converts it to the dark theme '''
+	image_invert(img)
+	image_scale_channels(img, hex_to_tuple('36393E'), hex_to_tuple('FFFFFF'))
+
+
 def section_is_input(s):
+	''' Determine if a section is an input section '''
 	return s.title.lower() in [
 		'input',
 		'input interpretation'
@@ -529,10 +455,12 @@ def section_is_input(s):
 
 
 def section_is_not_input(s):
+	''' Determine if a section is NOT an input section '''
 	return not section_is_input(s)
 
 
 def section_is_important(s):
+	''' Determine if a section is important or not '''
 	return s.title.lower() in [
 		'solution',
 		'result',
@@ -544,6 +472,9 @@ def section_is_important(s):
 
 
 def cleanup_section_list(items):
+	''' Takes a list of sections and removes any that
+		are None or any that appear twice.
+	'''
 	seen = set()
 	for i in items:
 		if i is not None and id(i) not in seen:
