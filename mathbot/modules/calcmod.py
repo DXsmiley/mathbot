@@ -111,14 +111,14 @@ class CalculatorModule(core.module.Module):
 			if result.count('\n') > 7:
 				lines = result.split('\n')
 				num_removed_lines = len(lines) - 8
-				selected = '\n'.join(lines[:8])
+				selected = '\n'.join(lines[:8]).replace('`', '`\N{zero width non-joiner}')
 				result = '```\n{}\n```\n{} lines were removed.'.format(selected, num_removed_lines)
 			elif result.count('\n') > 0:
-				result = '```\n{}\n```'.format(result)
+				result = '```\n{}\n```'.format(result.replace('`', '`\N{zero width non-joiner}'))
 			else:
-				for special_char in ('*', '\\', '_', '~~', '`'):
+				for special_char in ('\\', '*', '_', '~~', '`'):
 					result = result.replace(special_char, '\\' + special_char)
-				result = result.replace('@', '@\N{zero width non-joiner}')
+			result = result.replace('@', '@\N{zero width non-joiner}')
 			if result == '':
 				result = ':thumbsup:'
 			elif len(result) > 2000:
