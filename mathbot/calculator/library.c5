@@ -81,12 +81,27 @@ __join(a b) -> if(a __join(\a 'a:b) b)
 _join(a b) -> __join(reverse(a) b)
 join(x.) -> reduce(_join x)
 
-sort(x) -> if(!x .
-	join(
-		sort(filter(i -> i <  'x, x))
-		     filter(i -> i == 'x, x)
-		sort(filter(i -> i >  'x, x))
-	))
+_merge(a b) -> ifelse(
+	!a, b,
+	!b, a,
+	'b < 'a, 'b:_merge(a \b)
+	'a:_merge(\a b)
+)
+_sort(x h) -> _merge(sort(take(x h)) sort(drop(x h)))
+sort(x) -> if (length(x) <= 1 x _sort(x int(length(x) / 2)))
+
+# sort(x) -> if (length(x) <= 1
+# 		x
+# 		merge(sort(take(x h)) sort(drop(x h)))
+# 	) where (
+# 		h = int(length(x) / 2)
+# 		merge(a b) -> ifelse(
+# 			!a, b,
+# 			!b, a,
+# 			'b < 'a, 'b:merge(a \b)
+# 			'a:merge(\a b)
+# 		)
+# 	)
 
 # Trig functions for degrees
 sind(d) -> sin(rad(d))
@@ -107,6 +122,7 @@ choose(n, k) -> n! / k! / (n - k)!
 # String manipulation functions
 startswith(x z) -> if(!z, true, (x && ('x == 'z) && startswith(\x \z)))
 drop(x n) -> if (n == 0 x drop(\x n - 1))
+take(x n) -> if (n == 0 . 'x:take(\x n - 1))
 
 _split(x z) -> ifelse (
 	!x              [""],
