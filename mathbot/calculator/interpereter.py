@@ -50,6 +50,13 @@ class IndexedScope:
 			raise EvaluationError('Cannot assign to protected value')
 		scope.values[index] = (protected, value)
 
+	def reset(scope, index, depth):
+		while depth > 0:
+			scope = scope.superscope
+			depth -= 1
+		if index < len(scope.values):
+			scope.values[index] = (None, None)
+
 	def __repr__(self):
 		return 'indexed-scope'
 
@@ -193,6 +200,7 @@ class Interpereter:
 			b.ACCESS_GLOBAL: self.inst_access_gobal,
 			b.ACCESS_SEMI: self.inst_access_semi,
 			b.ACCESS_ARRAY_ELEMENT: self.inst_access_array_element,
+			b.UNLOAD: self.inst_unload,
 			b.FUNCTION_NORMAL: self.inst_function,
 			# b.FUNCTION_NORMAL: self.inst_function_normal,
 			# b.FUNCTION_MACRO: self.inst_function_macro,
@@ -531,10 +539,13 @@ class Interpereter:
 			raise EvaluationError('Attempted to access out-of-bounds element of an array')
 		self.push(array(index))
 
+	def inst_unload(self):
+		index = self.next()
+		self.root_scope.reset(index, 0)
+
 	def inst_assignment(self):
 		value = self.pop()
-		self.place += 1
-		index = self.head
+		index = self.next()
 		self.root_scope.set(index, 0, value, protected = self.protected_assignment_mode)
 
 	def inst_declare_symbol(self):

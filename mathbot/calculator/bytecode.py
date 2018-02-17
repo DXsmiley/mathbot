@@ -64,6 +64,7 @@ class I(enum.IntEnum):
 	ACCESS_LOCAL = 45
 	ACCESS_SEMI = 46
 	ACCESS_ARRAY_ELEMENT = 53
+	UNLOAD = 69
 
 	CONSTANT_EMPTY_ARRAY = 50
 
@@ -81,7 +82,7 @@ class I(enum.IntEnum):
 	CONSTANT_STRING = 67
 	CONSTANT_GLYPH = 68
 
-	# Next to use: 69
+	# Next to use: 70
 
 
 OPERATOR_DICT = {
@@ -443,6 +444,11 @@ class CodeSegment:
 		# print(scope, depth, index)
 		self.push(I.ASSIGNMENT)
 		self.push(index)
+
+	def btcfy_unload_global(self, node, keys):
+		name = node['variable']['string'].lower()
+		scope, depth, index = keys['scope'].find_value(name)
+		self.push(I.UNLOAD, index)
 
 	def btcfy_declare_symbol(self, node, keys):
 		name = node['name']['string'].lower()

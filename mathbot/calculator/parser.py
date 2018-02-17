@@ -565,6 +565,13 @@ def statement(tokens):
 			'#': 'declare_symbol',
 			'name': name
 		}
+	elif tokens.peek(0, 'kw_unload'):
+		tokens.eat_details()
+		name = word(tokens)
+		return {
+			'#': 'unload_global',
+			'variable': name
+		}
 	elif tokens.peek_sequence(0, 'word', BracketType.ROUND, 'function_definition') \
 	  or tokens.peek_sequence(0, 'word', BracketType.ROUND, 'assignment'):
 		name = word(tokens)
@@ -689,7 +696,8 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 
 TOKEN_SPEC = [
 	('__remove__', r'#.*'),
-	('kw_symbol', r'symbol'),
+	('kw_symbol', r'symbol\?'),
+	('kw_unload', r'unload\?'),
 	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
 	('string', r'"(?:\\.|[^\\"])*"'),
 	('glyph', r';\\.|;[^\\]'),
