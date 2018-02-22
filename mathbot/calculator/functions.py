@@ -21,6 +21,9 @@ class Glyph:
 	def __str__(self):
 		return self.value
 
+	def __hash__(self):
+		return ord(self.value)
+
 
 class BuiltinFunction:
 
