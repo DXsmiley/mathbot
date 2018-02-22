@@ -65,25 +65,13 @@ def do_nothing():
 	pass
 
 
-def rolldie(times, faces):
-	if isinstance(times, float):
-		times = int(times)
-	if isinstance(faces, float):
-		faces = int(faces)
-	if not isinstance(times, int) or not isinstance(faces, int):
-		raise EvaluationError('Cannot roll {} dice with {} faces'.format(
-			calculator.errors.format_value(times),
-			calculator.errors.format_value(faces)
-		))
-	if times < 1:
-		return 0
-	if times > 1000:
-		raise EvaluationError('Cannot roll more than 1000 dice')
-	if faces < 1:
-		raise EvaluationError('Cannot roll die with less than one face')
-	if isinstance(faces, float) and not faces.is_integer():
-		raise EvaluationError('Cannot roll die with fractional number of faces')
-	return sum(random.randint(1, faces) for i in range(times))
+def protected_power(a, b):
+	if isinstance(a, sympy.Number) and isinstance(b, sympy.Number):
+		sa = float(sympy.Abs(a))
+		sb = float(sympy.Abs(b))
+		if sa > 100 or sb > 100:
+			return sympy.Float(a) ** sympy.Float(b)
+	return a ** b
 
 
 class FunctionInspector:
@@ -403,7 +391,7 @@ class Interpereter:
 	inst_sub = binary_op(operator.sub)
 	inst_div = binary_op(operator.truediv)
 	inst_mod = binary_op(operator.mod)
-	inst_pow = binary_op(operator.pow)
+	inst_pow = binary_op(protected_power)
 	inst_bin_less = binary_op(operator.lt)
 	inst_bin_more = binary_op(operator.gt)
 	inst_bin_l_eq = binary_op(operator.le)
