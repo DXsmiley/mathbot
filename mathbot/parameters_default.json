@@ -19,7 +19,8 @@
 	},
 	"automata": {
 		"token": null,
-		"target": null
+		"target": null,
+		"channel": null
 	},
 	"analytics": {
 		"carbon": null,

@@ -1,12 +1,14 @@
-:::topics wolfram wolf wolframalpha wolfram|alpha wa alpha
+:::topics wolfram wolf wolframalpha wolfram|alpha wa alpha pup
 
 # Wolfram|Alpha
 
 The `{{prefix}}wolf` command is used to query Wolfram|Alpha.
 
-This command can be very slow at times, so please be patient.
+The `{{prefix}}pup` command will produce fewer results.
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
+
+This command can be very slow at times, so please be patient.
 
 ## Examples
 
@@ -30,3 +32,9 @@ A server admin can be manually disable the filter in a channel by running `{{pre
 It can be re-enabled again with `{{prefix}}set channel f-wolf-filter enable`.
 
 See `{{prefix}}help settings` for more details on managing settings.
+
+## Mention
+
+By default, the bot will mention the person who invoked the command. The `f-wolf-mention` setting can be modified to change this.
+
+Use `{{prefix}}set server f-wolf-mention disable` to prevent the bot from mentioning people on the whole server, and `{{prefix}}set server f-wolf-mention enable` to re-enable it.

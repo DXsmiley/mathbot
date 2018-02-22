@@ -27,7 +27,7 @@ The bot currently uses an external rendering service. The following features are
 
 ## Inline LaTeX
 
-*This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command `=set server f-inline-tex enable`.*
+*This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command `=set server f-tex-inline enable`.*
 
 You can insert LaTeX into the middle of a message by wrapping it in `$$` signs.
 
@@ -37,6 +37,11 @@ Examples
 
 `$$1 + 2$$ equals $$3$$.`
 
-## Custom commands
+## Deleting Commands
 
-Some custom commands have been added to make typing quick LaTeX easy. These include `\bbR`, `\bbN` etc. for `\mathbb{R}`, `mathbb{N}` and other common set symbols and `\bigO` for `\mathcal{O}`
+You can get the bot to automatically delete invokation commands after a short time by setting `=set server f-tex-delete enable`.
+The bot will require the *manage messages* permission for this work properly.
+
+## Custom Macros
+
+Some custom commands have been added to make typing quick LaTeX easy. These include `\bbR`, `\bbN` etc. for `\mathbb{R}`, `mathbb{N}` and other common set symbols and `\bigO` for `\mathcal{O}`. Some unicode characters (such as greek letters) are automatically convered to LaTeX macros for ease of use.
