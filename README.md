@@ -15,6 +15,7 @@ The bot is currently developed for python `3.6.4`.
 - [Command documentation for users](https://dxsmiley.github.io/mathbot/docs.html)
 - [Support me on Patreon](https://www.patreon.com/dxsmiley)
 - [Project Trello Board](https://trello.com/b/j6b7vpGA/mathbot)
+- [Official Discord Server](https://discord.gg/JbJbRZS)
 
 ## Setup for use
 
@@ -45,6 +46,8 @@ Then open parameters.json and change `tokens` to the token of the bot. Change `r
 Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
 
 ## Contributing guide
+
+Relevent discussion takes place on [the MathBot Discord server](https://discord.gg/JbJbRZS).
 
 For small changes, feel free to fork the repo and make a pull request once you've made the changes. For larger things, check the [Trello board](https://trello.com/b/j6b7vpGA/mathbot) and see if anyone's already working on it. If not, shoot me a message to say that you're working on it so we don't get multiple people doing the same thing.
 
