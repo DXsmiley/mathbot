@@ -110,6 +110,7 @@ def main():
 			'about',
 			'wolfram',
 			'latex',
+			'roll',
 			'calculator',
 			'turing',
 			'theme',
