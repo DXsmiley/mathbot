@@ -69,7 +69,7 @@ class DiceModule(core.module.Module):
 
 	def formatted_roll(self, dice, faces):
 		''' Roll dice and return a string of the results as well as the total. '''
-		rolls = [random.randint(1, faces) for _ in range(dice)]
+		rolls = sorted(random.randint(1, faces) for _ in range(dice))
 		total = sum(rolls)
 		s = f'{" ".join(map(str, rolls))} (total: {total})'
 		return (s if dice > 1 else str(total)), total
