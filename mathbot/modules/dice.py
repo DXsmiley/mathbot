@@ -63,24 +63,22 @@ class DiceModule(core.module.Module):
 			return final_message if len(final_message) <= limit else f'🎲 total: {total}'
 
 	async def get_limit(self, message):
-		'''This method gets the character limit for messages.'''
+		''' Get the character limit for messages. '''
 		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
-		return 200 if not unlimited else 2000
+		return 2000 if unlimited else 200
 
 	def formatted_roll(self, dice, faces):
-		'''
-		This will roll dice and return a string of the results as well as the total.
-		'''
+		''' Roll dice and return a string of the results as well as the total. '''
 		rolls = [random.randint(1, faces) for _ in range(dice)]
 		total = sum(rolls)
-		s = f'{str.join(" ", map(str, rolls))} (total: {total})'
-		return s, total
+		s = f'{" ".join(map(str, rolls))} (total: {total})'
+		return (s if dice > 1 else str(total)), total
 
 	def gaussian_roll(self, dice, faces, limit=100000):
-		'''[random.randint(1, faces) for _ in range(dice)]
-		This method simulates a roll using normal distributions. It'll do it as
-		many times as neccessary to avoid float inaccuracy, unless that means
-		rolling more times than limit.
+		''' [random.randint(1, faces) for _ in range(dice)]
+			Simulate a roll using normal distributions. Do it as
+			many times as neccessary to avoid float inaccuracy, unless that means
+			rolling more times than limit.
 		'''
 		# if it passes this first test, then it's safe to do it in one roll
 		# 53 is how many bits of precision we have with python's doubles. This
@@ -103,13 +101,12 @@ class DiceModule(core.module.Module):
 			raise ValuesTooBigException()
 
 	def gaussian_roll_single(self, dice, faces):
-		'''
-		This method uses a normal distribution to roll some dice, it'll hit float
-		inaccuracies rather easily. In order to avoid float inaccuracy you'll need
-		to make sure that:
-		1. dice has fewer than 16 digits
-		2. faces has fewer than 8 digits
-		3. dice and faces have fewer than 16 digits combined
+		''' Use a normal distribution to roll some dice. Method hits float
+			inaccuracies rather easily. In order to avoid float inaccuracy you'll need
+			to make sure that:
+			1. dice has fewer than 16 digits
+			2. faces has fewer than 8 digits
+			3. dice and faces have fewer than 16 digits combined
 		'''
 		mean = (faces + 1) * dice / 2
 		std = math.sqrt((dice * (faces * faces - 1)) / 12)
