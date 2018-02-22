@@ -216,6 +216,7 @@ class Manager:
 			await self.send_message(message, NO_PUBLIC_ERROR)
 		elif (
 				not message.channel.is_private
+				and isinstance(message.author, discord.Member)
 				and not message.author.permissions_in(message.channel).is_superset(command.discord_perms)
 				and message.author.id not in GLOBAL_PERM_ELEVATION):
 			await self.send_message(message, INSUFFICIENT_PERMS_ERROR)
