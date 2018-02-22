@@ -1,4 +1,4 @@
-import automata
+import dismock as automata
 import bot
 import pytest
 import asyncio

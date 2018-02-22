@@ -1,5 +1,4 @@
 import random
-import requests
 import os
 import safe
 import PIL
