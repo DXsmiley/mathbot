@@ -9,6 +9,7 @@ import calculator.formatter
 import sympy
 import json
 import traceback
+import re
 
 
 ERROR_TEMPLATE = '''\

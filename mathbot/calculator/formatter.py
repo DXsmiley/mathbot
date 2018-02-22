@@ -77,6 +77,8 @@ class SimpleFormatter:
 				self.fmt_list(i)
 			elif isinstance(i, calculator.functions.Glyph):
 				self.fmt_glyph(i)
+			elif isinstance(i, ALL_SYMPY_CLASSES):
+				self.fmt_sympy_object(i)
 			else:
 				self.fmt_py_string(str(i))
 
@@ -129,6 +131,10 @@ class SimpleFormatter:
 		if lst:
 			self.drop()
 		self.fmt(')')
+
+	def fmt_sympy_object(self, obj):
+		''' Format a sympy object '''
+		self._collector.print(str(obj))
 
 	def __str__(self):
 		return str(self._collector)
