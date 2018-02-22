@@ -14,8 +14,8 @@ The calculator supports the following arithmetic operations:
     - `-` : subtraction
     - `*` : multiplication (can also use `×`)
     - `/` : division (can also use `÷`)
-    - `^` : exponentiation (has some limitations to prevent exploits)
-    - `!` : factorial (cannot be applied to numbers greater than 200)
+    - `^` : exponentiation
+    - `!` : factorial
 
 The following comparisons are supported
 
