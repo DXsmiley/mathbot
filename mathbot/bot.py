@@ -78,13 +78,7 @@ def do_setup():
 
 # Used to ensure the beta bot only replies in the channel that it is supposed to
 def event_filter(message):
-	if RELEASE != 'beta':
-		return True
-	if message.channel.id == '325908974648164352':
-		return True
-	if message.channel.is_private and patrons.tier(message.author.id) != patrons.TIER_NONE:
-		return True
-	return False
+	return True
 
 
 def create_shard_manager(shard_id, shard_count):
@@ -93,19 +87,19 @@ def create_shard_manager(shard_id, shard_count):
 	# causes state changes that could interfere with tests if they're
 	# executed too early.
 
-	import modules.wolfram
+	# import modules.wolfram
 	import modules.about
 	import modules.blame
 	import modules.calcmod
 	import modules.help
-	import modules.throws
+	# import modules.throws
 	import modules.settings
-	import modules.latex
-	import modules.purge
-	import modules.echo
-	import modules.analytics
+	# import modules.latex
+	# import modules.purge
+	# import modules.echo
+	# import modules.analytics
 	import modules.reporter
-	import modules.greeter
+	# import modules.greeter
 	import modules.dice
 
 	assert(0 <= shard_id < shard_count)
@@ -119,29 +113,29 @@ def create_shard_manager(shard_id, shard_count):
 
 	manager.add_modules(
 		modules.help.HelpModule(),
-		modules.wolfram.WolframModule(),
+		# modules.wolfram.WolframModule(),
 		modules.settings.SettingsModule(),
 		modules.blame.BlameModule(),
 		modules.about.AboutModule(),
-		modules.latex.LatexModule(),
+		# modules.latex.LatexModule(),
 		modules.calcmod.CalculatorModule(),
-		modules.purge.PurgeModule(),
+		# modules.purge.PurgeModule(),
 		# Will only trigger stats if supplied with tokens
-		modules.analytics.AnalyticsModule(),
-		modules.reporter.ReporterModule(),
-		modules.dice.DiceModule()
+		# modules.analytics.AnalyticsModule(),
+		modules.reporter.ReporterModule()
+		# modules.dice.DiceModule()
 	)
 
-	if RELEASE == 'production':
-		manager.add_modules(
-			modules.greeter.GreeterModule()
-		)
+	# if RELEASE == 'production':
+	# 	manager.add_modules(
+	# 		modules.greeter.GreeterModule()
+	# 	)
 
-	if RELEASE == 'development':
-		manager.add_modules(
-			modules.throws.ThrowsModule(),
-			modules.echo.EchoModule()
-		)
+	# if RELEASE == 'development':
+	# 	manager.add_modules(
+	# 		modules.throws.ThrowsModule(),
+	# 		modules.echo.EchoModule()
+	# 	)
 
 	return manager
 
