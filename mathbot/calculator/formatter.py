@@ -134,7 +134,7 @@ class SimpleFormatter:
 
 	def fmt_sympy_object(self, obj):
 		''' Format a sympy object '''
-		self._collector.print(str(obj))
+		self._collector.print(sympy_cleanup(str(obj)))
 
 	def __str__(self):
 		return str(self._collector)
@@ -145,6 +145,10 @@ def format(*values, limit=None): # pylint: disable=redefined-builtin
 	fmtr = SimpleFormatter(limit=limit)
 	fmtr.fmt(*values)
 	return str(fmtr)
+
+
+def sympy_cleanup(string):
+	return string.replace('**', '^').replace('*', '×')
 
 
 ESCAPE_REGEX = re.compile(r'\\(.)')

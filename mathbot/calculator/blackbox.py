@@ -152,7 +152,9 @@ class Terminal:
                         exact = result.evalf()
                         details['exact'] = exact
                         f_ext = calculator.formatter.format(exact, limit = self.output_limit)
-                        if f_res == f_ext or isinstance(result, sympy.Integer):
+                        f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
+                        f_ext = calculator.formatter.sympy_cleanup(f_ext)
+                        if f_res == f_ext:
                             raise Exception
                         prt(f_res, '=', f_ext)
                     except Exception as e:
