@@ -160,7 +160,7 @@ def test_factorial():
 		doit('{}!'.format(i), sympy.factorial(i))
 	for i in range(1, 10):
 		doit('gamma({})'.format(i), sympy.gamma(i))
-	doit('4.5!', sympy.gamma(4.5 + 1))
+	doit('4.5!', sympy.gamma(sympy.Rational(9, 2) + 1))
 	doit('gamma(5) - 5!', -96)
 	throws('(-1)!')
 	doit('300!', sympy.factorial(300))
@@ -375,7 +375,7 @@ def test_trig():
 	doit('cos(pi)', -1)
 	doit('sin(8)', sympy.sin(8))
 	doit('sin(8i+3)', sympy.sin(3+sympy.Number(8) * sympy.I))
-	doit('atan(0.1)', sympy.atan(0.1))
+	doit('atan(0.1)', sympy.atan(sympy.Rational(1, 10)))
 
 def test_commaless():
 	doit('sum(1 2)', 3)
@@ -389,7 +389,6 @@ def test_strings():
 	doit('\'"Hello"', 'H')
 	doit('\\"Hello"', 'ello')
 	doit(';a:; :"string"', "a string")
-	doformatted()
 
 def test_lists():
 	doit("'[1 2 3]", 1)
@@ -428,3 +427,8 @@ def test_unicode():
 	doformatted('"🐶🦊"', '"🐶🦊"')
 	doformatted('ord(;🐱)', '128049')
 	doformatted('chr(ord(;🐱))', '🐱')
+
+def test_small_floats():
+	doformatted('0.2', '1/5')
+	doformatted('0.1 + 0.2 - 0.3', '0')
+	doformatted('3.14', '157/50')

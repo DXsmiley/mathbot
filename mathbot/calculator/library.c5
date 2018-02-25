@@ -125,8 +125,8 @@ drop(x n) -> if (n == 0 x drop(\x n - 1))
 take(x n) -> if (n == 0 . 'x:take(\x n - 1))
 
 _split(x z) -> ifelse (
-	!x              [""],
-	startswith(x z) "":split(drop(x length(z)) z),
+	!x,              [""],
+	startswith(x z), "":split(drop(x length(z)) z),
 	(k -> ('x:'k):\k)(_split(\x z))
 )
 split(x z) -> filter(i -> i, _split(x z))
@@ -136,8 +136,8 @@ display(x.) -> \join(expand(map(i -> ; :str(i), x)))
 chrs(s) -> map(chr s)
 ords(s) -> map(ord s)
 
-replace(s x r) -> if(
-	!s ""
-	startswith(s x) r:
-	's:replace(\s x r)
-) 
+# replace(s x r) -> ifelse(
+# 	!s, "",
+# 	startswith(s x), r:
+# 	's:replace(\s x r)
+# ) 

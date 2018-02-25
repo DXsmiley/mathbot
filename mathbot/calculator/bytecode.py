@@ -671,13 +671,14 @@ def ast_to_bytecode(ast, unsafe=False, add_terminal_byte=True) -> ConstructedByt
 
 
 def convert_number(x):
-	if x.lower().endswith('i'):
+	x = x.lower()
+	if x.endswith('i'):
 		return sympy.I * convert_number(x[:-1])
-	if '.' in x:
+	if '.' in x and 'e' not in x:
 		i, p = x.split('.')
 		k = len(p)
 		if k < 30: # Maybe increase this limit
-			return sympy.Rational(int(i) * k + int(p), 10 ** k)
+			return sympy.Rational(int(i) * 10 ** k + int(p), 10 ** k)
 	return sympy.Number(x)
 
 
