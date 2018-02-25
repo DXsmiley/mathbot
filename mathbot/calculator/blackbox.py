@@ -154,6 +154,8 @@ class Terminal:
                         f_ext = calculator.formatter.format(exact, limit = self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
                         f_ext = calculator.formatter.sympy_cleanup(f_ext)
+                        if f_ext == '1×I':
+                            f_ext = 'I'
                         if f_res == f_ext:
                             raise Exception
                         prt(f_res, '=', f_ext)

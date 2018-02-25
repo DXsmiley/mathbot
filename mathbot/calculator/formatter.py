@@ -46,6 +46,13 @@ class Collector:
 		return output
 
 
+class CustomSympyPrinter(sympy.printing.str.StrPrinter):
+
+	def _print_Mul(self, expr):
+		string = sympy.printing.str.StrPrinter._print_Mul(self, expr)
+		return re.sub(r'^1\.0\*', '', string)
+
+
 class SimpleFormatter:
 
 	''' Simplest implementation of the formatter.
@@ -134,7 +141,7 @@ class SimpleFormatter:
 
 	def fmt_sympy_object(self, obj):
 		''' Format a sympy object '''
-		self._collector.print(sympy_cleanup(str(obj)))
+		self._collector.print(sympy_cleanup(CustomSympyPrinter().doprint(obj)))
 
 	def __str__(self):
 		return str(self._collector)
