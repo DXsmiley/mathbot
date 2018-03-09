@@ -44,13 +44,6 @@ ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?
 """
 
-ERROR_MESSAGE_FAILED = '''Failed to make the request.
-Maybe you should try again?
-
-If this error keeps recurring, you should report it to DXsmiley on the \
-official MathBot server: https://discord.gg/JbJbRZS
-'''
-
 ERROR_MESSAGE_TIMEOUT = """Wolfram|Alpha query timed out.
 Maybe you should try again?
 
@@ -246,7 +239,7 @@ class WolframModule(core.module.Module):
 			print('Making request')
 			result = await api.request(query, assumptions, debug=debug)
 		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
-			await self.send_message(channel, ERROR_MESSAGE_FAILED, blame=blame)
+			await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame=blame)
 		except asyncio.TimeoutError:
 			print('W|A timeout:', query)
 			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame=blame)
