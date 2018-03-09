@@ -7,6 +7,7 @@ import traceback
 import core.settings
 import core.parse_arguments
 import core.blame
+import signal
 
 
 DISALLOWED_COMMAND_ERROR = 'That command may not be used in this location.'
@@ -47,6 +48,7 @@ class Manager:
 		self.client = create_client(self, shard_id, shard_count)
 		self.token = token
 		self.done_setup = False
+		self.running = True
 
 	# Add modules to the bot
 	def add_modules(self, *modules):
@@ -101,8 +103,18 @@ class Manager:
 	async def run_async(self):
 		if not self.done_setup:
 			self.setup()
-		await self.client.start(self.token)
-		print('Shard', self.shard_id, 'has shutdown')
+		await asyncio.gather(
+			self.client.start(self.token)
+		)
+		print('Shard', self.shard_id, 'has shutdown gracefully')
+
+	async def shutdown(self):
+		self.running = False
+		for i in self.modules:
+			i.running = False
+		# Give things a change to stop before dying
+		await asyncio.sleep(8)
+		await self.client.logout()
 
 	# Find the proper handler for a given command
 	def find_command_handler(self, cmd_string):
@@ -325,7 +337,7 @@ def create_client(manager, shard_id, shard_count):
 	async def on_message(message):
 		# print('Received message', message.id)
 		# print(message.content)
-		if client._core_ready and manager.master_filter(message.channel):
+		if client._core_ready and manager.master_filter(message.channel) and manager.running:
 			# print('Handling message')
 			await manager.handle_message(message)
 		# else:
@@ -333,18 +345,18 @@ def create_client(manager, shard_id, shard_count):
 
 	@client.event
 	async def on_message_edit(before, after):
-		if client._core_ready and manager.master_filter(before.channel):
+		if client._core_ready and manager.master_filter(before.channel) and manager.running:
 			await manager.handle_edit(before, after)
 
 	@client.event
 	async def on_reaction_add(reaction, user):
-		if client._core_ready and manager.master_filter(reaction.message.channel):
+		if client._core_ready and manager.master_filter(reaction.message.channel) and manager.running:
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
 
 	@client.event
 	async def on_member_join(member):
-		if client._core_ready:
+		if client._core_ready and manager.running:
 			await manager.handle_member_joined(member)
 
 	# @client.event

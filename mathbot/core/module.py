@@ -19,6 +19,7 @@ class Module:
 		self.client = None
 		self.shard_id = 0
 		self.shard_count = 1
+		self.running = True
 
 	# Functions used by the system
 
