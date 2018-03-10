@@ -23,6 +23,9 @@ class ScopeMissedError(Exception):
 	pass
 
 
+DataSlot = collections.namedtuple('DataSlot', 'value security')
+
+
 class IndexedScope:
 
 	# NOTE: Not really sure why I have both size and values here. 
@@ -30,32 +33,33 @@ class IndexedScope:
 		self.superscope = superscope
 		if size != len(values):
 			raise calculator.errors.SystemError('Attempted to create a scope with number of values unequal to the size')
-		self.values = [(False, i) for i in values]
+		self.slots = [DataSlot(i, 0) for i in values]
 
 	def get(scope, index, depth):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		if index >= len(scope.values) or scope.values[index][1] == None:
+		if index >= len(scope.slots) or scope.slots[index].value == None:
 			raise ScopeMissedError
-		return scope.values[index][1]
+		return scope.slots[index].value
 
-	def set(scope, index, depth, value, protected = False):
+	def set(scope, index, depth, value, permission = 0, protection = None):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		while len(scope.values) <= index:
-			scope.values.append((None, None))
-		if scope.values[index][0] is True:
-			raise EvaluationError('Cannot assign to protected value')
-		scope.values[index] = (protected, value)
+		while len(scope.slots) <= index:
+			scope.slots.append(DataSlot(None, 0))
+		if scope.slots[index].security > permission:
+			raise EvaluationError('Not permitted to perform this assignment')
+		_, old_protection = scope.slots[index]
+		scope.slots[index] = DataSlot(value, protection if protection is not None else old_protection)
 
 	def reset(scope, index, depth):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		if index < len(scope.values):
-			scope.values[index] = (None, None)
+		if index < len(scope.slots):
+			scope.slots[index] = DataSlot(None, 0)
 
 	def __repr__(self):
 		return 'indexed-scope'
@@ -534,7 +538,7 @@ class Interpereter:
 	def inst_assignment(self):
 		value = self.pop()
 		index = self.next()
-		self.root_scope.set(index, 0, value, protected = self.protected_assignment_mode)
+		self.root_scope.set(index, 0, value)
 
 	def inst_declare_symbol(self):
 		self.place += 1
@@ -542,7 +546,7 @@ class Interpereter:
 		self.place += 1
 		name = self.head
 		value = sympy.symbols(name)
-		self.root_scope.set(index, 0, value, protected = self.protected_assignment_mode)
+		self.root_scope.set(index, 0, value)
 
 	def inst_function(self):
 		self.place += 1

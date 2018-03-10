@@ -201,21 +201,22 @@ def strip_extra(t):
 	return {k:strip_extra(v) for k, v in t.items() if k != 'source'}
 
 
-def findall(ast, tag):
+def findall(ast, tag, ignore_keys = {}):
 	if isinstance(ast, list):
 		for i in ast:
-			yield from findall(i, tag)
+			yield from findall(i, tag, ignore_keys)
 	if isinstance(ast, dict):
 		if ast.get('#') == tag:
 			yield ast
 		for k, v in ast.items():
-			yield from findall(v, tag)
+			if k not in ignore_keys:
+				yield from findall(v, tag, ignore_keys)
 
 
 def lib_pieces():
 	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
 	definitions = {}
-	for assignment in findall(ast, 'assignment'):
+	for assignment in findall(ast, 'assignment', ignore_keys = {'token'}):
 		name = assignment['variable']['string'].lower()
 		definitions[name] = assignment
 	return definitions

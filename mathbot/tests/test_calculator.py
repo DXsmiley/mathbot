@@ -194,8 +194,8 @@ def test_assignment():
 def test_functions():
 	doit('double = (x) -> x * 2, double(3)', 6)
 	doit('multiply = (x, y) -> x * y, multiply(4, 5)', 20)
-	doit('double (x) -> x * 2, double(3)', 6)
-	doit('multiply (x, y) -> x * y, multiply(4, 5)', 20)
+	doit('double (x) = x * 2, double(3)', 6)
+	doit('multiply (x, y) = x * y, multiply(4, 5)', 20)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(5)', 8)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(50)', 20365011074)
 	doit('if(0, 0, 0)', 0)
@@ -207,10 +207,8 @@ def test_functions():
 
 def test_function_creation():
 	doit('f = x -> x * 2, f(3)', 6)
-	doit('f(x) -> x * 2, f(3)', 6)
 	doit('f(x) = x * 2, f(3)', 6)
 	doit('f = (x y) -> x + y, f(1, 2)', 3)
-	doit('f(x y) -> x + y, f(1, 2)', 3)
 	doit('f(x y) = x + y, f(1, 2)', 3)
 
 def test_macros():
@@ -352,6 +350,7 @@ def test_invalid_syntax():
 	parse_fail('3 -> 3')
 	parse_fail('[] -> 3')
 	parse_fail('-> -> x')
+	parse_fail('f(x) -> x')
 
 def test_compile_failures():
 	compile_fail('(if) -> 0')

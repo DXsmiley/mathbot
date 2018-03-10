@@ -63,6 +63,7 @@ class ParseFailedBlock(ParseFailed):
 
 class UnableToFinishParsing(ParseFailedBlock): pass
 class UnexpectedLackOfToken(ParseFailedBlock): pass
+class DeprecatedSyntax(ParseFailedBlock): pass
 
 
 class ImbalancedBraces(ParseFailed):
@@ -423,7 +424,7 @@ def superscript(tokens):
 
 
 def expression(tokens):
-	return function_definition(tokens)
+	return function_definition(tokens, 'function_definition')
 
 
 _parameter_list = eat_optionally_delimited(
@@ -523,8 +524,8 @@ def comparison_list(tokens):
 prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIGHT_FIRST, 'bin_op')
 
 
-def function_definition(tokens, allow_equal_sign = False):
-	if tokens.peek(1, 'function_definition') or (tokens.peek(1, 'assignment') and allow_equal_sign):
+def function_definition(tokens, delimiter):
+	if tokens.peek(1, delimiter):
 		if tokens.peek(0, BracketType.ROUND):
 			args, is_variadic = ensure_completed(parameter_list, tokens.eat_details())
 		elif tokens.peek(0, 'word'):
@@ -549,7 +550,7 @@ def function_definition(tokens, allow_equal_sign = False):
 
 
 def statement(tokens):
-	if tokens.peek(1, 'assignment'):
+	if tokens.peek_sequence(0, 'word', 'assignment'):
 		name = word(tokens)
 		tokens.eat_details()
 		value = expression(tokens)
@@ -572,10 +573,13 @@ def statement(tokens):
 			'#': 'unload_global',
 			'variable': name
 		}
-	elif tokens.peek_sequence(0, 'word', BracketType.ROUND, 'function_definition') \
-	  or tokens.peek_sequence(0, 'word', BracketType.ROUND, 'assignment'):
+	elif tokens.peek_sequence(0, 'word', BracketType.ROUND, 'function_definition'):
+		tokens.eat_details()
+		tokens.eat_details()
+		raise DeprecatedSyntax(tokens)
+	elif tokens.peek_sequence(0, 'word', BracketType.ROUND, 'assignment'):
 		name = word(tokens)
-		function = function_definition(tokens, allow_equal_sign = True)
+		function = function_definition(tokens, 'assignment')
 		function['name'] = name['string']
 		return {
 			'#': 'assignment',
