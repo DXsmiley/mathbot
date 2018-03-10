@@ -11,11 +11,16 @@ class Heartbeat(core.module.Module):
 
 	@core.handles.background_task(requires_ready=True)
 	async def pulse(self):
+		''' Repeatedly update the status of the bot '''
 		tick = 0
 		while self.running:
 			current_time = int(time.time())
 			await core.keystore.set('heartbeat', str(self.shard_id), current_time)
-			slowest = min([(await core.keystore.get('heartbeat', str(shard)) or time) for shard in range(self.shard_count)])
+			# Find the slowest shard
+			slowest = min([
+				(await core.keystore.get('heartbeat', str(shard)) or time)
+				for shard in range(self.shard_count)
+			])
 			tick += 1
 			if tick % 5 == 0:
 				await self.client.change_presence(
@@ -23,4 +28,5 @@ class Heartbeat(core.module.Module):
 					status=discord.Status.idle if current_time - slowest >= 10 else discord.Status.online
 				)
 			await asyncio.sleep(1)
+		# Specify that the current shard is no longer running. Helps the other shards update sooner.
 		await core.keystore.set('heartbeat', str(self.shard_id), 1)
