@@ -18,7 +18,7 @@ class Heartbeat(core.module.Module):
 			await core.keystore.set('heartbeat', str(self.shard_id), current_time)
 			# Find the slowest shard
 			slowest = min([
-				(await core.keystore.get('heartbeat', str(shard)) or time)
+				(await core.keystore.get('heartbeat', str(shard)) or 1)
 				for shard in range(self.shard_count)
 			])
 			tick += 1
