@@ -403,8 +403,8 @@ class Interpereter:
 	inst_bin_equl = binary_op(operator.eq)
 	inst_bin_n_eq = binary_op(operator.ne)
 	# inst_bin_die = binary_op(rolldie)
-	inst_and = binary_op(lambda a, b: int(bool(a) and bool(b)))
-	inst_or = binary_op(lambda a, b: int(bool(a) or bool(b)))
+	inst_and = binary_op(lambda a, b: (bool(a) and bool(b)))
+	inst_or = binary_op(lambda a, b: (bool(a) or bool(b)))
 
 	def inst_unr_min(self):
 		self.push(-self.pop())
@@ -434,8 +434,8 @@ class Interpereter:
 		def internal(self):
 			r = self.pop()
 			l = self.pop()
-			x = int(bool(comparator(l, r)))
-			self.stack[-1] &= x
+			x = bool(comparator(l, r))
+			self.stack[-1] = self.stack[-1] and x
 			self.push(r)
 		return internal
 

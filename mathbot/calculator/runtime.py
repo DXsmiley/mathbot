@@ -141,8 +141,8 @@ FIXED_VALUES = {
 	'π': sympy.pi,
 	'τ': sympy.pi * 2,
 	'tau': sympy.pi * 2,
-	'true': sympy.Integer(1),
-	'false': sympy.Integer(0)
+	'true': True,
+	'false': False
 }
 
 
@@ -151,8 +151,8 @@ FIXED_VALUES_EXPORTABLE = {
 	'τ': math.pi * 2,
 	'pi': math.pi,
 	'tau': math.pi * 2,
-	'true': 1,
-	'false': 0
+	'true': True,
+	'false': False
 }
 
 

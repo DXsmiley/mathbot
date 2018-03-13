@@ -368,6 +368,8 @@ def test_errors():
 	# throws('10*2^6643')
 	compile_fail('if (true, 8)')
 	throws('low(1, 1)')
+	throws('cos(true)')
+	throws('sin(false)')
 
 def test_trig():
 	doit('sin(0)', 0)
