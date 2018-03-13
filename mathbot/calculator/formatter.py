@@ -74,6 +74,8 @@ class SimpleFormatter:
 			# print(i.__class__, i.__class__.__mro__)
 			if i is None:
 				self._collector.print('null')
+			elif isinstance(i, bool):
+				self.fmt_py_bool(i)
 			elif isinstance(i, str):
 				self.fmt_py_string(i)
 			elif isinstance(i, list):
@@ -88,6 +90,10 @@ class SimpleFormatter:
 				self.fmt_sympy_object(i)
 			else:
 				self.fmt_py_string(str(i))
+
+	def fmt_py_bool(self, b):
+		''' Format a boolean value '''
+		self._collector.print('true' if b else 'false')
 
 	def fmt_py_string(self, i):
 		''' Format a string, which means just add it to the output '''
