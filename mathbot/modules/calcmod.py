@@ -103,10 +103,10 @@ class CalculatorModule(core.module.Module):
 			if arg == '':
 				# If no equation was given, spit out the help.
 				if not message.content.startswith('=='):
-					await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
+					await self.send_message(message, 'Type `=help calc` for information on how to use this command.')
 			elif arg == 'help':
 				prefix = await core.settings.get_channel_prefix(message.channel)
-				await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
+				await self.send_message(message, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 			else:
 				safe.sprint('Doing calculation:', arg)
 				scope = SCOPES[message.channel.id]
@@ -122,14 +122,17 @@ class CalculatorModule(core.module.Module):
 					for special_char in ('\\', '*', '_', '~~', '`'):
 						result = result.replace(special_char, '\\' + special_char)
 				result = result.replace('@', '@\N{zero width non-joiner}')
-				if result == '':
-					result = ':thumbsup:'
-				elif len(result) > 2000:
-					result = 'Result was too large to display.'
-				elif worked and len(result) < 1000:
-					if await advertising.should_advertise_to(message.author, message.channel):
-						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-				await self.send_message(message.channel, result, blame = message.author)
+				if result == '' and (message.channel.is_private or message.channel.permissions_for(message.server.me).add_reactions):
+					await self.client.add_reaction(message, '👍')
+				else:
+					if result == '':
+						result = ':thumbsup:'
+					elif len(result) > 2000:
+						result = 'Result was too large to display.'
+					elif worked and len(result) < 1000:
+						if await advertising.should_advertise_to(message.author, message.channel):
+							result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
+					await self.send_message(message, result)
 				if worked and expression_has_side_effect(arg):
 					await self.add_command_to_history(message.channel, arg)
 
