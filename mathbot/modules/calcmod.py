@@ -44,6 +44,8 @@ SCOPES = collections.defaultdict(lambda :
 	calculator.blackbox.Terminal(retain_cache = False, output_limit = 1950, yield_rate = 1)
 )
 
+LOCKS = collections.defaultdict(asyncio.Lock)
+
 
 COMMAND_DELIM = '####'
 EXPIRE_TIME = 60 * 60 * 24 * 10 # Things expire in 10 days
@@ -93,42 +95,43 @@ class CalculatorModule(core.module.Module):
 
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message, should_sort = False):
-		await self.replay_commands(message.channel, message.author)
-		# Yeah this is kinda not great...
-		if arg.count('`') == 2 and arg.startswith('`') and arg.endswith('`'):
-			arg = arg.replace('`', ' ')
-		if arg == '':
-			# If no equation was given, spit out the help.
-			if not message.content.startswith('=='):
-				await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
-		elif arg == 'help':
-			prefix = await core.settings.get_channel_prefix(message.channel)
-			await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
-		else:
-			safe.sprint('Doing calculation:', arg)
-			scope = SCOPES[message.channel.id]
-			result, worked, details = await scope.execute_async(arg)
-			if result.count('\n') > 7:
-				lines = result.split('\n')
-				num_removed_lines = len(lines) - 8
-				selected = '\n'.join(lines[:8]).replace('`', '`\N{zero width non-joiner}')
-				result = '```\n{}\n```\n{} lines were removed.'.format(selected, num_removed_lines)
-			elif result.count('\n') > 0:
-				result = '```\n{}\n```'.format(result.replace('`', '`\N{zero width non-joiner}'))
+		with (await LOCKS[message.channel.id]):
+			await self.replay_commands(message.channel, message.author)
+			# Yeah this is kinda not great...
+			if arg.count('`') == 2 and arg.startswith('`') and arg.endswith('`'):
+				arg = arg.replace('`', ' ')
+			if arg == '':
+				# If no equation was given, spit out the help.
+				if not message.content.startswith('=='):
+					await self.send_message(message.channel, 'Type `=help calc` for information on how to use this command.', blame = message.author)
+			elif arg == 'help':
+				prefix = await core.settings.get_channel_prefix(message.channel)
+				await self.send_message(message.channel, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 			else:
-				for special_char in ('\\', '*', '_', '~~', '`'):
-					result = result.replace(special_char, '\\' + special_char)
-			result = result.replace('@', '@\N{zero width non-joiner}')
-			if result == '':
-				result = ':thumbsup:'
-			elif len(result) > 2000:
-				result = 'Result was too large to display.'
-			elif worked and len(result) < 1000:
-				if await advertising.should_advertise_to(message.author, message.channel):
-					result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-			await self.send_message(message.channel, result, blame = message.author)
-			if worked and expression_has_side_effect(arg):
-				await self.add_command_to_history(message.channel, arg)
+				safe.sprint('Doing calculation:', arg)
+				scope = SCOPES[message.channel.id]
+				result, worked, details = await scope.execute_async(arg)
+				if result.count('\n') > 7:
+					lines = result.split('\n')
+					num_removed_lines = len(lines) - 8
+					selected = '\n'.join(lines[:8]).replace('`', '`\N{zero width non-joiner}')
+					result = '```\n{}\n```\n{} lines were removed.'.format(selected, num_removed_lines)
+				elif result.count('\n') > 0:
+					result = '```\n{}\n```'.format(result.replace('`', '`\N{zero width non-joiner}'))
+				else:
+					for special_char in ('\\', '*', '_', '~~', '`'):
+						result = result.replace(special_char, '\\' + special_char)
+				result = result.replace('@', '@\N{zero width non-joiner}')
+				if result == '':
+					result = ':thumbsup:'
+				elif len(result) > 2000:
+					result = 'Result was too large to display.'
+				elif worked and len(result) < 1000:
+					if await advertising.should_advertise_to(message.author, message.channel):
+						result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
+				await self.send_message(message.channel, result, blame = message.author)
+				if worked and expression_has_side_effect(arg):
+					await self.add_command_to_history(message.channel, arg)
 
 	async def replay_commands(self, channel, blame):
 		# If command were previously run in this channel, re-run them
