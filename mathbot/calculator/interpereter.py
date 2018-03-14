@@ -71,6 +71,8 @@ def do_nothing():
 
 def protected_power(a, b):
 	if isinstance(a, sympy.Number) and isinstance(b, sympy.Number):
+		if a == 0 and b == 0:
+			raise EvaluationError('Cannot raise 0 to the power of 0')
 		sa = float(sympy.Abs(a))
 		sb = float(sympy.Abs(b))
 		if sa > 100 or sb > 100:
