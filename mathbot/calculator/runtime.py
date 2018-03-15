@@ -163,14 +163,18 @@ def _extract_from_sympy():
 		sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 		tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
 		exp root sqrt pi E I gcd lcm gamma factorial
+		oo:infinity zoo:complex_infinity
 	'''
 	for i in names.split():
-		value = getattr(sympy, i)
-		name = i.lower()
-		if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
-			BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
-		else:
-			FIXED_VALUES[name] = value
+		parts = i.split(':')
+		internal_name = parts[0]
+		external_names = parts[1:] or [internal_name]
+		value = getattr(sympy, internal_name)
+		for name in map(str.lower, external_names):
+			if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
+				BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
+			else:
+				FIXED_VALUES[name] = value
 _extract_from_sympy()
 
 

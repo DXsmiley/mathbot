@@ -52,6 +52,24 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 		string = sympy.printing.str.StrPrinter._print_Mul(self, expr)
 		return re.sub(r'^1\.0\*', '', string)
 
+	def _print_ImaginaryUnit(self, expr):
+		return 'i'
+
+	def _print_Infinity(self, expr):
+		return '∞' if self._settings.get('unicode', True) else 'infinity'
+
+	def _print_NegativeInfinity(self, expr):
+		return '-∞' if self._settings.get('unicode', True) else 'negitive_infinity'
+
+	def _print_ComplexInfinity(self, expr):
+		return 'complex_infinity'
+
+	def _print_NaN(self, expr):
+		return 'not_a_number' if self._settings.get('unicode', True) else 'not_a_number'
+
+	def _print_Pi(self, expre):
+		return 'π' if self._settings.get('unicode', True) else 'pi'
+
 
 class SimpleFormatter:
 
