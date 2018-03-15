@@ -706,7 +706,7 @@ TOKEN_SPEC = [
 	('string', r'"(?:\\.|[^\\"])*"'),
 	('glyph', r';\\.|;[^\\]'),
 	# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
-	('word', r'π|τ|[a-zA-Z_][a-zA-Z0-9_]*'),
+	('word', r'π|τ|∞|[a-zA-Z_][a-zA-Z0-9_]*'),
 	# ('die_op', r'd'),
 	('pow_op', r'\^'),
 	('superscript', r'[⁰¹²³⁴⁵⁶⁷⁸⁹]+'),
