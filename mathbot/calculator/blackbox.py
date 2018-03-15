@@ -43,7 +43,14 @@ class AccessGlobalMissHook:
 
 class Terminal:
 
-    def __init__(self, allow_special_commands=False, retain_cache=True, output_limit=None, yield_rate=100, load_on_demand=True, colour_output=False):
+    def __init__(self,
+                 allow_special_commands=False,
+                 retain_cache=True,
+                 output_limit=None,
+                 yield_rate=100,
+                 load_on_demand=True,
+                 colour_output=False,
+                 runtime_protection_level=0):
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
@@ -71,9 +78,11 @@ class Terminal:
         )
         if load_on_demand:
             hooks['access-global-miss'] = AccessGlobalMissHook(self.interpereter, self.linker)
-        if not load_on_demand:
+        else:
             try:
-                self.interpereter.run()
+                self.interpereter.run(
+                    assignment_auth_level=runtime_protection_level,
+                    assignment_protection_level=runtime_protection_level)
             except Exception:
                 print('Error during library loading. Re-running with trace.')
                 temp_interp = calculator.interpereter.Interpereter(
@@ -154,11 +163,7 @@ class Terminal:
                         f_ext = calculator.formatter.format(exact, limit = self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
                         f_ext = calculator.formatter.sympy_cleanup(f_ext)
-                        if f_ext == 'inf':
-                            f_ext = '∞'
-                        elif f_ext == '-inf':
-                            f_ext = '-∞'
-                        if f_res == f_ext:
+                        if f_ext in ['inf', '-inf', f_res]:
                             raise Exception
                         prt(f_res, '=', f_ext)
                     except Exception as e:

@@ -433,6 +433,7 @@ class CodeSegment:
 
 	def btcfy_assignment(self, node, keys):
 		name = node['variable']['string'].lower()
+		# NOTE: If not sure what these two lines are for
 		if (node['value']['#'] == 'function_definition'):
 			node['value']['name'] = name
 		self.bytecodeify(node['value'], keys)
@@ -442,8 +443,7 @@ class CodeSegment:
 		scope, depth, index = keys['scope'].find_value(name)
 		assert scope == self.master.globalscope
 		# print(scope, depth, index)
-		self.push(I.ASSIGNMENT)
-		self.push(index)
+		self.push(I.ASSIGNMENT, index, error=node['variable'].get('source'))
 
 	def btcfy_unload_global(self, node, keys):
 		name = node['variable']['string'].lower()

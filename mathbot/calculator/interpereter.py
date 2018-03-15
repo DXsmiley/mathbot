@@ -168,6 +168,8 @@ class Interpereter:
 		self.current_scope = self.root_scope
 		self.protected_assignment_mode = False
 		self.hooks = hooks
+		self.assignment_protection_level = None
+		self.assignment_auth_level = 0
 		b = bytecode.I # pylint: no-invalid-name
 		self.switch_dictionary = {
 			b.NOTHING: do_nothing,
@@ -283,13 +285,15 @@ class Interpereter:
 		self.stack.append(item)
 
 	def run(self, start_address=None, tick_limit=None, error_if_exhausted=False,
-			get_entire_stack=False):
+			get_entire_stack=False, assignment_protection_level=None, assignment_auth_level=0):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
 			error_if_exhausted - If True, an error will be thrown if execution is not finished in the
 								 specified number of ticks.
 			expect_complete    - Deprecated
 		'''
+		self.assignment_protection_level = assignment_protection_level
+		self.assignment_auth_level = assignment_auth_level
 		if start_address is not None:
 			self.place = start_address
 		if tick_limit is None:
@@ -540,7 +544,8 @@ class Interpereter:
 	def inst_assignment(self):
 		value = self.pop()
 		index = self.next()
-		self.root_scope.set(index, 0, value)
+		self.root_scope.set(index, 0, value,
+			permission=self.assignment_auth_level, protection=self.assignment_protection_level)
 
 	def inst_declare_symbol(self):
 		self.place += 1
