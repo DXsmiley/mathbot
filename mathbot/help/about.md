@@ -18,8 +18,8 @@ Thankyou to the following patrons for supporting the bot:
  - June Summers
  - Osiedle
  - Paradoxica
- - Raghav "Raggy" Mishra
  - Sayaks
+ - woseek
 :::endblock
 :::webpage
 Add MathBot to your [server using this link]({{add_link}}).
