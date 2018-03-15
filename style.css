@@ -14,6 +14,7 @@ div {
 div.banner {
 	font-family: 'Josefin Sans', sans-serif;
 	width: 100vw;
+	min-height: 100vh;
 	height: 100vh;
 	max-height: 700px;
 	padding: 40px;
@@ -24,7 +25,9 @@ div.banner {
 }
 
 div.banner-large {
-	max-height: 100vh;
+	min-height: 100vh;
+	height: auto;
+	max-height: 9000px;
 }
 
 div.footer {

@@ -25,12 +25,12 @@ class ReporterModule(core.module.Module):
 	@core.handles.background_task(requires_ready = True)
 	async def queue_reports(self):
 		try:
-			while True:
+			while self.running:
 				if len(QUEUE) > 0:
 					item = QUEUE.pop()
 					await core.keystore.lpush('error-report', item)
 				else:
-					await asyncio.sleep(10)
+					await asyncio.sleep(5)
 		except asyncio.CancelledError:
 			raise
 		except Exception:
@@ -43,7 +43,7 @@ class ReporterModule(core.module.Module):
 			if report_channel:
 				print('Shard', self.client.shard_id, 'will report errors!')
 				print('Channel:', report_channel)
-				while True:
+				while self.running:
 					message = await core.keystore.rpop('error-report')
 					if message is not None:
 						# Errors should have already been trimmed before they reach this point,
@@ -52,7 +52,7 @@ class ReporterModule(core.module.Module):
 							message = message[1900:] + ' **(emergency trim)**'
 						await self.client.send_message(report_channel, message)
 					else:
-						await asyncio.sleep(10)
+						await asyncio.sleep(5)
 		except asyncio.CancelledError:
 			raise
 		except Exception:
