@@ -49,17 +49,20 @@ class IndexedScope:
 			depth -= 1
 		while len(scope.slots) <= index:
 			scope.slots.append(DataSlot(None, 0))
-		if scope.slots[index].security > permission:
+		_, current_security = scope.slots[index]
+		if current_security > permission:
 			raise EvaluationError('Not permitted to perform this assignment')
-		_, old_protection = scope.slots[index]
-		scope.slots[index] = DataSlot(value, protection if protection is not None else old_protection)
+		scope.slots[index] = DataSlot(value, protection if protection is not None else current_security)
 
-	def reset(scope, index, depth):
+	def reset(scope, index, depth, permission = 0, protection = None):
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
 		if index < len(scope.slots):
-			scope.slots[index] = DataSlot(None, 0)
+			_, current_security = scope.slots[index]
+			if current_security > permission:
+				raise EvaluationError('Not permitted to perform this unassignment')
+			scope.slots[index] = DataSlot(None, protection if protection is not None else current_security)
 
 	def __repr__(self):
 		return 'indexed-scope'

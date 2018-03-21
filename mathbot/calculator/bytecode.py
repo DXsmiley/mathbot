@@ -448,7 +448,7 @@ class CodeSegment:
 	def btcfy_unload_global(self, node, keys):
 		name = node['variable']['string'].lower()
 		scope, depth, index = keys['scope'].find_value(name)
-		self.push(I.UNLOAD, index)
+		self.push(I.UNLOAD, index, error=node['variable'].get('source'))
 
 	def btcfy_declare_symbol(self, node, keys):
 		name = node['name']['string'].lower()
