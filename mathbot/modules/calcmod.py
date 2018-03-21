@@ -57,16 +57,18 @@ COMMAND_DELIM = '####'
 EXPIRE_TIME = 60 * 60 * 24 * 10 # Things expire in 10 days
 
 
+class ReplayState:
+	__slots__ = ['semaphore', 'loaded']
+	def __init__(self):
+		self.semaphore = asyncio.Semaphore()
+		self.loaded = False
+
+
 class CalculatorModule(core.module.Module):
 
 	def __init__(self):
 		self.command_history = collections.defaultdict(lambda : '')
-		self.replay_state = collections.defaultdict(
-			lambda : {
-				'semaphore': asyncio.Semaphore(),
-				'loaded': False
-			}
-		)
+		self.replay_state = collections.defaultdict(ReplayState)
 
 	@core.handles.command('calc', '*', perm_setting = 'c-calc')
 	async def handle_calc(self, message, arg):
@@ -148,10 +150,10 @@ class CalculatorModule(core.module.Module):
 		if self.allow_calc_history(channel):
 			# Ensure that only one coroutine is allowed to execute the code
 			# in this block at once.
-			async with self.replay_state[channel.id]['semaphore']:
-				if self.replay_state[channel.id]['loaded'] == False:
+			async with self.replay_state[channel.id].semaphore:
+				if self.replay_state[channel.id].loaded == False:
 					print('Replaying calculator commands for', channel)
-					self.replay_state[channel.id]['loaded'] = True
+					self.replay_state[channel.id].loaded = True
 					commands = await core.keystore.get('calculator', 'history', channel.id)
 					if commands is None:
 						print('There were none')
