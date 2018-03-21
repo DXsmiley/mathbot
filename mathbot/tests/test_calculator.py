@@ -86,6 +86,11 @@ def test_constants():
 	doit("PI*PI/10", sympy.pi*sympy.pi/10)
 	doit("PI^2", sympy.pi**2)
 	doit("e / 3", sympy.E / 3)
+	doit('0.0', 0)
+	doit('.0', 0)
+	doit('01', 1)
+	doit('00', 0)
+	doit('0.1', sympy.Number(1) / sympy.Number(10))
 
 def test_math_functions():
 	doit('sin(37)', sympy.sin(37))

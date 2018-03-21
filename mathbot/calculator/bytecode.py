@@ -678,8 +678,8 @@ def convert_number(x):
 		i, p = x.split('.')
 		k = len(p)
 		if k < 30: # Maybe increase this limit
-			return sympy.Rational(int(i) * 10 ** k + int(p), 10 ** k)
-	return sympy.Number(x)
+			return sympy.Rational(int(i or '0') * 10 ** k + int(p or '0'), 10 ** k)
+	return sympy.Number(x.lstrip('0') or '0')
 
 
 def build(ast, offset = 0):
