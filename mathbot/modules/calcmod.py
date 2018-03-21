@@ -17,6 +17,8 @@ import traceback
 import patrons
 import advertising
 import aiohttp
+import json
+import time
 
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
@@ -151,41 +153,62 @@ class CalculatorModule(core.module.Module):
 			# Ensure that only one coroutine is allowed to execute the code
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
-				if self.replay_state[channel.id].loaded == False:
+				if not self.replay_state[channel.id].loaded:
 					print('Replaying calculator commands for', channel)
 					self.replay_state[channel.id].loaded = True
-					commands = await core.keystore.get('calculator', 'history', channel.id)
-					if commands is None:
-						print('There were none')
+					commands_unpacked = await self.unpack_commands(channel)
+					if not commands_unpacked:
+						print('No commands')
 					else:
 						await self.send_message(channel, 'Re-running command history...', blame = blame)
-						commands = commands.split(COMMAND_DELIM)
-						new_commands = []
-						was_error = False
-						print('There are', len(commands), 'to run')
-						for c in commands:
-							print('>>>', c)
-							scope = SCOPES[channel.id]
-							result, worked, details = await scope.execute_async(c)
-							was_error = was_error or not worked
-							if worked and expression_has_side_effect(c):
-								new_commands.append(c)
+						was_error, commands_to_keep = await self.rerun_commands(channel, commands_unpacked)
 						if was_error:
 							await self.send_message(channel, 'Catchup complete. Some errors occurred.', blame = blame)
 						else:
 							await self.send_message(channel, 'Catchup complete.', blame = blame)
 						# Store the list of commands that worked back into storage for use next time
-						joined = COMMAND_DELIM.join(new_commands)
-						await core.keystore.set('calculator', 'history', channel.id, joined, expire = EXPIRE_TIME)
+						to_store = json.dumps(commands_to_keep)
+						await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+
+	async def unpack_commands(self, channel):
+		commands = await core.keystore.get('calculator', 'history', channel.id)
+		if commands is None:
+			print('No commands to unpack')
+			return []
+		try:
+			commands_unpacked = json.loads(commands)
+			return commands_unpacked
+		except json.JSONDecodeError:
+			print('JSON Decode failed when unpacking commands')
+			return []
+
+	async def rerun_commands(self, channel, commands):
+		scope = SCOPES[channel.id]
+		commands_to_keep = []
+		was_error = False
+		time_cutoff = int(time.time()) - EXPIRE_TIME
+		for command in commands:
+			ctime = command['time']
+			expression = command['expression']
+			print(f'>>> {expression}')
+			if ctime > time_cutoff:
+				result, worked, details = await scope.execute_async(expression)
+				was_error = was_error or not worked
+				if worked:
+					commands_to_keep.append(command)
+			else:
+				print('    (dropped due to age)')
+		return was_error, commands_to_keep
 
 	async def add_command_to_history(self, channel, new_command):
 		if self.allow_calc_history(channel):
-			commands = await core.keystore.get('calculator', 'history', channel.id)
-			if commands == None:
-				commands = new_command
-			else:
-				commands += COMMAND_DELIM + new_command
-			await core.keystore.set('calculator', 'history', channel.id, commands, expire = EXPIRE_TIME)
+			history = await self.unpack_commands(channel)
+			history.append({
+				'time': int(time.time()),
+				'expression': new_command
+			})
+			to_store = json.dumps(history)
+			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
 
 	def allow_calc_history(self, channel):
 		if channel.is_private:
