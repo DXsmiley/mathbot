@@ -3,14 +3,13 @@
 ```
 superscript_number (regex) = [⁰¹²³⁴⁵⁶⁷⁸⁹]+
 number (regex) = \d*\.?\d+([eE]-?\d+)?i?
-word (regex) = π|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*
+word (regex) = π|τ|∞|[a-zA-Z_][a-zA-Z0-9_]*
 
 wrapped_expression = '(', expression, ')'
 
 function_call = atom | function_call, '(', argument_list, ')'
 logical_not = function_call | '!', logical_not
 factorial = logical_not | factorial, '!'
-dieroll = factorial | 'd', factorial | factorial, 'd', factorial
 uminus = dieroll | '-', uminus
 superscript = uminus, {superscript_number}
 
@@ -36,3 +35,9 @@ statement = [atom, '='] expression
 
 program = {statement}
 ```
+
+atom = token_oneof('number', 'word', 'period', 'string', 'glyph')
+number = token('number')
+percentage = number | percentage: number '%'
+
+wrapped_expression = round_brackets

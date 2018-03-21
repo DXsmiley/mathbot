@@ -303,12 +303,10 @@ def atom(tokens):
 
 def percentage(tokens):
 	if tokens.peek_sequence(0, 'number', 'percent_op'):
-		number = atom(tokens)
-		token = tokens.eat_details()
 		return {
 			'#': 'percent_op',
-			'token': token,
-			'value': number
+			'value': atom(tokens),
+			'token': tokens.eat_details()
 		}
 	return atom(tokens)
 
@@ -316,6 +314,7 @@ def percentage(tokens):
 def word(tokens):
 	if tokens.peek(0, 'word'):
 		return tokens.eat_details()
+	raise UnableToFinishParsing(tokens)
 
 
 def list_literal(tokens):
@@ -353,17 +352,15 @@ def function_call(tokens):
 
 def operator_list_extract(tokens):
 	if tokens.peek(0, 'head_op'):
-		token = tokens.eat_details()
 		return {
 			'#': 'head',
-			'token': token,
+			'token': tokens.eat_details(),
 			'expression': expect(tokens, operator_list_extract)
 		}
 	if tokens.peek(0, 'tail_op'):
-		token = tokens.eat_details()
 		return {
 			'#': 'tail',
-			'token': token,
+			'token': tokens.eat_details(),
 			'expression': expect(tokens, operator_list_extract)
 		}
 	return function_call(tokens)
@@ -705,7 +702,6 @@ TOKEN_SPEC = [
 	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
 	('string', r'"(?:\\.|[^\\"])*"'),
 	('glyph', r';\\.|;[^\\]'),
-	# ('word', r'π|τ|[d][a-zA-Z_][a-zA-Z0-9_]*|[abce-zA-Z_][a-zA-Z0-9_]*'),
 	('word', r'π|τ|∞|[a-zA-Z_][a-zA-Z0-9_]*'),
 	# ('die_op', r'd'),
 	('pow_op', r'\^'),
