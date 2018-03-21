@@ -65,7 +65,6 @@ class ReplayState:
 		self.semaphore = asyncio.Semaphore()
 		self.loaded = False
 
-
 class CalculatorModule(core.module.Module):
 
 	def __init__(self):
@@ -83,17 +82,13 @@ class CalculatorModule(core.module.Module):
 	@core.handles.command('calchistory', '', perm_setting = 'c-calc')
 	async def handle_view_history(self, message):
 		if not self.allow_calc_history(message.channel):
-			if message.channel.is_private:
-				await self.send_message(HISTORY_DISABLED_PRIVATE, blame = message.author)
-			else:
-				await self.send_message(HISTORY_DISABLED, blame = message.author)
-		else:
-			commands = await core.keystore.get('calculator', 'history', message.channel.id)
-			if commands is None:
-				await self.send_message('No persistent commands have been run in this channel.', blame = message.author)
-			else:
-				for i in history_grouping(commands.split(COMMAND_DELIM)):
-					await self.send_message(message.channel, i, blame = message.author)
+			return HISTORY_DISABLED_PRIVATE if message.channel.is_private else HISTORY_DISABLED
+		commands = await self.unpack_commands(message.channel)
+		if not commands:
+			return 'No persistent commands have been run in this channel.'
+		commands_text = map(lambda x: x['expression'], commands)
+		for i in history_grouping(commands_text):
+			await self.send_message(message, i)
 
 	# Trigger the calculator when the message is prefixed by "=="
 	@core.handles.on_message()
