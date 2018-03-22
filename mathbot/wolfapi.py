@@ -261,7 +261,7 @@ class Section:
 		self.id = pod.get('@id') # type: str
 		self._urls = [
 			subpod['img']['@src']
-			for subpod in listify(pod.get('subpod'))
+			for subpod in listify(pod.get('subpod', []))
 		]
 		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
 
