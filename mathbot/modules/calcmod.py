@@ -90,6 +90,43 @@ class CalculatorModule(core.module.Module):
 		for i in history_grouping(commands_text):
 			await self.send_message(message, i)
 
+	@core.handles.command('libs-list', '', perm_setting = 'c-calc', no_dm=True)
+	async def handle_libs_list(self, message):
+		libs = await core.keystore.get_json('calculator', 'libs', message.server.id)
+		if not libs:
+			return 'This server has no calculator libraries installed.'
+		listing = '\n'.join(map(lambda x: ' - ' + x, libs))
+		if len(libs) == 1:
+			return f'This server has **1** library installed:\n{listing}'
+		else:
+			return f'This server has **{len(libs)}** libraries installed:\n{listing}'
+
+	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	async def handle_libs_add(self, message, url):
+		# TODO: Limit the number of libraries that can be added to a server?
+		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
+		if url in libs:
+			return 'That library has already been added to this server.'
+		libs.append(url)
+		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
+		return 'Added library. Run `{prefix}calc-reload` to load it.'
+
+	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	async def handle_libs_remove(self, message, url):
+		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
+		if not url in libs:
+			return 'Library URL not found.'
+		libs.remove(url)
+		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
+		return 'Removed library. Run `{prefix}calc-reload` to unload it.'
+
+	@core.handles.command('calc-reload', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	async def handle_calc_reload(self, message):
+		with (await LOCKS[message.channel.id]):
+			del SCOPES[message.channel.id]
+			del self.replay_state[message.channel.id]
+		return 'Calculator state has been flushed from this channel.'
+
 	# Trigger the calculator when the message is prefixed by "=="
 	@core.handles.on_message()
 	async def handle_raw_message(self, message):
@@ -176,6 +213,16 @@ class CalculatorModule(core.module.Module):
 		except json.JSONDecodeError:
 			print('JSON Decode failed when unpacking commands')
 			return []
+
+	async def run_libraries(self, channel, server):
+		scope = SCOPES[channel.id]
+		libs = await core.keystore.get_json('calculator', 'libs', server.id)
+		for url in libs or []:
+			pass
+			# Download the source from the URL, then execute it in the scope.
+			# Downloads should not exceed 100KB (or something similar).
+			# Use permission level 1 when executing.
+
 
 	async def rerun_commands(self, channel, commands):
 		scope = SCOPES[channel.id]
