@@ -67,6 +67,7 @@ class ReplayState:
 		self.semaphore = asyncio.Semaphore()
 		self.loaded = False
 
+
 class CalculatorModule(core.module.Module):
 
 	def __init__(self):
