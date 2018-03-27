@@ -17,8 +17,10 @@ import traceback
 import patrons
 import advertising
 import aiohttp
+import async_timeout
 import json
 import time
+import traceback
 
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
@@ -120,11 +122,13 @@ class CalculatorModule(core.module.Module):
 		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
 		return 'Removed library. Run `{prefix}calc-reload` to unload it.'
 
-	@core.handles.command('calc-reload', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_calc_reload(self, message):
 		with (await LOCKS[message.channel.id]):
-			del SCOPES[message.channel.id]
-			del self.replay_state[message.channel.id]
+			if message.channel.id in SCOPES:
+				del SCOPES[message.channel.id]
+			if message.channel.id in self.replay_state:
+				del self.replay_state[message.channel.id]
 		return 'Calculator state has been flushed from this channel.'
 
 	# Trigger the calculator when the message is prefixed by "=="
@@ -186,8 +190,11 @@ class CalculatorModule(core.module.Module):
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
+					print('Loading libraries for channel', channel)
+					load_msg = await self.run_libraries(channel, channel.server)
+					if load_msg:
+						await self.send_message(channel, load_msg, blame=blame)
 					print('Replaying calculator commands for', channel)
-					self.replay_state[channel.id].loaded = True
 					commands_unpacked = await self.unpack_commands(channel)
 					if not commands_unpacked:
 						print('No commands')
@@ -201,6 +208,7 @@ class CalculatorModule(core.module.Module):
 						# Store the list of commands that worked back into storage for use next time
 						to_store = json.dumps(commands_to_keep)
 						await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+					self.replay_state[channel.id].loaded = True
 
 	async def unpack_commands(self, channel):
 		commands = await core.keystore.get('calculator', 'history', channel.id)
@@ -217,12 +225,25 @@ class CalculatorModule(core.module.Module):
 	async def run_libraries(self, channel, server):
 		scope = SCOPES[channel.id]
 		libs = await core.keystore.get_json('calculator', 'libs', server.id)
-		for url in libs or []:
-			pass
+		downloaded = await download_libraries(libs)
+		success = all(map(lambda r: isinstance(r, LibraryDownloadSuccess), downloaded))
+		if not downloaded:
+			print('No libraries')
+		elif not success:
+			return 'Failed to download libraries. There were issues:\n' + '\n'.join(map(str, downloaded))
+		else:
+			errors = []
+			for lib in downloaded:
+				scope = SCOPES[channel.id]
+				print(f'library | {lib.url}')
+				result, worked, details = await scope.execute_async(lib.value)
+				# print(result, worked)
+				if not worked:
+					errors.append(f'**Error in library:** {lib.url}\n\n```{result}```')
+			return '\n\n\n'.join(errors)[:2000]
 			# Download the source from the URL, then execute it in the scope.
 			# Downloads should not exceed 100KB (or something similar).
 			# Use permission level 1 when executing.
-
 
 	async def rerun_commands(self, channel, commands):
 		scope = SCOPES[channel.id]
@@ -232,7 +253,7 @@ class CalculatorModule(core.module.Module):
 		for command in commands:
 			ctime = command['time']
 			expression = command['expression']
-			print(f'>>> {expression}')
+			# print(f'>>> {expression}')
 			if ctime > time_cutoff:
 				result, worked, details = await scope.execute_async(expression)
 				was_error = was_error or not worked
@@ -281,3 +302,76 @@ def history_grouping(commands):
 		current.append(i + '\n')
 		current_size += i_size
 	yield '```\n{}\n```'.format(''.join(current))
+
+
+class LibraryDownloadResult:
+
+	def __init__(self, url: str, value: str) -> None:
+		self.url = url
+		self.value = value
+
+	def __str__(self) -> str:
+		return f'**{self.url}**\n```{self.error_string}\n```'
+
+
+class LibraryDownloadSuccess(LibraryDownloadResult):
+
+	@property
+	def error_string(self) -> str:
+		return 'Successful'
+
+
+class LibraryDownloadIssue(LibraryDownloadResult):
+
+	@property
+	def error_string(self) -> str:
+		return self.value
+
+
+class LibraryDownloadError(Exception):
+
+	def __init__(self, reason):
+		self.reason = reason
+
+
+async def download_libraries(urls: [str]) -> [LibraryDownloadResult]:
+	async with aiohttp.ClientSession() as session:
+		results = await asyncio.gather(*[
+			download_library(session, i) for i in urls
+		])
+	return results
+
+
+async def download_library(session: aiohttp.ClientSession, identifier: str) -> LibraryDownloadResult:
+	try:
+		async with async_timeout.timeout(10):
+			if identifier.startswith('gist/'):
+				return await download_gist(session, identifier[5:])
+			return await download_from_url(session, identifier)
+	except LibraryDownloadError as e:
+		return LibraryDownloadIssue(identifier, e.reason)
+	except Exception as e:
+		# TODO: Make these more user friendly.
+		return LibraryDownloadIssue(identifier, traceback.format_exc())
+
+
+async def download_from_url(session: aiohttp.ClientSession, url: str) -> LibraryDownloadResult:
+	async with session.get(url) as response:
+		code = await response.text()
+		# print(f'Downloaded {url}:\n{code}')
+		if len(code) > 1000 * 32: # 32 KB
+			raise LibraryDownloadError('Downloaded file is too large (limit of 32,000 bytes)')
+	return LibraryDownloadSuccess(url, code)
+
+
+async def download_gist(session: aiohttp.ClientSession, gist_id: str) -> LibraryDownloadResult:
+	url = f'https://api.github.com/gists/{gist_id}'
+	async with session.get(url) as response:
+		blob = await response.json()
+		files = blob['files']
+		if len(files) != 1:
+			raise LibraryDownloadError('Improper number of files in gist. Must be exactly 1.')
+		raw_url = ''
+		for key, value in files.items():
+			raw_url = value['raw_url']
+	return await download_library(session, raw_url)
