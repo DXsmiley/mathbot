@@ -141,6 +141,7 @@ class Terminal:
             print(mem // 1024, 'KB')
         else:
             try:
+                worked = False
                 tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
                     prt(json.dumps(ast, indent = 4))
@@ -152,8 +153,8 @@ class Terminal:
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
                 result_items = await asyncio.wait_for(self.interpereter.run_async(get_entire_stack = True), 5)
-                worked = True
                 details['result'] = result_items
+                worked = True
                 for result in result_items:
                     # Note: This is handled with a try / except because 
                     f_res = calculator.formatter.format(result, limit = self.output_limit)
