@@ -231,7 +231,11 @@ class CalculatorModule(core.module.Module):
 		if not downloaded:
 			print('No libraries')
 		elif not success:
-			return 'Failed to download libraries. There were issues:\n' + '\n'.join(map(str, downloaded))
+			errors = '\n\n'.join([
+				f'**{i.url}**\n{i}'
+				for i in downloaded
+			])
+			return f'Failed to download libraries. There were issues:\n{errors}'
 		else:
 			errors = []
 			for lib in downloaded:
@@ -312,7 +316,7 @@ class LibraryDownloadResult:
 		self.value = value
 
 	def __str__(self) -> str:
-		return f'**{self.url}**\n```{self.error_string}\n```'
+		return f'```\n{self.error_string}\n```'
 
 
 class LibraryDownloadSuccess(LibraryDownloadResult):
