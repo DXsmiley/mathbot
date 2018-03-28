@@ -314,13 +314,13 @@ class Interpereter:
 			return self.stack[1:]
 		return self.top
 
-	async def run_async(self, get_entire_stack=False):
+	async def run_async(self, **kwargs):
 		''' Run the interpereter asyncronously '''
 		while self.head != bytecode.I.END:
-			self.run(tick_limit = self.yield_rate)
+			self.run(tick_limit=self.yield_rate, **kwargs)
 			# Yield so that other coroutines may run
 			await asyncio.sleep(0)
-		if get_entire_stack:
+		if kwargs.get('get_entire_stack'):
 			return self.stack[1:]
 		return self.top
 

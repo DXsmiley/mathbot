@@ -100,10 +100,10 @@ class Terminal:
         future = self.execute_internal(code)
         return loop.run_until_complete(future)
 
-    async def execute_async(self, code):
+    async def execute_async(self, code, **kwargs):
         return await self.execute_internal(code)
 
-    async def execute_internal(self, line):
+    async def execute_internal(self, line, **kwargs):
         ''' Runs some code.
             Returns a string-bool tuple.
             The string is the output to display to the user.

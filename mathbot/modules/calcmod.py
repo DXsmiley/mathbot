@@ -246,9 +246,6 @@ class CalculatorModule(core.module.Module):
 				if not worked:
 					errors.append(f'**Error in library:** {lib.url}\n\n```{result}```')
 			return '\n\n\n'.join(errors)[:2000]
-			# Download the source from the URL, then execute it in the scope.
-			# Downloads should not exceed 100KB (or something similar).
-			# Use permission level 1 when executing.
 
 	async def rerun_commands(self, channel, commands):
 		scope = SCOPES[channel.id]
