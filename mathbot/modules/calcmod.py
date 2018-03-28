@@ -145,8 +145,7 @@ class CalculatorModule(core.module.Module):
 		with (await LOCKS[message.channel.id]):
 			await self.replay_commands(message.channel, message.author)
 			# Yeah this is kinda not great...
-			if arg.count('`') == 2 and arg.startswith('`') and arg.endswith('`'):
-				arg = arg.replace('`', ' ')
+			arg = arg.strip('` \n\t')
 			if arg == '':
 				# If no equation was given, spit out the help.
 				if not message.content.startswith('=='):
