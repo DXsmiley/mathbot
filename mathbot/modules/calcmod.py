@@ -225,7 +225,7 @@ class CalculatorModule(core.module.Module):
 	async def run_libraries(self, channel, server):
 		scope = SCOPES[channel.id]
 		libs = await core.keystore.get_json('calculator', 'libs', server.id)
-		downloaded = await download_libraries(libs)
+		downloaded = await download_libraries(libs or [])
 		success = all(map(lambda r: isinstance(r, LibraryDownloadSuccess), downloaded))
 		if not downloaded:
 			print('No libraries')
