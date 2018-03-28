@@ -118,12 +118,12 @@ The `:` operator inserts an item at the head of a list.
 1:[2 3 4] # Results in [1 2 3 4]
 ```
 
-The `'` operator retrieves an item from the head of a list.
+The `'` operator retrieves an item from the head of a list. If the list is empty, an error occurs.
 ```
 '[1 2 3 4] # Results in 1
 ```
 
-The `\` operator retrieves an item from the head of a list.
+The `\` operator retrieves the tail of the list, i.e. all elements except the first. If the list is empty, an error occurs.
 ```
 \[1 2 3 4] # Results in [2 3 4]
 ```
