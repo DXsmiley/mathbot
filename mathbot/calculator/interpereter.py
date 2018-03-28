@@ -79,7 +79,7 @@ def protected_power(a, b):
 		sa = float(sympy.Abs(a))
 		sb = float(sympy.Abs(b))
 		if sa > 100 or sb > 100:
-			return sympy.Float(a) ** sympy.Float(b)
+			return sympy.Float(float(a) ** float(b))
 	return a ** b
 
 
