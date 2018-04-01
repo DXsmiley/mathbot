@@ -1,0 +1,13 @@
+cycle_create(l) = [l .]
+
+_cycle_head(a, b) = if (a 'a 'reverse(b))
+cycle_head(l) = _cycle_head('l, '\l)
+
+_cycle_tail(a, b) = if (a [\a 'a:b] [reverse(b) .])
+cycle_tail(l) = _cycle_tail('l, '\l)
+
+c = cycle_create([1, 2, 3])
+
+cycle_head(c)
+
+cycle_tail(c)
