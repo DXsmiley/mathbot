@@ -139,6 +139,13 @@ class Terminal:
         elif self.allow_special_commands and line == ':memory':
             mem = self.interpereter.get_memory_usage()
             print(mem // 1024, 'KB')
+        elif self.allow_special_commands and line.startswith(':file '):
+            # TODO: Flag to suppress this command?
+            # TODO: This will interperet special commands.
+            # Can recursively load files, which might be bad.
+            fn = line.split()[1]
+            code = open(fn).read()
+            await self.execute_internal(code, **kwargs)
         else:
             try:
                 worked = False
