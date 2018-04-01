@@ -3,14 +3,14 @@
 ## Operator replacements
 
 ```
-       sum (a b) -> a + b
-   product (a b) -> a * b
-difference (a b) -> a - b
-  quotient (a b) -> a / b
-     power (a b) -> a ^ b
-    modulo (a b) -> a ~mod b
-       and (a b) -> a && b
-        or (a b) -> a || b
+sum (a b) -> a + b
+mul (a b) -> a * b
+dif (a b) -> a - b
+div (a b) -> a / b
+pow (a b) -> a ^ b
+mod (a b) -> a ~mod b
+and (a b) -> a && b
+ or (a b) -> a || b
 ```
 
 ## Comparitor utilities

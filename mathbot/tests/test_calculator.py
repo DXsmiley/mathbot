@@ -439,3 +439,14 @@ def test_small_floats():
 	doformatted('0.2', '1/5')
 	doformatted('0.1 + 0.2 - 0.3', '0')
 	doformatted('3.14', '157/50')
+
+def test_operator_fuctions():
+	doit('sum(1, 2)', 3)
+	doit('sum(5783, 3857)', 5783 + 3857)
+	doit('dif(5, 2)', 3)
+	doit('dif(4853, 246745)', 4853 - 246745)
+	doit('mul(4, 7)', 4 * 7)
+	doit('mul(37563, -35728)', 37563 * -35728)
+	doit('div(8, 4)', 2)
+	doit('div(5, 1)', 5)
+	doit('mod(7, 3)', 1)
