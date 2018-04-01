@@ -235,7 +235,7 @@ def extract_inline_tex(content):
 
 
 def process_latex(latex):
-	latex = latex.strip(' `\n')
+	latex = latex.replace('`', ' ').strip(' \n')
 	if latex.startswith('tex'):
 		latex = latex[3:]
 	for key, value in TEX_REPLACEMENTS.items():
