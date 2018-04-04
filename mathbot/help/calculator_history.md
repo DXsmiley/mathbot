@@ -6,7 +6,7 @@ By default, the calculator's memory (for assigned values, defined functions) is 
 
 However, on servers *owned by Patrons* or in DMs *with Patrons*, the bot will remember values and functions for a much longer period of time.
 
-To check the status of the calculator's history, run `=calchistory`. Remember that only commands which changed the *state* of the calculator are remembered. Simple commands such as `1 + 3` or `sin(4)` are not retained.
+To check the status of the calculator's history, run `=calc-history`. Remember that only commands which changed the *state* of the calculator are remembered. Simple commands such as `1 + 3` or `sin(4)` are not retained.
 
 ## Memory Clearance
 

@@ -171,6 +171,8 @@ class Manager:
 				await self.handle_redirect(message, result.destination, redirect_count + 1)
 			elif isinstance(result, str):
 				await self.send_message(message, result)
+			elif isinstance(result, discord.Embed):
+				await self.send_message(message, embed=result)
 		else:
 			if redirect_count > 0:
 				raise RedirectionFailed

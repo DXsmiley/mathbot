@@ -21,6 +21,8 @@ import async_timeout
 import json
 import time
 import traceback
+import typing
+import discord
 
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
@@ -39,7 +41,7 @@ Command history is not avaiable on this server.
 '''
 
 HISTORY_DISABLED_PRIVATE = '''\
-Command history is only avaiable to quadratic Patreon supporters: https://www.patreon.com/dxsmiley
+Private command history is only avaiable to quadratic Patreon supporters: https://www.patreon.com/dxsmiley
 A support teir of **quadratic** or higher is required.
 '''
 
@@ -74,16 +76,14 @@ class CalculatorModule(core.module.Module):
 		self.command_history = collections.defaultdict(lambda : '')
 		self.replay_state = collections.defaultdict(ReplayState)
 
-	@core.handles.command('calc', '*', perm_setting = 'c-calc')
+	@core.handles.command('calc', '*', perm_setting='c-calc')
 	async def handle_calc(self, message, arg):
+		''' Handle the standard =calc command '''
 		await self.perform_calculation(arg.strip(), message)
 
-	@core.handles.command('sort csort', '*', perm_setting = 'c-calc')
-	async def hande_calc_sorted(self, message, arg):
-		await self.perform_calculation(arg.strip(), message, should_sort = True)
-
-	@core.handles.command('calchistory', '', perm_setting = 'c-calc')
+	@core.handles.command('calc-history', '', perm_setting='c-calc')
 	async def handle_view_history(self, message):
+		''' Command to view the list of recently run expressions. '''
 		if not self.allow_calc_history(message.channel):
 			return HISTORY_DISABLED_PRIVATE if message.channel.is_private else HISTORY_DISABLED
 		commands = await self.unpack_commands(message.channel)
@@ -93,33 +93,63 @@ class CalculatorModule(core.module.Module):
 		for i in history_grouping(commands_text):
 			await self.send_message(message, i)
 
-	@core.handles.command('libs-list', '', perm_setting = 'c-calc', no_dm=True)
+	@core.handles.command('libs-list', '', perm_setting='c-calc', no_dm=True)
 	async def handle_libs_list(self, message):
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id)
 		if not libs:
 			return 'This server has no calculator libraries installed.'
-		listing = '\n'.join(map(lambda x: ' - ' + x, libs))
-		if len(libs) == 1:
-			return f'This server has **1** library installed:\n{listing}'
-		else:
-			return f'This server has **{len(libs)}** libraries installed:\n{listing}'
+		embed = discord.Embed(title="Installed libraries")
+		for i in libs:
+			embed.add_field(name=i['name'], value=i['url'])
+		return embed
+		# listing = '\n'.join(map(lambda x: ' - ' + x, libs))
+		# ll = len(libs)
+		# return f'This server has **{ll}** librar{"y" if ll == 1 else "ies"} installed:\n{listing}'
 
 	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_libs_add(self, message, url):
-		# TODO: Limit the number of libraries that can be added to a server?
+		if not url.startswith('https://gist.github.com/'):
+			return discord.Embed(
+				title='Library load error',
+				description='Parameter was not a gist url',
+				colour = discord.Colour.red()
+			)
+		# Download 
+		async with aiohttp.ClientSession() as session:
+			lib_info = await download_library(session, url)
+			if isinstance(lib_info, LibraryDownloadIssue):
+				return discord.Embed(
+					title='Library load error',
+					description=str(lib_info),
+					colour=discord.Colour.red(),
+					url=lib_info.url()
+				)
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
-		if url in libs:
-			return 'That library has already been added to this server.'
-		libs.append(url)
+		if url in map(lambda x: x['url'], libs):
+			return discord.Embed(
+				title='Library load error',
+				description='That library has already been added to this server.',
+				colour=discord.Colour.red()
+			)
+		libs.append({
+			'url': url,
+			'name': lib_info.name
+		})
 		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
-		return 'Added library. Run `{prefix}calc-reload` to load it.'
+		return discord.Embed(
+			title='Added library',
+			description=lib_info.name,
+			url=lib_info.url,
+			footer='Run `=calc-reload` to load the library.'
+		)
+		# return 'Added library. Run `{prefix}calc-reload` to load it.'
 
 	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_libs_remove(self, message, url):
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
-		if not url in libs:
+		if not url in map(lambda x: x['url'], libs):
 			return 'Library URL not found.'
-		libs.remove(url)
+		libs = list(filter(lambda x: x['url'] != url, libs))
 		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
 		return 'Removed library. Run `{prefix}calc-reload` to unload it.'
 
@@ -141,7 +171,7 @@ class CalculatorModule(core.module.Module):
 				return core.handles.Redirect('calc', arg[2:])
 
 	# Perform a calculation and spits out a result!
-	async def perform_calculation(self, arg, message, should_sort = False):
+	async def perform_calculation(self, arg, message):
 		with (await LOCKS[message.channel.id]):
 			await self.replay_commands(message.channel, message.author)
 			# Yeah this is kinda not great...
@@ -225,22 +255,29 @@ class CalculatorModule(core.module.Module):
 	async def run_libraries(self, channel, server):
 		scope = SCOPES[channel.id]
 		libs = await core.keystore.get_json('calculator', 'libs', server.id)
-		downloaded = await download_libraries(libs or [])
+		downloaded = await download_libraries(i['url'] for i in (libs or []))
 		success = all(map(lambda r: isinstance(r, LibraryDownloadSuccess), downloaded))
 		if not downloaded:
 			print('No libraries')
 		elif not success:
-			errors = '\n\n'.join([
-				f'**{i.url}**\n{i}'
-				for i in downloaded
-			])
-			return f'Failed to download libraries. There were issues:\n{errors}'
+			for i in downloaded:
+				if isinstance(i, LibraryDownloadIssue):
+					await self.send_message(channel,
+						discord.Embed(
+							title='Library load error',
+							description=str(i),
+							colour=discord.Colour.red(),
+							url=lib_info.url()
+						)
+					)
+					await asyncio.sleep(1.05)
+			return discord.Embed(description='Since there were errors, the calculator state has remained unchanged.')
 		else:
 			errors = []
 			for lib in downloaded:
 				scope = SCOPES[channel.id]
 				print(f'library | {lib.url}')
-				result, worked, details = await scope.execute_async(lib.value)
+				result, worked, details = await scope.execute_async(lib.code)
 				# print(result, worked)
 				if not worked:
 					errors.append(f'**Error in library:** {lib.url}\n\n```{result}```')
@@ -307,15 +344,20 @@ def history_grouping(commands):
 
 class LibraryDownloadResult:
 
-	def __init__(self, url: str, value: str) -> None:
-		self.url = url
-		self.value = value
+	def __init__(self) -> None:
+		raise NotImplementedError
 
 	def __str__(self) -> str:
 		return f'```\n{self.error_string}\n```'
 
 
 class LibraryDownloadSuccess(LibraryDownloadResult):
+
+	def __init__(self, url: str, name: str, docs: str, code: str) -> None:
+		self.url  = url
+		self.name = name
+		self.docs = docs
+		self.code = code
 
 	@property
 	def error_string(self) -> str:
@@ -324,9 +366,13 @@ class LibraryDownloadSuccess(LibraryDownloadResult):
 
 class LibraryDownloadIssue(LibraryDownloadResult):
 
+	def __init__(self, url: str, reason: str) -> None:
+		self.url = url
+		self.reason = reason
+
 	@property
 	def error_string(self) -> str:
-		return self.value
+		return self.reason
 
 
 class LibraryDownloadError(Exception):
@@ -343,36 +389,63 @@ async def download_libraries(urls: [str]) -> [LibraryDownloadResult]:
 	return results
 
 
-async def download_library(session: aiohttp.ClientSession, identifier: str) -> LibraryDownloadResult:
+async def download_library(session: aiohttp.ClientSession, url: str) -> LibraryDownloadResult:
 	try:
 		async with async_timeout.timeout(10):
-			if identifier.startswith('gist/'):
-				return await download_gist(session, identifier[5:])
-			return await download_from_url(session, identifier)
+			identifier = url.rsplit('/', 1)[1]
+			return await download_gist(session, url, identifier)
 	except LibraryDownloadError as e:
-		return LibraryDownloadIssue(identifier, e.reason)
+		return LibraryDownloadIssue(url, e.reason)
 	except Exception as e:
 		# TODO: Make these more user friendly.
-		return LibraryDownloadIssue(identifier, traceback.format_exc())
+		return LibraryDownloadIssue(url, traceback.format_exc())
 
 
-async def download_from_url(session: aiohttp.ClientSession, url: str) -> LibraryDownloadResult:
-	async with session.get(url) as response:
-		code = await response.text()
-		# print(f'Downloaded {url}:\n{code}')
-		if len(code) > 1000 * 32: # 32 KB
-			raise LibraryDownloadError('Downloaded file is too large (limit of 32,000 bytes)')
-	return LibraryDownloadSuccess(url, code)
-
-
-async def download_gist(session: aiohttp.ClientSession, gist_id: str) -> LibraryDownloadResult:
+async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_id: str) -> LibraryDownloadResult:
 	url = f'https://api.github.com/gists/{gist_id}'
+	url_code = None
+	url_docs = None
+	author = None
+	author_av = None
 	async with session.get(url) as response:
+
+		if response.status == '404':
+			raise LibraryDownloadError('Library not found (server produced 404)')
+
+		response.raise_for_status()
+
 		blob = await response.json()
-		files = blob['files']
-		if len(files) != 1:
-			raise LibraryDownloadError('Improper number of files in gist. Must be exactly 1.')
-		raw_url = ''
-		for key, value in files.items():
-			raw_url = value['raw_url']
-	return await download_library(session, raw_url)
+		author = blob['owner']['login']
+		author_av = blob['owner']['avatar_url']
+		description = blob['description']
+
+		for filename, metadata in blob['files'].items():
+			if filename.lower() in ['readme.md', 'readme.txt']:
+				if url_docs is not None:
+					raise LibraryDownloadError('Found multiple documentation files. Requires exactly 1.')
+				url_docs = metadata['raw_url']
+			else:
+				if url_code is not None:
+					raise LibraryDownloadError('Found multiple code files. Requires exactly 1.')
+				url_code = metadata['raw_url']
+
+	if url_code is None:
+		raise LibraryDownloadError('Gist had no code files')
+
+	code = await download_text(session, url_code)
+	docs = (await download_text(session, url_docs)) if url_docs is not None else ''
+
+	return LibraryDownloadSuccess(
+		url,
+		description,
+		docs,
+		code
+	)
+
+
+async def download_text(session: aiohttp.ClientSession, url: str) -> LibraryDownloadResult:
+	async with session.get(url) as response:
+		data = await response.text()
+		if len(data) > 1000 * 32: # 32 KB
+			raise LibraryDownloadError('Downloaded file is too large (limit of 32,000 bytes)')
+		return data
