@@ -87,8 +87,6 @@ class Client:
 			async with aiohttp.ClientSession() as session:
 				return await self.request(query, assumptions, session=session, debug=debug, download_images=download_images, timeout=timeout)
 		else:
-			print('Inside the request function!')
-			print(query, assumptions)
 			payload = [
 				('appid', self._appid),
 				('input', query)
