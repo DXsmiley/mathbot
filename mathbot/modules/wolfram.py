@@ -171,31 +171,30 @@ class WolframModule(core.module.Module):
 
 	@core.handles.add_reaction(RERUN_EMOJI)
 	async def rerun_rection(self, reaction, user):
-		print(self.shard_id, 'Rerun emoji')
 		async with AssumptionDataScope(reaction.message, self.client) as data:
-			print('1')
 			if data is not None and not data['used'] and data['blame'] == user.id:
-				print('2')
 				if await core.settings.get_setting(reaction.message, 'c-wolf'): # Make sure it's still allowed here...
-					print('3')
 					assumptions_to_use = list(filter(bool, [
 						data['assumptions'].emoji_to_code.get(i.emoji)
 						for i in reaction.message.reactions
-						if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 0
+						if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 1
 					]))
-					print('Rerunning `{}` with assumptions `{}`'.format(data['query'], ', '.join(assumptions_to_use)))
-					# Can only re-run each thing once.
-					# TODO: Abstract this
 					channel = reaction.message.channel
+					print('Rerunning query:', data['query'])
 					if len(assumptions_to_use) == 0:
+						print('   with no assumptions!?')
 						if data['no change warning'] == False:
 							await self.send_message(channel, "Why would you re-run a query without changing the assumptions? :thinking:", blame = user)
 						data['no change warning'] = True
-					elif not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
-						await self.send_message(channel, PERMS_FAILURE, blame = user)
-						data['used'] = True
-					elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
-						data['used'] = True
+					else:
+						print('With assumptions')
+						for i in assumptions_to_use:
+							print('    -', i)
+						if not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
+							await self.send_message(message, PERMS_FAILURE)
+							data['used'] = True
+						elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
+							data['used'] = True
 
 	@core.handles.add_reaction(EXPAND_EMOJI)
 	async def expand_assumptions(self, reaction, user):
