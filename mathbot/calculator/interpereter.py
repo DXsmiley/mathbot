@@ -68,7 +68,7 @@ class IndexedScope:
 		return 'indexed-scope'
 
 
-def do_nothing():
+async def do_nothing_async():
 	pass
 
 
@@ -175,7 +175,7 @@ class Interpereter:
 		self.assignment_auth_level = 0
 		b = bytecode.I # pylint: no-invalid-name
 		self.switch_dictionary = {
-			b.NOTHING: do_nothing,
+			b.NOTHING: do_nothing_async,
 			b.CONSTANT: self.inst_constant,
 			b.BIN_ADD: self.inst_add,
 			b.BIN_SUB: self.inst_sub,
@@ -287,7 +287,11 @@ class Interpereter:
 		'''Push an item to the stop of the stack'''
 		self.stack.append(item)
 
-	def run(self, start_address=None, tick_limit=None, error_if_exhausted=False,
+	def run(self, **kwargs):
+		loop = asyncio.get_event_loop()
+		return loop.run_until_complete(self.run_async(**kwargs))
+
+	async def run_async(self, start_address=None, tick_limit=None, error_if_exhausted=False,
 			get_entire_stack=False, assignment_protection_level=None, assignment_auth_level=0):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
@@ -301,30 +305,18 @@ class Interpereter:
 			self.place = start_address
 		if tick_limit is None:
 			while self.head != bytecode.I.END:
-				self.tick()
-				# print(self.place, self.stack)
+				await self.tick()
 		else:
 			while self.head != bytecode.I.END and tick_limit > 0:
 				tick_limit -= 1
-				self.tick()
-				# print(self.place, self.stack)
+				await self.tick()
 		if error_if_exhausted and tick_limit == 0:
 			raise EvaluationError('Execution timed out (by tick count)')
 		if get_entire_stack:
 			return self.stack[1:]
 		return self.top
 
-	async def run_async(self, **kwargs):
-		''' Run the interpereter asyncronously '''
-		while self.head != bytecode.I.END:
-			self.run(tick_limit=self.yield_rate, **kwargs)
-			# Yield so that other coroutines may run
-			await asyncio.sleep(0)
-		if kwargs.get('get_entire_stack'):
-			return self.stack[1:]
-		return self.top
-
-	def tick(self):
+	async def tick(self):
 		''' Run a single tick '''
 		if self.trace:
 			print(self.place, self.head, self.stack)
@@ -332,7 +324,7 @@ class Interpereter:
 		try:
 			if not isinstance(self.head, bytecode.I) or inst is None:
 				raise SystemError('Tried to run unknown instruction: ' + repr(self.head))
-			inst()
+			await inst()
 		except EvaluationError as error:
 			error._linking = self.erlnk[self.place]
 			self.panic(error)
@@ -347,50 +339,50 @@ class Interpereter:
 			raise error
 		self.place = self.pop().handler_address - 1
 
-	def inst_constant(self):
+	async def inst_constant(self):
 		''' Push a constant to the stack '''
 		self.place += 1
 		self.push(self.head)
 
-	def inst_constant_empty_array(self):
+	async def inst_constant_empty_array(self):
 		''' Push an empty array to the stack '''
 		warnings.warn('Instruction CONSTANT_EMPTY_ARRAY is deprecated', DeprecationWarning)
 		self.push(Array([]))
 
-	def inst_constant_string(self):
+	async def inst_constant_string(self):
 		''' Push a string to the stack '''
 		string = self.next()
 		self.push(create_list(map(Glyph, string)))
 
-	def inst_constant_glyph(self):
+	async def inst_constant_glyph(self):
 		''' Push a glyph to the stack '''
 		c = self.next()
 		self.push(Glyph(c))
 
-	def inst_duplicate(self):
+	async def inst_duplicate(self):
 		''' Duplicate the top item of the stack '''
 		self.push(self.top)
 
-	def inst_stack_swap(self):
+	async def inst_stack_swap(self):
 		''' Swap the top two items of the stack '''
 		a = self.pop()
 		b = self.pop()
 		self.push(a)
 		self.push(b)
 
-	def inst_protected_mode_enable(self):
+	async def inst_protected_mode_enable(self):
 		''' Specify that any assignments from now on should be protected '''
 		warnings.warn('Instruction BEGIN_PROTECTED_GLOBAL_BLOCK is deprecated', DeprecationWarning)
 		self.protected_assignment_mode = True
 
-	def inst_protected_mode_disable(self):
+	async def inst_protected_mode_disable(self):
 		''' Specify that any assignments from now on should not be protected '''
 		warnings.warn('Instruction END_PROTECTED_GLOBAL_BLOCK is deprecated', DeprecationWarning)
 		self.protected_assignment_mode = False
 
-	def binary_op(op):
+	def make_bin_op_instruction(op):
 		''' Create a handler for a binary operator instruction '''
-		def internal(self):
+		async def internal(self):
 			left = self.pop()
 			right = self.pop()
 			try:
@@ -399,26 +391,26 @@ class Interpereter:
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
-	inst_add = binary_op(operator.add)
-	inst_mul = binary_op(operator.mul)
-	inst_sub = binary_op(operator.sub)
-	inst_div = binary_op(operator.truediv)
-	inst_mod = binary_op(operator.mod)
-	inst_pow = binary_op(protected_power)
-	inst_bin_less = binary_op(operator.lt)
-	inst_bin_more = binary_op(operator.gt)
-	inst_bin_l_eq = binary_op(operator.le)
-	inst_bin_m_eq = binary_op(operator.ge)
-	inst_bin_equl = binary_op(operator.eq)
-	inst_bin_n_eq = binary_op(operator.ne)
-	# inst_bin_die = binary_op(rolldie)
-	inst_and = binary_op(lambda a, b: (bool(a) and bool(b)))
-	inst_or = binary_op(lambda a, b: (bool(a) or bool(b)))
+	inst_add = make_bin_op_instruction(operator.add)
+	inst_mul = make_bin_op_instruction(operator.mul)
+	inst_sub = make_bin_op_instruction(operator.sub)
+	inst_div = make_bin_op_instruction(operator.truediv)
+	inst_mod = make_bin_op_instruction(operator.mod)
+	inst_pow = make_bin_op_instruction(protected_power)
+	inst_bin_less = make_bin_op_instruction(operator.lt)
+	inst_bin_more = make_bin_op_instruction(operator.gt)
+	inst_bin_l_eq = make_bin_op_instruction(operator.le)
+	inst_bin_m_eq = make_bin_op_instruction(operator.ge)
+	inst_bin_equl = make_bin_op_instruction(operator.eq)
+	inst_bin_n_eq = make_bin_op_instruction(operator.ne)
+	# inst_bin_die = make_bin_op_instruction(rolldie)
+	inst_and = make_bin_op_instruction(lambda a, b: (bool(a) and bool(b)))
+	inst_or = make_bin_op_instruction(lambda a, b: (bool(a) or bool(b)))
 
-	def inst_unr_min(self):
+	async def inst_unr_min(self):
 		self.push(-self.pop())
 
-	def inst_unr_fac(self):
+	async def inst_unr_fac(self):
 		''' Factorial operator '''
 		try:
 			original_value = self.pop()
@@ -434,13 +426,13 @@ class Interpereter:
 		self.push(result)
 		# self.push(operators.function_factorial(self.pop()))
 
-	def inst_unr_not(self):
+	async def inst_unr_not(self):
 		''' Unary not operator '''
 		self.push(int(not bool(self.pop())))
 
-	def inst_comparison(comparator):
+	def make_comparison_instruction(comparator):
 		''' Create a handler for a binary comparison instruction '''
-		def internal(self):
+		async def internal(self):
 			r = self.pop()
 			l = self.pop()
 			x = bool(comparator(l, r))
@@ -448,18 +440,18 @@ class Interpereter:
 			self.push(r)
 		return internal
 
-	inst_cmp_less = inst_comparison(operator.lt)
-	inst_cmp_more = inst_comparison(operator.gt)
-	inst_cmp_l_eq = inst_comparison(operator.le)
-	inst_cmp_m_eq = inst_comparison(operator.ge)
-	inst_cmp_equl = inst_comparison(operator.eq)
-	inst_cmp_n_eq = inst_comparison(operator.ne)
+	inst_cmp_less = make_comparison_instruction(operator.lt)
+	inst_cmp_more = make_comparison_instruction(operator.gt)
+	inst_cmp_l_eq = make_comparison_instruction(operator.le)
+	inst_cmp_m_eq = make_comparison_instruction(operator.ge)
+	inst_cmp_equl = make_comparison_instruction(operator.eq)
+	inst_cmp_n_eq = make_comparison_instruction(operator.ne)
 
-	def inst_discard(self):
+	async def inst_discard(self):
 		''' Discard the top item of the stack '''
 		self.pop()
 
-	def inst_jump_if_macro(self):
+	async def inst_jump_if_macro(self):
 		''' Jumps to a place specified by the next instruction IFF the thing on the
 			top of the stack is both a function and a macro.
 		'''
@@ -467,7 +459,7 @@ class Interpereter:
 		if isinstance(self.top, Function) and FunctionInspector(self, self.top).is_macro:
 			self.place = self.head - 1 # Is now -1 for flexibility
 
-	def inst_arg_list_end(self, disable_cache = False, do_tco = False):
+	async def inst_arg_list_end(self, disable_cache = False, do_tco = False):
 		''' Specify the end of an argument list.
 			Pop the arguments off the stack and call the function.
 		'''
@@ -483,26 +475,26 @@ class Interpereter:
 			else:
 				arguments.append(arg)
 		function = self.pop()
-		self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache, do_tco = do_tco)
+		await self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache, do_tco = do_tco)
 
-	def inst_arg_list_end_no_cache(self):
+	async def inst_arg_list_end_no_cache(self):
 		''' Specify the end of an argument list, but explicitly disable the cache. '''
-		self.inst_arg_list_end(disable_cache = True)
+		await self.inst_arg_list_end(disable_cache = True)
 
-	def inst_arg_list_end_with_tco(self):
+	async def inst_arg_list_end_with_tco(self):
 		''' Specify the end of an argument list, but specify that tail call optimation can be employed.
 			An implementation of the interpereter _should_ be able to treat this as a normal ARG_LIST_END
 			with no penalty.
 		'''
-		self.inst_arg_list_end(do_tco = True)
+		await self.inst_arg_list_end(do_tco = True)
 
-	def inst_word(self):
+	async def inst_word(self):
 		''' This is very deprecated '''
 		assert(False)
 		self.place += 1
 		self.push(self.current_scope[self.head])
 
-	def inst_access_gobal(self):
+	async def inst_access_gobal(self):
 		''' Retreive a global variable and push it to the top of the stack '''
 		index = self.next()
 		name = self.next()
@@ -513,12 +505,12 @@ class Interpereter:
 			if 'access-global-miss' not in self.hooks or self.hooks['access-global-miss'](name) == False:
 				raise calculator.errors.AccessFailedError(name)
 
-	def inst_access_local(self):
+	async def inst_access_local(self):
 		''' Access a local variable '''
 		self.place += 1
 		self.push(self.current_scope.get(self.head, 0))
 
-	def inst_access_semi(self):
+	async def inst_access_semi(self):
 		''' Access a variable from a scope above this one '''
 		depth = self.next()
 		index = self.next()
@@ -529,7 +521,7 @@ class Interpereter:
 			)
 		)
 
-	def inst_access_array_element(self):
+	async def inst_access_array_element(self):
 		index = self.pop()
 		array = self.pop()
 		if not isinstance(array, (Array, Interval)):
@@ -540,17 +532,17 @@ class Interpereter:
 			raise EvaluationError('Attempted to access out-of-bounds element of an array')
 		self.push(array(index))
 
-	def inst_unload(self):
+	async def inst_unload(self):
 		index = self.next()
 		self.root_scope.reset(index, 0)
 
-	def inst_assignment(self):
+	async def inst_assignment(self):
 		value = self.pop()
 		index = self.next()
 		self.root_scope.set(index, 0, value,
 			permission=self.assignment_auth_level, protection=self.assignment_protection_level)
 
-	def inst_declare_symbol(self):
+	async def inst_declare_symbol(self):
 		self.place += 1
 		index = self.head
 		self.place += 1
@@ -558,42 +550,42 @@ class Interpereter:
 		value = sympy.symbols(name)
 		self.root_scope.set(index, 0, value)
 
-	def inst_function(self):
+	async def inst_function(self):
 		self.place += 1
 		function = Function(self.head, self.current_scope, '?')
 		inspector = FunctionInspector(self, function)
 		function.name = inspector.name
 		self.push(function)
 
-	# def inst_function_normal(self):
+	# async def inst_function_normal(self):
 	# 	self.place += 1
 	# 	self.push(Function(self.head, self.current_scope, False))
 
-	# def inst_function_macro(self):
+	# async def inst_function_macro(self):
 	# 	self.place += 1
 	# 	self.push(Function(self.head, self.current_scope, True))
 
-	def inst_return(self):
+	async def inst_return(self):
 		result = self.pop()
 		self.current_scope = self.pop()
 		self.place = self.pop() - 1
 		self.push(result)
 
-	def inst_jump(self):
+	async def inst_jump(self):
 		self.place += 1
 		self.place = self.head - 1
 
-	def inst_jump_if_true(self):
+	async def inst_jump_if_true(self):
 		self.place += 1
 		if self.pop():
 			self.place = self.head - 1
 
-	def inst_jump_if_false(self):
+	async def inst_jump_if_false(self):
 		self.place += 1
 		if not self.pop():
 			self.place = self.head - 1
 
-	def inst_store_in_cache(self):
+	async def inst_store_in_cache(self):
 		# print(self.stack)
 		value = self.pop()
 		cache_key = self.pop()
@@ -601,35 +593,35 @@ class Interpereter:
 			self.calling_cache[cache_key] = value
 		self.push(value)
 
-	def inst_special_reduce_store(self):
+	async def inst_special_reduce_store(self):
 		result = self.pop()
 		self.stack[-2] = result
 		self.stack[-1] += 1
 		self.place -= 1 + 1
 
-	def inst_list_create_empty(self):
+	async def inst_list_create_empty(self):
 		self.push(calculator.functions.EmptyList())
 
-	def inst_list_extract_first(self):
+	async def inst_list_extract_first(self):
 		value = self.pop()
 		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
 			raise EvaluationError('Attempted to extract head of non-list')
 		self.push(value.head)
 
-	def inst_list_extract_rest(self):
+	async def inst_list_extract_rest(self):
 		value = self.pop()
 		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
 			raise EvaluationError('Attempted to extract tail of non-list')
 		self.push(value.rest)
 
-	def inst_list_prepend(self):
+	async def inst_list_prepend(self):
 		new = self.pop()
 		lst = self.pop()
 		if not isinstance(lst, calculator.functions.ListBase):
 			raise EvaluationError('Attempt to prepend to start of non-list')
 		self.push(calculator.functions.List(new, lst))
 
-	def inst_push_error_stopgap(self):
+	async def inst_push_error_stopgap(self):
 		handler_address = self.next()
 		should_pass = self.next()
 		self.push(ErrorStopGap(handler_address, should_pass))
@@ -651,7 +643,7 @@ class Interpereter:
 		self.push(result)
 		self.place = return_to
 
-	def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
+	async def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
 			self.call_builtin_function(function, arguments, return_to)
 		elif isinstance(function, Function):
