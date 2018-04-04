@@ -279,19 +279,3 @@ class Section:
 	def get_futures(self, session):
 		futures = [self.download_image(session, i) for i in range(len(self._urls))]
 		return asyncio.gather(*futures)
-
-
-async def main():
-	client = Client('WR54UK-2K8T8YU694')
-	q = input('> ')
-	while q:
-		r = await client.request(q, download_images=False)
-		for s in r.sections:
-			print(s.title, '-', len(s))
-		print(str(r.assumptions))
-		print(r.timeouts)
-		q = input('> ')
-
-if __name__ == '__main__':
-	loop = asyncio.get_event_loop()
-	loop.run_until_complete(main())
