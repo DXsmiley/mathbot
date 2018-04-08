@@ -9,6 +9,7 @@ import sys
 import sympy
 import operator
 import warnings
+import traceback
 
 import calculator.runtime as runtime
 import calculator.bytecode as bytecode
@@ -181,6 +182,7 @@ class Interpereter:
 		self.hooks = hooks
 		self.assignment_protection_level = None
 		self.assignment_auth_level = 0
+		self.enable_exception_handler = True
 		b = bytecode.I # pylint: no-invalid-name
 		self.switch_dictionary = {
 			b.NOTHING: do_nothing_async,
@@ -329,13 +331,16 @@ class Interpereter:
 		if self.trace:
 			print(self.place, self.head, self.stack)
 		inst = self.switch_dictionary.get(self.head)
-		try:
-			if not isinstance(self.head, bytecode.I) or inst is None:
-				raise SystemError('Tried to run unknown instruction: ' + repr(self.head))
+		if not isinstance(self.head, bytecode.I) or inst is None:
+			raise SystemError('Tried to run unknown instruction: ' + repr(self.head))
+		if self.enable_exception_handler:
+			try:
+				await inst()
+			except EvaluationError as error:
+				error._linking = self.erlnk[self.place]
+				self.panic(error)
+		else:
 			await inst()
-		except EvaluationError as error:
-			error._linking = self.erlnk[self.place]
-			self.panic(error)
 		self.place += 1
 
 	def panic(self, error):
@@ -401,6 +406,7 @@ class Interpereter:
 			# except asyncio.TimeoutError:
 			# 	raise EvaluationError('Operation on {} and {} triggered the burn prevention', left, right)
 			except Exception:
+				traceback.print_exc()
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
@@ -414,7 +420,7 @@ class Interpereter:
 	inst_bin_more = make_bin_op_instruction(operator.gt)
 	inst_bin_l_eq = make_bin_op_instruction(operator.le)
 	inst_bin_m_eq = make_bin_op_instruction(operator.ge)
-	inst_bin_equl = make_bin_op_instruction(operator.eq)
+	inst_bin_equl = make_bin_op_instruction(operators.super_equality, is_coroutine=True)
 	inst_bin_n_eq = make_bin_op_instruction(operator.ne)
 	# inst_bin_die = make_bin_op_instruction(rolldie)
 	inst_and = make_bin_op_instruction(lambda a, b: (bool(a) and bool(b)))

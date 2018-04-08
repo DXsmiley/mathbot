@@ -1,6 +1,7 @@
 import weakref
 import calculator.errors
 import functools
+import calculator.operators
 
 
 class Glyph:
@@ -58,7 +59,24 @@ class Function:
 		return 'Function {} @{}'.format(self.name, self.address)
 
 
-class Array:
+class SequenceBase:
+
+	async def __aeq__(a, b):
+		if a is b:
+			return True
+		if not isinstance(b, SequenceBase):
+			return False
+		if len(a) != len(b):
+			return False
+		while a:
+			if not await calculator.operators.super_equality(a.head, b.head):
+				return False
+			a = a.rest
+			b = b.rest
+		return True
+
+
+class Array(SequenceBase):
 
 	def __init__(self, items, start=None, end=None):
 		self.items = items
@@ -105,7 +123,7 @@ class Array:
 			yield self.items[i]
 
 
-class ListBase:
+class ListBase(SequenceBase):
 
 	__slots__ = ['head', 'rest', 'size']
 

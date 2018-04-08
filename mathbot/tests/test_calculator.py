@@ -450,3 +450,8 @@ def test_operator_fuctions():
 	doit('div(8, 4)', 2)
 	doit('div(5, 1)', 5)
 	doit('mod(7, 3)', 1)
+
+def test_object_equality():
+	doit('[1 2 3] == [1 2 3]', True)
+	doit('[0 0 0] == [1 1 1]', False)
+	doit('[[1 2] 3 [4 5]] == [[1 2] 3 [4 5]]', True)

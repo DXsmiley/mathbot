@@ -13,6 +13,11 @@ COMPLEX = [int, float, complex]
 
 LIST_OF_NOTHING = ['nothing'] * 4
 
+async def super_equality(a, b):
+	if hasattr(a, '__aeq__'):
+		return await a.__aeq__(b)
+	return a == b
+
 class Overloadable:
 
 	def __init__(self, error_format, format_defaults = []):
