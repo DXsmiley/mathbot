@@ -247,16 +247,6 @@ def prepare_runtime(**kwargs):
 	return list(_prepare_runtime(**kwargs))
 
 
-def load_on_demand(name):
-	if name in FIXED_VALUES:
-		return _assignment_code(name, FIXED_VALUES[name], add_terminal_byte=True)
-	if name in BUILTIN_FUNCTIONS:
-		return _assignment_code(name, BuiltinFunction(BUILTIN_FUNCTIONS[name], name), add_terminal_byte=True)
-	if name in LIB_PIECES:
-		return calculator.bytecode.ast_to_bytecode(LIB_PIECES[name], unsafe=True, add_terminal_byte=True)
-	return None
-
-
 def wrap_simple(ast):
 	builder = CodeBuilder()
 	return wrap_with_runtime(builder, ast)

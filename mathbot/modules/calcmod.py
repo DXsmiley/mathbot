@@ -46,17 +46,6 @@ A support teir of **quadratic** or higher is required.
 '''
 
 
-# SCOPES = collections.defaultdict(lambda :
-# 	calculator.blackbox.Terminal(
-# 		retain_cache=False,
-# 		output_limit=1950,
-# 		yield_rate=1,
-# 		load_on_demand=False,
-# 		runtime_protection_level=2
-# 	)
-# )
-
-
 SCOPES = dict()
 
 async def get_scope(place):
@@ -65,7 +54,6 @@ async def get_scope(place):
 			retain_cache=False,
 			output_limit=1950,
 			yield_rate=1,
-			load_on_demand=False,
 			runtime_protection_level=2
 		)
 	return SCOPES[place]

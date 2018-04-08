@@ -69,21 +69,20 @@ class Terminal:
     @staticmethod
     async def new_blackbox(**kwargs):
         term = Terminal(_called_directly=False, **kwargs)
-        if not kwargs.get('load_on_demand'):
-            try:
-                await term.interpereter.run_async(
-                    assignment_auth_level=kwargs.get('runtime_protection_level', 0),
-                    assignment_protection_level=kwargs.get('runtime_protection_level', 0)
-                )
-            except Exception:
-                print('Error during library loading. Re-running with trace.')
-                traceback.print_exc()
-                temp_interp = calculator.interpereter.Interpereter(
-                    term.linker.constructed(),
-                    yield_rate=kwargs.get('yield_rate', 100),
-                    trace=True
-                )
-                await temp_interp.run_async()
+        try:
+            await term.interpereter.run_async(
+                assignment_auth_level=kwargs.get('runtime_protection_level', 0),
+                assignment_protection_level=kwargs.get('runtime_protection_level', 0)
+            )
+        except Exception:
+            print('Error during library loading. Re-running with trace.')
+            traceback.print_exc()
+            temp_interp = calculator.interpereter.Interpereter(
+                term.linker.constructed(),
+                yield_rate=kwargs.get('yield_rate', 100),
+                trace=True
+            )
+            await temp_interp.run_async()
         return term
 
 
