@@ -341,6 +341,7 @@ class Interpereter:
 				self.panic(error)
 		else:
 			await inst()
+		# Let the event loop do some work.
 		await asyncio.sleep(0)
 		self.place += 1
 

@@ -76,6 +76,7 @@ class SequenceBase:
 		if len(a) != len(b):
 			return False
 		while a:
+			# Let the event loop do work in case this takes a while
 			await asyncio.sleep(0)
 			if not await calculator.operators.super_equals(a.head, b.head):
 				return False
@@ -89,6 +90,7 @@ class SequenceBase:
 		if not isinstance(b, SequenceBase):
 			raise calculator.errors.EvaluationError('Attempted to compare sequence to non-sequence')
 		while a and b:
+			# Let the event loop do work in case this takes a while
 			await asyncio.sleep(0)
 			if not await calculator.operators.super_equals(a.head, b.head):
 				return await calculator.operators.super_less_than(a.head, b.head)
