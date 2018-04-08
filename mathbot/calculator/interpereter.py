@@ -404,7 +404,11 @@ class Interpereter:
 				if is_coroutine:
 					result = await result
 				self.push(result)
+			except EvaluationError:
+				print('I mean yeah...')
+				raise
 			except Exception:
+				traceback.print_exc()
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
@@ -414,11 +418,11 @@ class Interpereter:
 	inst_div = make_bin_op_instruction(operator.truediv)
 	inst_mod = make_bin_op_instruction(operator.mod)
 	inst_pow = make_bin_op_instruction(protected_power, is_coroutine=True)
-	inst_bin_less = make_bin_op_instruction(operator.lt)
-	inst_bin_more = make_bin_op_instruction(operator.gt)
-	inst_bin_l_eq = make_bin_op_instruction(operator.le)
-	inst_bin_m_eq = make_bin_op_instruction(operator.ge)
-	inst_bin_equl = make_bin_op_instruction(operators.super_equality, is_coroutine=True)
+	inst_bin_less = make_bin_op_instruction(operators.super_less_than, is_coroutine=True)
+	inst_bin_more = make_bin_op_instruction(operators.super_more_than, is_coroutine=True)
+	inst_bin_l_eq = make_bin_op_instruction(operators.super_less_eq, is_coroutine=True)
+	inst_bin_m_eq = make_bin_op_instruction(operators.super_more_eq, is_coroutine=True)
+	inst_bin_equl = make_bin_op_instruction(operators.super_equals, is_coroutine=True)
 	inst_bin_n_eq = make_bin_op_instruction(operator.ne)
 	# inst_bin_die = make_bin_op_instruction(rolldie)
 	inst_and = make_bin_op_instruction(lambda a, b: (bool(a) and bool(b)))

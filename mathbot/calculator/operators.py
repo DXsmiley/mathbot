@@ -13,14 +13,34 @@ COMPLEX = [int, float, complex]
 
 LIST_OF_NOTHING = ['nothing'] * 4
 
-async def super_equality(a, b):
+# Set of functions that call the asyncronous comparitors.
+# Only __aeq__ and __alt__ should be implemented.
+
+
+async def super_equals(a, b):
 	if hasattr(a, '__aeq__'):
 		return await a.__aeq__(b)
+	if hasattr(b, '__aeq__'):
+		return await b.__aeq__(a)
 	return a == b
+
+async def super_not_equals(a, b):
+	return not (await super_equals(a, b))
 
 async def super_less_than(a, b):
 	if hasattr(a, '__alt__'):
 		return await a.__alt__(b)
+	return a < b
+
+async def super_less_eq(a, b):
+	return (await super_equals(a, b)) or (await super_less_than(a, b))
+
+async def super_more_than(a, b):
+	return await super_less_than(b, a)
+
+async def super_more_eq(a, b):
+	return (await super_equals(a, b)) or (await super_less_than(b, a))
+
 
 class Overloadable:
 

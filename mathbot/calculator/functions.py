@@ -1,6 +1,6 @@
-import weakref
+import asyncio
+
 import calculator.errors
-import functools
 import calculator.operators
 
 
@@ -65,15 +65,33 @@ class SequenceBase:
 		if a is b:
 			return True
 		if not isinstance(b, SequenceBase):
-			return False
+			raise calculator.errors.EvaluationError('Attempted to compare sequence to non-sequence')
 		if len(a) != len(b):
 			return False
 		while a:
-			if not await calculator.operators.super_equality(a.head, b.head):
+			await asyncio.sleep(0)
+			if not await calculator.operators.super_equals(a.head, b.head):
 				return False
 			a = a.rest
 			b = b.rest
 		return True
+
+	async def __alt__(a, b):
+		if a is b:
+			return False
+		if not isinstance(b, SequenceBase):
+			raise calculator.errors.EvaluationError('Attempted to compare sequence to non-sequence')
+		while a and b:
+			await asyncio.sleep(0)
+			if not await calculator.operators.super_equals(a.head, b.head):
+				return await calculator.operators.super_less_than(a.head, b.head)
+			a = a.rest
+			b = b.rest
+		# If a still has things, it's greater, False (because longer)
+		# If b still has things, it's greater, True
+		# If both empty, they're equal, False
+		# Result: a < b if b still has stuff
+		return bool(b)
 
 
 class Array(SequenceBase):
