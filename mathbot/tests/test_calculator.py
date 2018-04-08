@@ -462,6 +462,7 @@ def test_object_equality():
 
 def test_object_ordering():
 	doit('[0] < [1]', True)
+	doit('[0] < [1] < [2]', True)
 	doit('[6, 0] < [3, 2]', False)
 	doit('[0] <= [0]', True)
 	doit('"a" < "b"', True)
