@@ -48,52 +48,63 @@ class Terminal:
                  retain_cache=True,
                  output_limit=None,
                  yield_rate=100,
-                 load_on_demand=True,
                  colour_output=False,
-                 runtime_protection_level=0):
+                 runtime_protection_level=0,
+                 _called_directly=True):
+        if _called_directly:
+            raise Exception('You should not be calling Terminal.__init__ directly.')
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
         self.linker = calculator.bytecode.Linker()
         self.allow_special_commands = allow_special_commands
-        self.load_on_demand = load_on_demand
         self.colour_output = colour_output
-        if not load_on_demand:
-            try:
-                runtime = calculator.runtime.prepare_runtime()
-                self.linker.add_segments(runtime)
-            except calculator.parser.ParseFailed as e:
-                print('RUNTIME ISSUE: Parse error')
-                print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-                raise e
-            except calculator.parser.TokenizationFailed as e:
-                print('RUNTIME ISSUE: Tokenization error')
-                print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-                raise e
+        try:
+            runtime = calculator.runtime.prepare_runtime()
+            self.linker.add_segments(runtime)
+        except calculator.parser.ParseFailed as e:
+            print('RUNTIME ISSUE: Parse error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
+        except calculator.parser.TokenizationFailed as e:
+            print('RUNTIME ISSUE: Tokenization error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
         hooks = {}
         self.interpereter = calculator.interpereter.Interpereter(
             self.linker.constructed(),
             yield_rate=yield_rate,
             hooks=hooks
         )
-        if load_on_demand:
-            hooks['access-global-miss'] = AccessGlobalMissHook(self.interpereter, self.linker)
-        else:
-            try:
-                self.interpereter.run(
-                    assignment_auth_level=runtime_protection_level,
-                    assignment_protection_level=runtime_protection_level)
-            except Exception:
-                print('Error during library loading. Re-running with trace.')
-                temp_interp = calculator.interpereter.Interpereter(
-                    self.linker.constructed(),
-                    yield_rate=yield_rate,
-                    trace=True
-                )
-                temp_interp.run()
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
+
+    @staticmethod
+    def new_blackbox_sync(**kwargs):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(Terminal.new_blackbox(**kwargs))
+
+    @staticmethod
+    async def new_blackbox(**kwargs):
+        term = Terminal(_called_directly=False, **kwargs)
+        if not kwargs.get('load_on_demand'):
+            try:
+                await term.interpereter.run_async(
+                    assignment_auth_level=kwargs.get('runtime_protection_level', 0),
+                    assignment_protection_level=kwargs.get('runtime_protection_level', 0)
+                )
+            except Exception:
+                print('Error during library loading. Re-running with trace.')
+                traceback.print_exc()
+                temp_interp = calculator.interpereter.Interpereter(
+                    term.linker.constructed(),
+                    yield_rate=kwargs.get('yield_rate', 100),
+                    trace=True
+                )
+                await temp_interp.run_async()
+        return term
+
 
     def execute(self, code):
         loop = asyncio.get_event_loop()

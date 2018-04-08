@@ -14,18 +14,30 @@ def child_function(pipe, func, args):
 	pipe.send(result)
 
 
-async def run(function, arguments, timeout=10):
+async def run(function, arguments, timeout=None, raise_on_timeout=True):
 	parent_pipe, child_pipe = multiprocessing.Pipe()
 	process = multiprocessing.Process(target=child_function, args=(child_pipe, function, arguments), daemon=True)
 	try:
-		async with async_timeout.timeout(timeout):
+		if timeout is None:
 			process.start()
 			while not parent_pipe.poll():
 				await asyncio.sleep(0.001)
 			return parent_pipe.recv()
+		else:
+			async with async_timeout.timeout(timeout):
+				process.start()
+				while not parent_pipe.poll():
+					await asyncio.sleep(0.001)
+				return parent_pipe.recv()
 	except asyncio.TimeoutError:
-		process.terminate()
+		if raise_on_timeout:
+			raise
 		return None
+	finally:
+		try:
+			process.terminate()
+		except Exception:
+			pass
 
 
 if __name__ == '__main__':

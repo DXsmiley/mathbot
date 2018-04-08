@@ -17,6 +17,7 @@ from calculator.errors import EvaluationError
 from calculator.parser import parse
 from calculator.functions import *
 import calculator.operators as operators
+import calculator.crucible
 
 
 class ScopeMissedError(Exception):
@@ -72,14 +73,21 @@ async def do_nothing_async():
 	pass
 
 
-def protected_power(a, b):
+async def protected_power(a, b):
 	if isinstance(a, sympy.Number) and isinstance(b, sympy.Number):
 		if a == 0 and b == 0:
 			raise EvaluationError('Cannot raise 0 to the power of 0')
 		sa = float(sympy.Abs(a))
 		sb = float(sympy.Abs(b))
-		if sa > 100 or sb > 100:
-			return sympy.Float(float(a) ** float(b))
+		if sa < 4000 and sb < 20:
+			return a ** b
+		else:
+			return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
+	return a ** b
+
+
+# Top level function to prevent copying of scope
+def _protected_power_crucible(a, b):
 	return a ** b
 
 
@@ -380,13 +388,18 @@ class Interpereter:
 		warnings.warn('Instruction END_PROTECTED_GLOBAL_BLOCK is deprecated', DeprecationWarning)
 		self.protected_assignment_mode = False
 
-	def make_bin_op_instruction(op):
+	def make_bin_op_instruction(op, is_coroutine=False):
 		''' Create a handler for a binary operator instruction '''
 		async def internal(self):
 			left = self.pop()
 			right = self.pop()
 			try:
-				self.push(op(left, right))
+				result = op(left, right)
+				if is_coroutine:
+					result = await result
+				self.push(result)
+			# except asyncio.TimeoutError:
+			# 	raise EvaluationError('Operation on {} and {} triggered the burn prevention', left, right)
 			except Exception:
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
@@ -396,7 +409,7 @@ class Interpereter:
 	inst_sub = make_bin_op_instruction(operator.sub)
 	inst_div = make_bin_op_instruction(operator.truediv)
 	inst_mod = make_bin_op_instruction(operator.mod)
-	inst_pow = make_bin_op_instruction(protected_power)
+	inst_pow = make_bin_op_instruction(protected_power, is_coroutine=True)
 	inst_bin_less = make_bin_op_instruction(operator.lt)
 	inst_bin_more = make_bin_op_instruction(operator.gt)
 	inst_bin_l_eq = make_bin_op_instruction(operator.le)

@@ -46,15 +46,30 @@ A support teir of **quadratic** or higher is required.
 '''
 
 
-SCOPES = collections.defaultdict(lambda :
-	calculator.blackbox.Terminal(
-		retain_cache=False,
-		output_limit=1950,
-		yield_rate=1,
-		load_on_demand=False,
-		runtime_protection_level=2
-	)
-)
+# SCOPES = collections.defaultdict(lambda :
+# 	calculator.blackbox.Terminal(
+# 		retain_cache=False,
+# 		output_limit=1950,
+# 		yield_rate=1,
+# 		load_on_demand=False,
+# 		runtime_protection_level=2
+# 	)
+# )
+
+
+SCOPES = dict()
+
+async def get_scope(place):
+	if place not in SCOPES:
+		SCOPES[place] = await calculator.blackbox.Terminal.new_blackbox(
+			retain_cache=False,
+			output_limit=1950,
+			yield_rate=1,
+			load_on_demand=False,
+			runtime_protection_level=2
+		)
+	return SCOPES[place]
+
 
 LOCKS = collections.defaultdict(asyncio.Lock)
 
@@ -185,7 +200,7 @@ class CalculatorModule(core.module.Module):
 				await self.send_message(message, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 			else:
 				safe.sprint('Doing calculation:', arg)
-				scope = SCOPES[message.channel.id]
+				scope = await get_scope(message.channel.id)
 				result, worked, details = await scope.execute_async(arg)
 				if result.count('\n') > 7:
 					lines = result.split('\n')
@@ -253,7 +268,7 @@ class CalculatorModule(core.module.Module):
 			return []
 
 	async def run_libraries(self, channel, server):
-		scope = SCOPES[channel.id]
+		scope = await get_scope(channel.id)
 		libs = await core.keystore.get_json('calculator', 'libs', server.id)
 		downloaded = await download_libraries(i['url'] for i in (libs or []))
 		success = all(map(lambda r: isinstance(r, LibraryDownloadSuccess), downloaded))
@@ -275,7 +290,6 @@ class CalculatorModule(core.module.Module):
 		else:
 			errors = []
 			for lib in downloaded:
-				scope = SCOPES[channel.id]
 				print(f'library | {lib.url}')
 				result, worked, details = await scope.execute_async(lib.code)
 				# print(result, worked)
@@ -284,7 +298,7 @@ class CalculatorModule(core.module.Module):
 			return '\n\n\n'.join(errors)[:2000]
 
 	async def rerun_commands(self, channel, commands):
-		scope = SCOPES[channel.id]
+		scope = await get_scope(channel.id)
 		commands_to_keep = []
 		was_error = False
 		time_cutoff = int(time.time()) - EXPIRE_TIME
