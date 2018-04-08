@@ -18,6 +18,10 @@ async def super_equality(a, b):
 		return await a.__aeq__(b)
 	return a == b
 
+async def super_less_than(a, b):
+	if hasattr(a, '__alt__'):
+		return await a.__alt__(b)
+
 class Overloadable:
 
 	def __init__(self, error_format, format_defaults = []):

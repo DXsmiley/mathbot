@@ -341,6 +341,7 @@ class Interpereter:
 				self.panic(error)
 		else:
 			await inst()
+		await asyncio.sleep(0)
 		self.place += 1
 
 	def panic(self, error):
