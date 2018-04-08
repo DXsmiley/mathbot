@@ -460,7 +460,7 @@ def test_object_equality():
 	doit('"dx is the best xd" == "dx is the best xd"', True)
 	doit('\'"DXSmiley" == \'"Discord"', True)
 	doit('"" == ""', True)
-	doit('"d" == \'"d"', False)
+	doit('"d" == \\"d"', False)
 	doit('[1] == [1]', True)
 	doit('[100] == [1000/10]', True)
 	doit('[1 2 3] == [1 2 3]', True)
