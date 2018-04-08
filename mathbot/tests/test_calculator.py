@@ -452,6 +452,17 @@ def test_operator_fuctions():
 	doit('mod(7, 3)', 1)
 
 def test_object_equality():
+	doit('[] == []', True)
+	doit('[1, 2, 3] == \\range(0 4)', True)
+	doit('[1, 2, 3] == range(0 4)', False)
+	doit('["foo"] != [1 2 3]', True)
+	doit('2^100 == 2^101/2', True)
+	doit('"dx is the best xd" == "dx is the best xd"', True)
+	doit('\'"DXSmiley" == \'"Discord"', True)
+	doit('"" == ""', True)
+	doit('"d" == \'"d"', False)
+	doit('[1] == [1]', True)
+	doit('[100] == [1000/10]', True)
 	doit('[1 2 3] == [1 2 3]', True)
 	doit('[0 0 0] == [1 1 1]', False)
 	doit('[[1 2] 3 [4 5]] == [[1 2] 3 [4 5]]', True)
