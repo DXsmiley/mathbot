@@ -423,7 +423,7 @@ class Interpereter:
 	inst_bin_l_eq = make_bin_op_instruction(operators.super_less_eq, is_coroutine=True)
 	inst_bin_m_eq = make_bin_op_instruction(operators.super_more_eq, is_coroutine=True)
 	inst_bin_equl = make_bin_op_instruction(operators.super_equals, is_coroutine=True)
-	inst_bin_n_eq = make_bin_op_instruction(operator.ne)
+	inst_bin_n_eq = make_bin_op_instruction(operators.super_not_equals, is_coroutine=True)
 	# inst_bin_die = make_bin_op_instruction(rolldie)
 	inst_and = make_bin_op_instruction(lambda a, b: (bool(a) and bool(b)))
 	inst_or = make_bin_op_instruction(lambda a, b: (bool(a) or bool(b)))
@@ -456,17 +456,17 @@ class Interpereter:
 		async def internal(self):
 			r = self.pop()
 			l = self.pop()
-			x = bool(comparator(l, r))
+			x = bool(await comparator(l, r))
 			self.stack[-1] = self.stack[-1] and x
 			self.push(r)
 		return internal
 
-	inst_cmp_less = make_comparison_instruction(operator.lt)
-	inst_cmp_more = make_comparison_instruction(operator.gt)
-	inst_cmp_l_eq = make_comparison_instruction(operator.le)
-	inst_cmp_m_eq = make_comparison_instruction(operator.ge)
-	inst_cmp_equl = make_comparison_instruction(operator.eq)
-	inst_cmp_n_eq = make_comparison_instruction(operator.ne)
+	inst_cmp_less = make_comparison_instruction(operators.super_less_than)
+	inst_cmp_more = make_comparison_instruction(operators.super_more_than)
+	inst_cmp_l_eq = make_comparison_instruction(operators.super_less_eq)
+	inst_cmp_m_eq = make_comparison_instruction(operators.super_more_eq)
+	inst_cmp_equl = make_comparison_instruction(operators.super_equals)
+	inst_cmp_n_eq = make_comparison_instruction(operators.super_not_equals)
 
 	async def inst_discard(self):
 		''' Discard the top item of the stack '''
