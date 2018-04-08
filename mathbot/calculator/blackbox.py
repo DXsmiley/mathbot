@@ -22,25 +22,6 @@ On line {line_num} at position {position}
 TAB_WITH = 8
 
 
-class AccessGlobalMissHook:
-
-    def __init__(self, interpereter, linker):
-        self.interpereter = interpereter
-        self.linker = linker
-
-    def __call__(self, name):
-        missing_bytecode = calculator.runtime.load_on_demand(name)
-        if not missing_bytecode:
-            return False
-        frozen = self.interpereter.state_freeze()
-        self.interpereter.stack = [None]
-        self.interpereter.place = self.linker.add_segment(missing_bytecode)
-        self.interpereter.run()
-        self.interpereter.state_thaw(frozen)
-        self.interpereter.place -= 3 # Go back to the instruction to load the value
-        return True
-
-
 class Terminal:
 
     def __init__(self,
