@@ -403,10 +403,7 @@ class Interpereter:
 				if is_coroutine:
 					result = await result
 				self.push(result)
-			# except asyncio.TimeoutError:
-			# 	raise EvaluationError('Operation on {} and {} triggered the burn prevention', left, right)
 			except Exception:
-				traceback.print_exc()
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
