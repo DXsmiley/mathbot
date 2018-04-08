@@ -17,7 +17,14 @@ class Glyph:
 			raise TypeError(f'Cannot create a glyph from a {value.__class__}')
 
 	def __eq__(self, other):
-		return isinstance(other, Glyph) and self.value == other.value
+		if not isinstance(other, Glyph):
+			raise calculator.errors.EvaluationError('Cannot compare Glyph to non-glyph')
+		return self.value == other.value
+
+	def __lt__(self, other):
+		if not isinstance(other, Glyph):
+			raise calculator.errors.EvaluationError('Cannot compare Glyph to non-glyph')
+		return self.value < other.value
 
 	def __str__(self):
 		return self.value
