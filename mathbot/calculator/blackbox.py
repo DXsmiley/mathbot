@@ -7,6 +7,7 @@ import calculator.errors
 import calculator.runtime
 import calculator.formatter
 import sympy
+import async_timeout
 import json
 import traceback
 import re
@@ -150,7 +151,8 @@ class Terminal:
                 )
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
-                result_items = await asyncio.wait_for(self.interpereter.run_async(get_entire_stack = True), 5)
+                async with async_timeout.timeout(5):
+                    result_items = await self.interpereter.run_async(get_entire_stack = True)
                 details['result'] = result_items
                 worked = True
                 for result in result_items:
