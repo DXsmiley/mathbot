@@ -23,6 +23,7 @@ import time
 import traceback
 import typing
 import discord
+import abc
 
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
@@ -134,6 +135,12 @@ class CalculatorModule(core.module.Module):
 				description='That library has already been added to this server.',
 				colour=discord.Colour.red()
 			)
+		if len(libs) >= 5:
+			return discord.Embed(
+				title='Library add error',
+				description='Servers cannot have more than five libraries installed at once.',
+				colour=discord.Colour.red()
+			)
 		libs.append({
 			'url': url,
 			'name': lib_info.name
@@ -223,25 +230,38 @@ class CalculatorModule(core.module.Module):
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
+					# Doesn't matter if this is at the start or end, since locks who
+					self.replay_state[channel.id].loaded = True
+					await self.send_message(
+						channel,
+						embed=discord.Embed(
+							title='Loading libraries and re-running history',
+							description='Please wait'
+						),
+						blame=blame
+					)
 					print('Loading libraries for channel', channel)
-					load_msg = await self.run_libraries(channel, channel.server)
-					if load_msg:
-						await self.send_message(channel, load_msg, blame=blame)
+					await self.run_libraries(channel, channel.server)
 					print('Replaying calculator commands for', channel)
 					commands_unpacked = await self.unpack_commands(channel)
 					if not commands_unpacked:
 						print('No commands')
 					else:
-						await self.send_message(channel, 'Re-running command history...', blame = blame)
 						was_error, commands_to_keep = await self.rerun_commands(channel, commands_unpacked)
-						if was_error:
-							await self.send_message(channel, 'Catchup complete. Some errors occurred.', blame = blame)
-						else:
-							await self.send_message(channel, 'Catchup complete.', blame = blame)
 						# Store the list of commands that worked back into storage for use next time
 						to_store = json.dumps(commands_to_keep)
 						await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
-					self.replay_state[channel.id].loaded = True
+						if was_error:
+							await self.send_message(channel, blame=blame, embed=discord.Embed(
+								title='Some errors occurred during catchup.',
+								description='Calculator state has been partially restored. Run `=calc-history` for a list of commands that have been retained.',
+								colour=discord.Colour.yellow()
+							))
+						else:
+							await self.send_message(channel, blame=blame, embed=discord.Embed(
+								title='Catchup complete.',
+								colour=discord.Colour.blue()
+							))
 
 	async def unpack_commands(self, channel):
 		commands = await core.keystore.get('calculator', 'history', channel.id)
@@ -266,7 +286,7 @@ class CalculatorModule(core.module.Module):
 			for i in downloaded:
 				if isinstance(i, LibraryDownloadIssue):
 					await self.send_message(channel,
-						discord.Embed(
+						embed = discord.Embed(
 							title='Library load error',
 							description=str(i),
 							colour=discord.Colour.red(),
@@ -274,7 +294,6 @@ class CalculatorModule(core.module.Module):
 						)
 					)
 					await asyncio.sleep(1.05)
-			return discord.Embed(description='Since there were errors, the calculator state has remained unchanged.')
 		else:
 			errors = []
 			for lib in downloaded:
@@ -282,8 +301,14 @@ class CalculatorModule(core.module.Module):
 				result, worked, details = await scope.execute_async(lib.code)
 				# print(result, worked)
 				if not worked:
-					errors.append(f'**Error in library:** {lib.url}\n\n```{result}```')
-			return '\n\n\n'.join(errors)[:2000]
+					errors.append(f'**Error in {lib.url}**\n```{result}```')
+			await self.send_message(channel,
+				embed = discord.Embed(
+					title='Errors occurred while running the libraries',
+					description='\n\n\n'.join(errors)[:2000],
+					colour=discord.Colour.red()
+				)
+			)
 
 	async def rerun_commands(self, channel, commands):
 		scope = await get_scope(channel.id)
@@ -344,10 +369,12 @@ def history_grouping(commands):
 	yield '```\n{}\n```'.format(''.join(current))
 
 
-class LibraryDownloadResult:
+class LibraryDownloadResult(abc.ABC):
 
-	def __init__(self) -> None:
-		raise NotImplementedError
+	@property
+	@abc.abstractmethod
+	def error_string(self) -> str:
+		...
 
 	def __str__(self) -> str:
 		return f'```\n{self.error_string}\n```'
@@ -422,7 +449,7 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 		description = blob['description']
 
 		for filename, metadata in blob['files'].items():
-			if filename.lower() in ['readme.md', 'readme.txt']:
+			if any(map(filename.lower().__contains__, ['readme', 'help'])):
 				if url_docs is not None:
 					raise LibraryDownloadError('Found multiple documentation files. Requires exactly 1.')
 				url_docs = metadata['raw_url']
@@ -445,7 +472,7 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 	)
 
 
-async def download_text(session: aiohttp.ClientSession, url: str) -> LibraryDownloadResult:
+async def download_text(session: aiohttp.ClientSession, url: str) -> str:
 	async with session.get(url) as response:
 		data = await response.text()
 		if len(data) > 1000 * 32: # 32 KB
