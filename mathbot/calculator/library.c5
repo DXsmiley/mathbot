@@ -69,11 +69,11 @@ __reducel(f l r) = if(
 _reducel(f l) = __reducel(f \l 'l)
 reducel(f l) = reduce(f reverse(l))
 
-foldl f x l = if (!l x
+foldl(f x l) = if (!l x
 	foldl(f f(x 'l) \l)
 )
 
-foldr f x l = if (!l x
+foldr(f x l) = if (!l x
 	f('l foldr(f x \l))
 )
 
