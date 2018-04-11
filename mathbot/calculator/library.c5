@@ -53,6 +53,9 @@ _filter(f l r) = ifelse(
 )
 filter(f l) = reverse(_filter(f l .))
 
+# Reduce functions are now deprecated
+# Use foldl and foldr instead
+
 _reduce(f l r) = if(
     !l r
     _reduce(f \l f(r 'l))
@@ -65,6 +68,14 @@ __reducel(f l r) = if(
 )
 _reducel(f l) = __reducel(f \l 'l)
 reducel(f l) = reduce(f reverse(l))
+
+foldl f x l = if (!l x
+	foldl(f f(x 'l) \l)
+)
+
+foldr f x l = if (!l x
+	f('l foldr(f x \l))
+)
 
 _list(a i r) = if (i < 0 r _list(a i - 1 a(i):r))
 list(x.) = _list(x length(x) - 1 .)
