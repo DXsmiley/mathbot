@@ -227,7 +227,7 @@ class WolframModule(core.module.Module):
 
 	async def answer_query(self, query, channel, blame, assumptions=[], small=False, debug = False):
 		safe.sprint('wolfram|alpha :', blame.name, ':', query)
-		await self.client.send_typing(channel)
+		await self.send_typing(channel)
 		enable_filter = False
 		if not channel.is_private:
 			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)

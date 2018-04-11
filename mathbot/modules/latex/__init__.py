@@ -128,7 +128,7 @@ class LatexModule(core.module.Module):
 
 	async def handle(self, message, latex, template):
 		safe.sprint('Latex ({}, {}) : {}'.format(message.author.name, template, latex))
-		await self.client.send_typing(message.channel)
+		await self.send_typing(message.channel)
 
 		colour_back, colour_text = await get_colours(message)
 
