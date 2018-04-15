@@ -148,10 +148,11 @@ def create_shard_manager(shard_id, shard_count):
 		modules.about.AboutModule(),
 		# modules.latex.LatexModule(),
 		modules.calcmod.CalculatorModule(),
+		modules.dice.DiceModule(),
 		# modules.purge.PurgeModule(),
 		# Will only trigger stats if supplied with tokens
-		modules.analytics.AnalyticsModule(),
-		modules.reporter.ReporterModule(),
+		# modules.analytics.AnalyticsModule(),
+		# modules.reporter.ReporterModule(),
 		modules.heartbeat.Heartbeat()
 	)
 
