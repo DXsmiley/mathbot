@@ -99,6 +99,7 @@ class CalculatorModule(core.module.Module):
 
 	@core.handles.command('libs-list', '', perm_setting='c-calc', no_dm=True)
 	async def handle_libs_list(self, message):
+		''' Command to list all the libraries installed in this server '''
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id)
 		if not libs:
 			return 'This server has no calculator libraries installed.'
@@ -106,12 +107,11 @@ class CalculatorModule(core.module.Module):
 		for i in libs:
 			embed.add_field(name=i['name'], value=i['url'])
 		return embed
-		# listing = '\n'.join(map(lambda x: ' - ' + x, libs))
-		# ll = len(libs)
-		# return f'This server has **{ll}** librar{"y" if ll == 1 else "ies"} installed:\n{listing}'
 
 	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_libs_add(self, message, url):
+		''' Command to add a new library to the server '''
+		# Filter out non-libraries
 		if not url.startswith('https://gist.github.com/'):
 			return discord.Embed(
 				title='Library load error',
@@ -128,19 +128,23 @@ class CalculatorModule(core.module.Module):
 					colour=discord.Colour.red(),
 					url=lib_info.url()
 				)
+		# Get list of existing libraries
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
+		# Ensure that the library is not already installed
 		if url in map(lambda x: x['url'], libs):
 			return discord.Embed(
 				title='Library load error',
 				description='That library has already been added to this server.',
 				colour=discord.Colour.red()
 			)
+		# Limit the number of libraries allow on a single server
 		if len(libs) >= 5:
 			return discord.Embed(
 				title='Library add error',
 				description='Servers cannot have more than five libraries installed at once.',
 				colour=discord.Colour.red()
 			)
+		# Add the new library to the list and store it again
 		libs.append({
 			'url': url,
 			'name': lib_info.name
@@ -152,16 +156,23 @@ class CalculatorModule(core.module.Module):
 			url=lib_info.url,
 			footer='Run `=calc-reload` to load the library.'
 		)
-		# return 'Added library. Run `{prefix}calc-reload` to load it.'
 
 	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_libs_remove(self, message, url):
+		''' Command to remove a library from the list '''
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
 		if not url in map(lambda x: x['url'], libs):
-			return 'Library URL not found.'
+			return discord.Embed(
+				title='Failed to remove library',
+				colour=discord.colour.Red()
+			)
 		libs = list(filter(lambda x: x['url'] != url, libs))
 		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
-		return 'Removed library. Run `{prefix}calc-reload` to unload it.'
+		return discord.Embed(
+			title='Removed library',
+			footer='Run `=calc-reload` to properly unload it.',
+			colour=discord.colour.Blue()
+		)
 
 	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
 	async def handle_calc_reload(self, message):
@@ -183,7 +194,7 @@ class CalculatorModule(core.module.Module):
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message):
 		with (await LOCKS[message.channel.id]):
-			await self.replay_commands(message.channel, message.author)
+			await self.ensure_loaded(message.channel, message.author)
 			# Yeah this is kinda not great...
 			arg = arg.strip('` \n\t')
 			if arg == '':
@@ -222,7 +233,7 @@ class CalculatorModule(core.module.Module):
 				if worked and expression_has_side_effect(arg):
 					await self.add_command_to_history(message.channel, arg)
 
-	async def replay_commands(self, channel, blame):
+	async def ensure_loaded(self, channel, blame):
 		# If command were previously run in this channel, re-run them
 		# in order to re-load any functions that were defined
 		if self.allow_calc_history(channel):
@@ -230,38 +241,29 @@ class CalculatorModule(core.module.Module):
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
-					# Doesn't matter if this is at the start or end, since locks who
+					# Doesn't matter if this is at the start or end, because of the locks around it
 					self.replay_state[channel.id].loaded = True
-					await self.send_message(
-						channel,
-						embed=discord.Embed(
-							title='Loading libraries and re-running history',
-							description='Please wait'
-						),
-						blame=blame
-					)
+					await self.send_typing(channel)
 					print('Loading libraries for channel', channel)
 					await self.run_libraries(channel, channel.server)
 					print('Replaying calculator commands for', channel)
-					commands_unpacked = await self.unpack_commands(channel)
-					if not commands_unpacked:
-						print('No commands')
-					else:
-						was_error, commands_to_keep = await self.rerun_commands(channel, commands_unpacked)
-						# Store the list of commands that worked back into storage for use next time
-						to_store = json.dumps(commands_to_keep)
-						await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
-						if was_error:
-							await self.send_message(channel, blame=blame, embed=discord.Embed(
-								title='Some errors occurred during catchup.',
-								description='Calculator state has been partially restored. Run `=calc-history` for a list of commands that have been retained.',
-								colour=discord.Colour.yellow()
-							))
-						else:
-							await self.send_message(channel, blame=blame, embed=discord.Embed(
-								title='Catchup complete.',
-								colour=discord.Colour.blue()
-							))
+					await self.restore_history(channel, blame)
+
+	async def restore_history(self, channel, blame):
+		commands_unpacked = await self.unpack_commands(channel)
+		if not commands_unpacked:
+			print('No commands')
+		else:
+			was_error, commands_to_keep = await self.rerun_commands(channel, commands_unpacked)
+			# Store the list of commands that worked back into storage for use next time
+			to_store = json.dumps(commands_to_keep)
+			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+			if was_error:
+				await self.send_message(channel, blame=blame, embed=discord.Embed(
+					title='Some errors occurred during catchup.',
+					description='Calculator state has been partially restored. Run `=calc-history` for a list of commands that have been retained.',
+					colour=discord.Colour.yellow()
+				))
 
 	async def unpack_commands(self, channel):
 		commands = await core.keystore.get('calculator', 'history', channel.id)
