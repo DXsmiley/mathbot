@@ -20,7 +20,8 @@ SETTINGS = {
 	'f-delete-tex': {'default': False},
 	'f-tex-inline': {'redirect': 'f-inline-tex', 'cannon-name': True},
 	'f-tex-delete': {'redirect': 'f-delete-tex', 'cannon-name': True},
-	'm-disabled-cmd': {'default': True}
+	'f-roll-unlimited': {'default': False},
+	'm-disabled-cmd': {'default': True},
 }
 
 

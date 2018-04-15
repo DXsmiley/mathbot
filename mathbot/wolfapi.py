@@ -87,8 +87,6 @@ class Client:
 			async with aiohttp.ClientSession() as session:
 				return await self.request(query, assumptions, session=session, debug=debug, download_images=download_images, timeout=timeout)
 		else:
-			print('Inside the request function!')
-			print(query, assumptions)
 			payload = [
 				('appid', self._appid),
 				('input', query)
@@ -261,7 +259,7 @@ class Section:
 		self.id = pod.get('@id') # type: str
 		self._urls = [
 			subpod['img']['@src']
-			for subpod in listify(pod.get('subpod'))
+			for subpod in listify(pod.get('subpod', []))
 		]
 		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
 
@@ -281,19 +279,3 @@ class Section:
 	def get_futures(self, session):
 		futures = [self.download_image(session, i) for i in range(len(self._urls))]
 		return asyncio.gather(*futures)
-
-
-async def main():
-	client = Client('WR54UK-2K8T8YU694')
-	q = input('> ')
-	while q:
-		r = await client.request(q, download_images=False)
-		for s in r.sections:
-			print(s.title, '-', len(s))
-		print(str(r.assumptions))
-		print(r.timeouts)
-		q = input('> ')
-
-if __name__ == '__main__':
-	loop = asyncio.get_event_loop()
-	loop.run_until_complete(main())

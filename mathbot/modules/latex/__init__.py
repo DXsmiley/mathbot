@@ -1,5 +1,4 @@
 import random
-import requests
 import os
 import safe
 import PIL
@@ -129,7 +128,7 @@ class LatexModule(core.module.Module):
 
 	async def handle(self, message, latex, template):
 		safe.sprint('Latex ({}, {}) : {}'.format(message.author.name, template, latex))
-		await self.client.send_typing(message.channel)
+		await self.send_typing(message.channel)
 
 		colour_back, colour_text = await get_colours(message)
 
@@ -236,7 +235,7 @@ def extract_inline_tex(content):
 
 
 def process_latex(latex):
-	latex = latex.strip(' `\n')
+	latex = latex.replace('`', ' ').strip(' \n')
 	if latex.startswith('tex'):
 		latex = latex[3:]
 	for key, value in TEX_REPLACEMENTS.items():

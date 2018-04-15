@@ -8,6 +8,7 @@ import sys
 import os
 import asyncio
 import re
+import signal
 
 import discord
 import logging
@@ -25,6 +26,33 @@ RELEASE = None
 TOKEN = None
 SHARDS_TOTAL = 0
 SHARDS_MINE = typing.List[int]
+BOT_RUNNING = True
+
+
+class SecondSignal(Exception):
+	def __str__(self):
+		return 'A second signal was received.'
+
+
+def handle_sigterm(signum, frame):
+	global BOT_RUNNING
+	if not BOT_RUNNING:
+		raise SecondSignal
+	BOT_RUNNING = False
+	print('\nCaught SIGTERM\n')
+
+
+def handle_sigint(signum, frame):
+	global BOT_RUNNING
+	if not BOT_RUNNING:
+		raise SecondSignal
+	BOT_RUNNING = False
+	print('\nCaught SIGINT\n')
+
+
+signal.signal(signal.SIGTERM, handle_sigterm)
+signal.signal(signal.SIGINT, handle_sigint)
+
 
 
 def do_setup():
@@ -101,6 +129,7 @@ def create_shard_manager(shard_id, shard_count):
 	import modules.reporter
 	# import modules.greeter
 	import modules.dice
+	import modules.heartbeat
 
 	assert(0 <= shard_id < shard_count)
 
@@ -121,9 +150,9 @@ def create_shard_manager(shard_id, shard_count):
 		modules.calcmod.CalculatorModule(),
 		# modules.purge.PurgeModule(),
 		# Will only trigger stats if supplied with tokens
-		# modules.analytics.AnalyticsModule(),
-		modules.reporter.ReporterModule()
-		# modules.dice.DiceModule()
+		modules.analytics.AnalyticsModule(),
+		modules.reporter.ReporterModule(),
+		modules.heartbeat.Heartbeat()
 	)
 
 	# if RELEASE == 'production':
@@ -141,9 +170,23 @@ def create_shard_manager(shard_id, shard_count):
 
 
 async def run_shard(shard_id, shard_count):
-	while True:
+	while BOT_RUNNING:
 		manager = create_shard_manager(shard_id, shard_count)
-		await manager.run_async()
+		async def handle_shutdown():
+			while BOT_RUNNING:
+				await asyncio.sleep(2)
+			await manager.shutdown()
+		await asyncio.gather(
+			manager.run_async(),
+			handle_shutdown()
+		)
+
+
+async def finish_or_cancel(task):
+	try:
+		asyncio.wait_for(task, timeout=10)
+	except asyncio.TimeoutError:
+		task.cancel()
 
 
 def run_blocking():
@@ -151,6 +194,12 @@ def run_blocking():
 	future = run_async()
 	loop = asyncio.get_event_loop()
 	loop.run_until_complete(future)
+	pending = asyncio.Task.all_tasks()
+	loop.run_until_complete(asyncio.gather(*pending))
+	# for task in asyncio.Task.all_tasks():
+	# 	print('Completing task', task)
+	# 	loop.run_until_complete(finish_or_cancel(task))
+	loop.close()
 
 
 async def run_async():

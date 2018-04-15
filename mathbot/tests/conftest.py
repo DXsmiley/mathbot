@@ -1,4 +1,4 @@
-import automata
+import dismock as automata
 import bot
 import pytest
 import asyncio
@@ -116,7 +116,7 @@ def __automata_fixture():
         yield auto
 
         loop.run_until_complete(asyncio.sleep(1))
-        loop.run_until_complete(manager.client.logout())
+        loop.run_until_complete(manager.shutdown())
         loop.run_until_complete(auto.logout())
         loop.run_until_complete(asyncio.sleep(1))
 

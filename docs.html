@@ -31,6 +31,8 @@
 
 <a href="#h-latex"><p>LaTeX</p></a>
 
+<a href="#h-roll"><p>Die Rolling</p></a>
+
 <a href="#h-calculator"><p>Calculator</p></a>
 
 <a href="#h-turing"><p>Turing Completeness</p></a>
@@ -103,6 +105,12 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 The bot will require the <em>manage messages</em> permission for this work properly.</p>
 <h2>Custom Macros</h2>
 <p>Some custom commands have been added to make typing quick LaTeX easy. These include <code>\bbR</code>, <code>\bbN</code> etc. for <code>\mathbb{R}</code>, <code>mathbb{N}</code> and other common set symbols and <code>\bigO</code> for <code>\mathcal{O}</code>. Some unicode characters (such as greek letters) are automatically convered to LaTeX macros for ease of use.</p>
+
+<h1 id="h-roll">Die Rolling</h1>
+
+<p><code>=roll number faces</code></p>
+<p>The amount of dice shown is by default limited, if you wish to remove this limit you can enable the setting <code>f-roll-unlimited</code>.</p>
+<p>Example: <code>=roll 2d8</code></p>
 
 <h1 id="h-calculator">Calculator</h1>
 
@@ -273,6 +281,7 @@ Use <code>=theme light</code> to apply the light theme.</p>
 <li><code>f-tex-delete</code>: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: <em>Disabled</em>.</li>
 <li><code>f-wolf-filter</code>: Toggles the word filter for W|A queries. This is enabled by default for all non-nsfw channels.</li>
 <li><code>f-wolf-mention</code>: Toggles the <code>@mention</code> in the footer of W|A results. Default: <em>Enabled</em>.</li>
+<li><code>f-roll-unlimited</code>: When enabled there is no limit (apart from the discord message limit) to the amount of rolls shown with the roll command.</li>
 <li><code>m-disabled-cmd</code>: Toggles the "That command cannot be used in this location" message. Default: <em>Enabled</em>.</li>
 </ul>
 <h2>Examples</h2>

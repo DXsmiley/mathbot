@@ -28,6 +28,8 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 
 `value` should be either `enable`, `disable`, or `reset`. `enable` will allow people to use the command in the given context and `disable` will stop people from using it. `reset` will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to `reset` will mean that it defers to the setting used by the server.
 
+:::page-break
+
 - `c-calc` : Toggles the `{{prefix}}calc` command. Default: *Enabled*
 - `c-tex` : Toggles the `{{prefix}}tex` command. Default: *Enabled*
 - `c-wolf` : Toggles the `{{prefix}}wolf` command. Default: *Enabled*
@@ -37,6 +39,7 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 - `f-tex-delete`: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: *Disabled*.
 - `f-wolf-filter`: Toggles the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
 - `f-wolf-mention`: Toggles the `@mention` in the footer of W|A results. Default: *Enabled*.
+- `f-roll-unlimited`: When enabled there is no limit (apart from the discord message limit) to the amount of rolls shown with the roll command.
 - `m-disabled-cmd`: Toggles the "That command cannot be used in this location" message. Default: *Enabled*.
 
 :::page-break

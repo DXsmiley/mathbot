@@ -44,13 +44,6 @@ ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?
 """
 
-ERROR_MESSAGE_FAILED = '''Failed to make the request.
-Maybe you should try again?
-
-If this error keeps recurring, you should report it to DXsmiley on the \
-official MathBot server: https://discord.gg/JbJbRZS
-'''
-
 ERROR_MESSAGE_TIMEOUT = """Wolfram|Alpha query timed out.
 Maybe you should try again?
 
@@ -178,31 +171,30 @@ class WolframModule(core.module.Module):
 
 	@core.handles.add_reaction(RERUN_EMOJI)
 	async def rerun_rection(self, reaction, user):
-		print(self.shard_id, 'Rerun emoji')
 		async with AssumptionDataScope(reaction.message, self.client) as data:
-			print('1')
 			if data is not None and not data['used'] and data['blame'] == user.id:
-				print('2')
 				if await core.settings.get_setting(reaction.message, 'c-wolf'): # Make sure it's still allowed here...
-					print('3')
 					assumptions_to_use = list(filter(bool, [
 						data['assumptions'].emoji_to_code.get(i.emoji)
 						for i in reaction.message.reactions
-						if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 0
+						if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 1
 					]))
-					print('Rerunning `{}` with assumptions `{}`'.format(data['query'], ', '.join(assumptions_to_use)))
-					# Can only re-run each thing once.
-					# TODO: Abstract this
 					channel = reaction.message.channel
+					print('Rerunning query:', data['query'])
 					if len(assumptions_to_use) == 0:
+						print('   with no assumptions!?')
 						if data['no change warning'] == False:
 							await self.send_message(channel, "Why would you re-run a query without changing the assumptions? :thinking:", blame = user)
 						data['no change warning'] = True
-					elif not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
-						await self.send_message(channel, PERMS_FAILURE, blame = user)
-						data['used'] = True
-					elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
-						data['used'] = True
+					else:
+						print('With assumptions')
+						for i in assumptions_to_use:
+							print('    -', i)
+						if not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
+							await self.send_message(message, PERMS_FAILURE)
+							data['used'] = True
+						elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
+							data['used'] = True
 
 	@core.handles.add_reaction(EXPAND_EMOJI)
 	async def expand_assumptions(self, reaction, user):
@@ -235,7 +227,7 @@ class WolframModule(core.module.Module):
 
 	async def answer_query(self, query, channel, blame, assumptions=[], small=False, debug = False):
 		safe.sprint('wolfram|alpha :', blame.name, ':', query)
-		await self.client.send_typing(channel)
+		await self.send_typing(channel)
 		enable_filter = False
 		if not channel.is_private:
 			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
@@ -246,7 +238,7 @@ class WolframModule(core.module.Module):
 			print('Making request')
 			result = await api.request(query, assumptions, debug=debug)
 		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
-			await self.send_message(channel, ERROR_MESSAGE_FAILED, blame=blame)
+			await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame=blame)
 		except asyncio.TimeoutError:
 			print('W|A timeout:', query)
 			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame=blame)

@@ -19,6 +19,7 @@ class Module:
 		self.client = None
 		self.shard_id = 0
 		self.shard_count = 1
+		self.running = True
 
 	# Functions used by the system
 
@@ -71,6 +72,9 @@ class Module:
 
 	async def send_message(self, *args, **kwargs):
 		return await self.master.send_message(*args, **kwargs)
+
+	async def send_typing(self, *args, **kwargs):
+		return await self.master.send_typing(*args, **kwargs)
 
 	async def send_private_fallback(self, to: discord.Member, fallback: discord.Channel, message: str, blame = None, supress_warning = False) -> bool:
 		''' Try and send a private message to a user. If it fails,

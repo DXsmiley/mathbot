@@ -78,17 +78,6 @@ class AboutModule(core.module.Module):
 	async def command_about(self, message):
 		return core.handles.Redirect('help', 'about')
 
-	# Sets the playing status of the bot when it starts up
-	# Also send it intermittently in case it expires (is this a thing?)
-	@core.handles.background_task()
-	async def update_status_message(self):
-		while True:
-			status = 'bit.ly/mathbot'
-			# status = 'bit.ly/mb-code'
-			game = discord.Game(name = status)
-			await self.client.change_presence(game = game)
-			await asyncio.sleep(60 * 5)
-
 
 def get_uptime():
 	''' Returns a string representing how long the bot has been running for '''
