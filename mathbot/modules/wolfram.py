@@ -230,7 +230,7 @@ class WolframModule(core.module.Module):
 		await self.send_typing(channel)
 		enable_filter = False
 		if not channel.is_private:
-			enable_filter = await core.settings.resolve('f-wolf-filter', channel, default = 'nsfw' not in channel.name)
+			enable_filter = await core.settings.resolve('f-wolf-filter', channel, channel.server, default = 'nsfw' not in channel.name)
 		if enable_filter and wordfilter.is_bad(query):
 			await self.send_message(channel, FILTER_FAILURE, blame=blame)
 			return
