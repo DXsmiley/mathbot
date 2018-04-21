@@ -31,13 +31,11 @@ def _get_key(setting, context):
 		raise TypeError('{} is not a valid setting'.format(setting))
 	if isinstance(context, discord.Channel):
 		if not context.is_private and context.id == context.server.id:
-			key = '{setting}:{id}c'
+			return f'{setting}:{context.id}c'
 		else:
-			key = '{setting}:{id}'
-		return key.format(setting = setting, id = context.id)
+			return f'{setting}:{context.id}'
 	if isinstance(context, discord.Server):
-		key = '{setting}:{id}'
-		return key.format(setting = setting, id = context.id)
+		return f'{setting}:{context.id}'
 	raise TypeError('Type {} is not a valid settings context'.format(context.__class__))
 
 
