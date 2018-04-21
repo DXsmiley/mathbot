@@ -121,7 +121,7 @@ class Manager:
 		parts = cmd_string.replace('\n', ' ').split(' ')
 		for num_parts in range(len(parts), 0, -1):
 			joined = ' '.join(parts[:num_parts])
-			command = self.commands.get(joined)
+			command = self.commands.get(joined.lower())
 			if command is not None:
 				arguments = ' '.join(parts[num_parts:])
 				return command, arguments
