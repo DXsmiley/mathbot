@@ -66,7 +66,7 @@ class HelpModule(core.module.Module):
 				was_private = False
 		if was_private and not msg.channel.is_private:
 			if topic:
-				reply = "Information on `{}` has been send to you privately.".format(topic)
+				reply = "Information on `{}` has been sent to you privately.".format(topic)
 			else:
 				reply = "Help has been sent to you privately."
 			await self.send_message(msg, reply)
