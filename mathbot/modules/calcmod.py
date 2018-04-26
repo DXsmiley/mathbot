@@ -28,6 +28,7 @@ import abc
 core.help.load_from_file('./help/calculator.md')
 core.help.load_from_file('./help/calculator_sort.md')
 core.help.load_from_file('./help/calculator_history.md')
+core.help.load_from_file('./help/calculator_libraries.md')
 # core.help.load_from_file('./help/turing.md')
 
 
@@ -306,8 +307,8 @@ class CalculatorModule(core.module.Module):
 					errors.append(f'**Error in {lib.url}**\n```{result}```')
 			await self.send_message(channel,
 				embed = discord.Embed(
-					title='Errors occurred while running the libraries',
-					description='\n\n\n'.join(errors)[:2000],
+					title='Errors occurred while running the libraries.',
+					description='Use `=calc-reload` to try again.\n' + '\n\n\n'.join(errors)[:2000],
 					colour=discord.Colour.red()
 				)
 			)
@@ -451,11 +452,12 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 		description = blob['description']
 
 		for filename, metadata in blob['files'].items():
-			if any(map(filename.lower().__contains__, ['readme', 'help'])):
+			fn = filename.lower()
+			if match_filename(filename, ('readme', 'help'), ('md', 'txt', 'rst')):
 				if url_docs is not None:
 					raise LibraryDownloadError('Found multiple documentation files. Requires exactly 1.')
 				url_docs = metadata['raw_url']
-			else:
+			elif match_filename(filename, ('source',), ('',)):
 				if url_code is not None:
 					raise LibraryDownloadError('Found multiple code files. Requires exactly 1.')
 				url_code = metadata['raw_url']
@@ -472,6 +474,18 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 		docs,
 		code
 	)
+
+
+def match_filename(specimen, allowed_names, allowed_exts):
+	specimen = specimen.lower()
+	assert all(str.islower, allowed_names)
+	assert all(str.islower, allowed_exts)
+	if specimen.count('.') == 0:
+		return specimen in allowed_names and '' in allowed_exts
+	elif specimen.count('.') == 1:
+		name, ext = specimen.split('.')
+		return name in allowed_names and ext in allowed_exts
+	return False
 
 
 async def download_text(session: aiohttp.ClientSession, url: str) -> str:
