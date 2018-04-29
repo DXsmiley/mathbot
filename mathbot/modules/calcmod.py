@@ -127,7 +127,7 @@ class CalculatorModule(core.module.Module):
 					title='Library load error',
 					description=str(lib_info),
 					colour=discord.Colour.red(),
-					url=lib_info.url()
+					url=lib_info.url
 				)
 		# Get list of existing libraries
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
@@ -165,14 +165,14 @@ class CalculatorModule(core.module.Module):
 		if not url in map(lambda x: x['url'], libs):
 			return discord.Embed(
 				title='Failed to remove library',
-				colour=discord.colour.Red()
+				colour=discord.colour.red()
 			)
 		libs = list(filter(lambda x: x['url'] != url, libs))
 		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
 		return discord.Embed(
 			title='Removed library',
 			footer='Run `=calc-reload` to properly unload it.',
-			colour=discord.colour.Blue()
+			colour=discord.colour.blue()
 		)
 
 	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
@@ -293,7 +293,7 @@ class CalculatorModule(core.module.Module):
 							title='Library load error',
 							description=str(i),
 							colour=discord.Colour.red(),
-							url=lib_info.url()
+							url=i.url
 						)
 					)
 					await asyncio.sleep(1.05)
@@ -433,7 +433,7 @@ async def download_library(session: aiohttp.ClientSession, url: str) -> LibraryD
 		return LibraryDownloadIssue(url, traceback.format_exc())
 
 
-async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_id: str) -> LibraryDownloadResult:
+async def download_gist(session: aiohttp.ClientSession, original_url: str, gist_id: str) -> LibraryDownloadResult:
 	url = f'https://api.github.com/gists/{gist_id}'
 	url_code = None
 	url_docs = None
@@ -469,7 +469,7 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 	docs = (await download_text(session, url_docs)) if url_docs is not None else ''
 
 	return LibraryDownloadSuccess(
-		url,
+		original_url,
 		description,
 		docs,
 		code
@@ -478,8 +478,8 @@ async def download_gist(session: aiohttp.ClientSession, original_url:str, gist_i
 
 def match_filename(specimen, allowed_names, allowed_exts):
 	specimen = specimen.lower()
-	assert all(str.islower, allowed_names)
-	assert all(str.islower, allowed_exts)
+	assert all(map(lambda s: s == '' or s.islower(), allowed_names))
+	assert all(map(lambda s: s == '' or s.islower(), allowed_exts))
 	if specimen.count('.') == 0:
 		return specimen in allowed_names and '' in allowed_exts
 	elif specimen.count('.') == 1:
