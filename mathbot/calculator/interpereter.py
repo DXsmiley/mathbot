@@ -174,7 +174,7 @@ class ErrorStopGap:
 
 class Interpereter:
 
-	def __init__(self, *, trace=False, yield_rate=100, hooks={}):
+	def __init__(self, *, trace=False, yield_rate=100):
 		self.calling_cache = CallingCache()
 		self.trace = trace
 		self.bytes = None
@@ -184,7 +184,6 @@ class Interpereter:
 		self.root_scope = IndexedScope(None, 0, [])
 		self.current_scope = self.root_scope
 		self.protected_assignment_mode = False
-		self.hooks = hooks
 		self.assignment_protection_level = None
 		self.assignment_auth_level = 0
 		self.enable_exception_handler = True
@@ -417,10 +416,8 @@ class Interpereter:
 					result = await result
 				self.push(result)
 			except EvaluationError:
-				print('I mean yeah...')
 				raise
 			except Exception:
-				# traceback.print_exc()
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
@@ -541,8 +538,7 @@ class Interpereter:
 			value = self.root_scope.get(index, 0)
 			self.push(value)
 		except ScopeMissedError:
-			if 'access-global-miss' not in self.hooks or self.hooks['access-global-miss'](name) == False:
-				raise calculator.errors.AccessFailedError(name)
+			raise calculator.errors.AccessFailedError(name)
 
 	async def inst_access_local(self):
 		''' Access a local variable '''
