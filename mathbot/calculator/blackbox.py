@@ -41,16 +41,6 @@ class Terminal:
         self.builder = calculator.bytecode.Builder()
         self.allow_special_commands = allow_special_commands
         self.colour_output = colour_output
-        try:
-            runtime_segment = calculator.runtime.prepare_runtime()
-        except calculator.parser.ParseFailed as e:
-            print('RUNTIME ISSUE: Parse error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-            raise e
-        except calculator.parser.TokenizationFailed as e:
-            print('RUNTIME ISSUE: Tokenization error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
-            raise e
         hooks = {}
         self.interpereter = calculator.interpereter.Interpereter(
             yield_rate=yield_rate,
@@ -69,7 +59,18 @@ class Terminal:
     async def new_blackbox(**kwargs):
         term = Terminal(_called_directly=False, **kwargs)
         try:
+            runtime_segment = calculator.runtime.prepare_runtime(term.builder)
+        except calculator.parser.ParseFailed as e:
+            print('RUNTIME ISSUE: Parse error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
+        except calculator.parser.TokenizationFailed as e:
+            print('RUNTIME ISSUE: Tokenization error')
+            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            raise e
+        try:
             await term.interpereter.run_async(
+                segment=runtime_segment,
                 assignment_auth_level=kwargs.get('runtime_protection_level', 0),
                 assignment_protection_level=kwargs.get('runtime_protection_level', 0)
             )
@@ -144,13 +145,11 @@ class Terminal:
                     prt(json.dumps(ast, indent = 4))
                 ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
                 self.interpereter.stack = [None]
-                self.interpereter.place = self.linker.add_segment(
-                    calculator.bytecode.ast_to_bytecode(ast)
-                )
+                code_segment = self.builder.build(ast)
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
                 async with async_timeout.timeout(5):
-                    result_items = await self.interpereter.run_async(get_entire_stack = True)
+                    result_items = await self.interpereter.run_async(segment=code_segment, get_entire_stack=True)
                 details['result'] = result_items
                 worked = True
                 for result in result_items:

@@ -420,7 +420,7 @@ class Interpereter:
 				print('I mean yeah...')
 				raise
 			except Exception:
-				traceback.print_exc()
+				# traceback.print_exc()
 				raise EvaluationError('Operation failed on {} and {}', left, right)
 		return internal
 
