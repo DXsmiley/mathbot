@@ -108,7 +108,7 @@ class FunctionInspector:
 		assert isinstance(function_object, Function)
 		# This is all we need from the interpereter, so grab it
 		# if we need more information later we can take it
-		self.bytes = interpereter.bytes
+		self.bytes = function_object.segment.bytecode
 		self.function_object = function_object
 		self.address = self.function_object.address
 
@@ -131,6 +131,10 @@ class FunctionInspector:
 	@property
 	def code_address(self):
 		return self.address + 5
+
+	@property
+	def code_segment(self):
+		return self.function_object.segment
 
 
 class CallingCache:
@@ -160,19 +164,20 @@ class CallingCache:
 
 class ErrorStopGap:
 
-	__slots__ = ['handler_address', 'should_pass']
+	__slots__ = ['handler_segment', 'handler_address', 'should_pass']
 
-	def __init__(self, handler_address, should_pass):
-		self.handler_address = handler_address
+	def __init__(self, segment, address, should_pass):
+		self.handler_segment = segment
+		self.handler_address = address
 		self.should_pass = should_pass
+
 
 class Interpereter:
 
-	def __init__(self, code_constructed, trace=False, yield_rate=100, hooks={}):
+	def __init__(self, *, trace=False, yield_rate=100, hooks={}):
 		self.calling_cache = CallingCache()
 		self.trace = trace
-		self.bytes = code_constructed.bytecode
-		self.erlnk = code_constructed.error_link
+		self.bytes = None
 		self.place = 0
 		self.stack = [None]
 		self.yield_rate = yield_rate
@@ -248,25 +253,29 @@ class Interpereter:
 			b.CONSTANT_GLYPH: self.inst_constant_glyph
 		}
 
-	def swap_bytecode(self, constructed_bytecode):
-		self.bytes = code_constructed.bytecode
-		self.erlnk = code_constructed.error_link
+	# def swap_bytecode(self, constructed_bytecode):
+	# 	self.bytes = code_constructed.bytecode
+	# 	self.erlnk = code_constructed.error_link
 
 	def clear_cache(self):
 		''' Clears the function call cache '''
 		self.calling_cache.clear()
 
-	def state_freeze(self):
-		''' Returns the state of the interpereter so that it may be recovered later.
-			Global variables are not considered 'frozen'
-		'''
-		return FrozenState(self)
+	# def state_freeze(self):
+	# 	''' Returns the state of the interpereter so that it may be recovered later.
+	# 		Global variables are not considered 'frozen'
+	# 	'''
+	# 	return FrozenState(self)
 
-	def state_thaw(self, frozen):
-		''' Returns to a frozen state '''
-		self.place = frozen.place
-		self.stack = frozen.stack[:]
-		self.current_scope = frozen.current_scope
+	# def state_thaw(self, frozen):
+	# 	''' Returns to a frozen state '''
+	# 	self.place = frozen.place
+	# 	self.stack = frozen.stack[:]
+	# 	self.current_scope = frozen.current_scope
+
+	@property
+	def erlnk(self):
+		return self.bytes.error_link
 
 	@property
 	def head(self):
@@ -301,7 +310,7 @@ class Interpereter:
 		loop = asyncio.get_event_loop()
 		return loop.run_until_complete(self.run_async(**kwargs))
 
-	async def run_async(self, start_address=None, tick_limit=None, error_if_exhausted=False,
+	async def run_async(self, segment=None, tick_limit=None, error_if_exhausted=False,
 			get_entire_stack=False, assignment_protection_level=None, assignment_auth_level=0):
 		''' Run some number of ticks.
 			tick_limit         - The maximum number of ticks to run. If not specified there is no limit.
@@ -311,8 +320,8 @@ class Interpereter:
 		'''
 		self.assignment_protection_level = assignment_protection_level
 		self.assignment_auth_level = assignment_auth_level
-		if start_address is not None:
-			self.place = start_address
+		self.bytes = segment
+		self.place = 0
 		if tick_limit is None:
 			while self.head != bytecode.I.END:
 				await self.tick()
@@ -352,7 +361,9 @@ class Interpereter:
 				self.pop()
 		except IndexError:
 			raise error
-		self.place = self.pop().handler_address - 1
+		stopgap = self.pop()
+		self.bytes = stopgap.handler_segment
+		self.place = stopgap.handler_address - 1
 
 	async def inst_constant(self):
 		''' Push a constant to the stack '''
@@ -479,7 +490,7 @@ class Interpereter:
 		'''
 		self.place += 1
 		if isinstance(self.top, Function) and FunctionInspector(self, self.top).is_macro:
-			self.place = self.head - 1 # Is now -1 for flexibility
+			self.perform_jump()
 
 	async def inst_arg_list_end(self, disable_cache = False, do_tco = False):
 		''' Specify the end of an argument list.
@@ -497,7 +508,13 @@ class Interpereter:
 			else:
 				arguments.append(arg)
 		function = self.pop()
-		await self.call_function(function, arguments, self.place + 1, disable_cache = disable_cache, do_tco = do_tco)
+		await self.call_function(
+			function,
+			arguments,
+			(self.bytes, self.place + 1),
+			disable_cache=disable_cache,
+			do_tco=do_tco
+		)
 
 	async def inst_arg_list_end_no_cache(self):
 		''' Specify the end of an argument list, but explicitly disable the cache. '''
@@ -574,7 +591,9 @@ class Interpereter:
 
 	async def inst_function(self):
 		self.place += 1
-		function = Function(self.head, self.current_scope, '?')
+		segment, address = self.head
+		# print(id(self.bytes), id(segment), address)
+		function = Function(segment, address, self.current_scope, '?')
 		inspector = FunctionInspector(self, function)
 		function.name = inspector.name
 		self.push(function)
@@ -590,22 +609,33 @@ class Interpereter:
 	async def inst_return(self):
 		result = self.pop()
 		self.current_scope = self.pop()
-		self.place = self.pop() - 1
+		self.bytes, self.place = self.pop()
+		self.place -= 1
 		self.push(result)
+
+	def perform_jump(self, allow_leap=False):
+		''' Jumps to the destination that is sitting under the head.
+			If allow_leap is False, landing in a different segment
+			to the one you started is forbidden.
+		'''
+		segment, index = self.head
+		# assert allow_leap or segment is self.bytes
+		self.bytes = segment
+		self.place = index - 1
 
 	async def inst_jump(self):
 		self.place += 1
-		self.place = self.head - 1
+		self.perform_jump()
 
 	async def inst_jump_if_true(self):
 		self.place += 1
 		if self.pop():
-			self.place = self.head - 1
+			self.perform_jump()
 
 	async def inst_jump_if_false(self):
 		self.place += 1
 		if not self.pop():
-			self.place = self.head - 1
+			self.perform_jump()
 
 	async def inst_store_in_cache(self):
 		# print(self.stack)
@@ -644,9 +674,9 @@ class Interpereter:
 		self.push(calculator.functions.List(new, lst))
 
 	async def inst_push_error_stopgap(self):
-		handler_address = self.next()
+		handler_segment, handler_address = self.next()
 		should_pass = self.next()
-		self.push(ErrorStopGap(handler_address, should_pass))
+		self.push(ErrorStopGap(handler_segment, handler_address, should_pass))
 
 	def call_builtin_function(self, function, arguments, return_to):
 		try:
@@ -663,7 +693,7 @@ class Interpereter:
 		except EvaluationError:
 			raise
 		self.push(result)
-		self.place = return_to
+		self.bytes, self.place = return_to
 
 	async def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
@@ -675,7 +705,7 @@ class Interpereter:
 				cache_key = tuple([function] + arguments)
 				if not inspector.is_macro and cache_key in self.calling_cache:
 					self.push(self.calling_cache[cache_key])
-					self.place = return_to
+					self.bytes, self.place = return_to
 					need_to_call = False
 			if need_to_call:
 				num_parameters = inspector.num_parameters
@@ -706,6 +736,7 @@ class Interpereter:
 					self.push(None if disable_cache or inspector.is_macro else cache_key)
 				# Enter the function
 				self.current_scope = new_scope
+				self.bytes = inspector.code_segment
 				self.place = inspector.code_address
 		else:
 			raise EvaluationError('{} is not a function', function)

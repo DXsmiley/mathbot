@@ -54,16 +54,17 @@ class Function:
 
 	''' Calculator object the represents a function defined by some bytecode. '''
 
-	def __init__(self, address, scope, name):
+	def __init__(self, segment, address, scope, name):
 		# I'm not entirely happy about keeping the name in this thing.
+		self.segment = segment
 		self.address = address
 		self.scope = scope
 		self.name = name
 
 	def __repr__(self):
 		if self.name == '?':
-			return 'Anonymous function @{}'.format(self.address)
-		return 'Function {} @{}'.format(self.name, self.address)
+			return f'Anonymous function @{id(self.segment)}-{self.address}'
+		return f'Function {self.name} @{id(self.segment)}-{self.address}'
 
 
 class SequenceBase:

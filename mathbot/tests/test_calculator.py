@@ -4,7 +4,7 @@ import math
 import cmath
 import sympy
 
-TIMEOUT = 100000
+TIMEOUT = 10000
 
 class Ignore: pass
 
@@ -17,14 +17,17 @@ def check_string(list, expected):
 		assert g.value == c
 	return True
 
-def doit(equation, expected):
-	result = calculator.calculate(equation, tick_limit = TIMEOUT)
+def doit(equation, expected, use_runtime=False):
+	result = calculator.calculate(equation, tick_limit = TIMEOUT, use_runtime=use_runtime, trace=False)
 	assert expected is Ignore \
 		or isinstance(result, calculator.functions.Glyph) and result.value == expected \
 		or check_string(result, expected) \
 		or result is None and expected is None \
 		or isinstance(result, sympy.boolalg.BooleanAtom) and bool(result) == expected \
 		or sympy.simplify(result - expected) == 0
+
+def dort(equation, expected):
+	doit(equation, expected, use_runtime=True)
 
 def doformatted(equation, expected):
 	result = calculator.calculate(equation, tick_limit = TIMEOUT)
@@ -38,7 +41,7 @@ def repeat(equation, start, end):
 
 def throws(equation):
 	with pytest.raises(calculator.errors.EvaluationError):
-		calculator.calculate(equation, tick_limit = TIMEOUT)
+		calculator.calculate(equation, tick_limit = TIMEOUT, use_runtime=True)
 
 def compile_fail(equation):
 	with pytest.raises(calculator.errors.CompilationError):
@@ -55,7 +58,7 @@ def test_negation():
 	doit("(9)", 9)
 	doit("(-9)", -9)
 	# doit("(--9)", 9)
-	doit("-E", -sympy.E)
+	dort("-E", -sympy.E)
 	doit('3-2', 1)
 	doit('3 - 2', 1)
 	doit('-2^2', -4)
@@ -82,10 +85,10 @@ def test_modulo():
 	throws('10 ~mod 0')
 
 def test_constants():
-	doit("PI * PI / 10", sympy.pi * sympy.pi / 10)
-	doit("PI*PI/10", sympy.pi*sympy.pi/10)
-	doit("PI^2", sympy.pi**2)
-	doit("e / 3", sympy.E / 3)
+	dort("PI * PI / 10", sympy.pi * sympy.pi / 10)
+	dort("PI*PI/10", sympy.pi*sympy.pi/10)
+	dort("PI^2", sympy.pi**2)
+	dort("e / 3", sympy.E / 3)
 	doit('0.0', 0)
 	doit('.0', 0)
 	doit('01', 1)
@@ -93,44 +96,44 @@ def test_constants():
 	doit('0.1', sympy.Number(1) / sympy.Number(10))
 
 def test_math_functions():
-	doit('sin(37)', sympy.sin(37))
-	doit('cos(38)', sympy.cos(38))
-	doit('tan(38)', sympy.tan(38))
-	doit('sec(39)', sympy.sec(39))
-	doit('csc(40)', sympy.csc(40))
-	doit('cot(41)', sympy.cot(41))
-	doit('asin(42)', sympy.asin(42))
-	doit('acos(43)', sympy.acos(43))
-	doit('atan(44)', sympy.atan(44))
-	doit('asec(45)', sympy.asec(45))
-	doit('acsc(46)', sympy.acsc(46))
-	doit('acot(47)', sympy.acot(47))
-	doit('sind(37)', sympy.sin(37 * sympy.pi / sympy.Number(180)))
-	doit('cosd(38)', sympy.cos(38 * sympy.pi / sympy.Number(180)))
-	doit('tand(38)', sympy.tan(38 * sympy.pi / sympy.Number(180)))
-	doit('secd(39)', sympy.sec(39 * sympy.pi / sympy.Number(180)))
-	doit('cscd(40)', sympy.csc(40 * sympy.pi / sympy.Number(180)))
-	doit('cotd(41)', sympy.cot(41 * sympy.pi / sympy.Number(180)))
-	doit('asind(42)', sympy.asin(42) * sympy.Number(180) / sympy.pi)
-	doit('acosd(43)', sympy.acos(43) * sympy.Number(180) / sympy.pi)
-	doit('atand(44)', sympy.atan(44) * sympy.Number(180) / sympy.pi)
-	doit('asecd(45)', sympy.asec(45) * sympy.Number(180) / sympy.pi)
-	doit('acscd(46)', sympy.acsc(46) * sympy.Number(180) / sympy.pi)
-	doit('acotd(47)', sympy.acot(47) * sympy.Number(180) / sympy.pi)
-	doit('sinh(4)', sympy.sinh(4))
-	doit('cosh(5)', sympy.cosh(5))
-	doit('tanh(6)', sympy.tanh(6))
-	doit('asinh(4)', sympy.asinh(4))
-	doit('acosh(5)', sympy.acosh(5))
-	doit('atanh(6)', sympy.atanh(6))	
-	doit('int(E)', int(sympy.E))
-	doit('int(-E)', int(-sympy.E))
+	dort('sin(37)', sympy.sin(37))
+	dort('cos(38)', sympy.cos(38))
+	dort('tan(38)', sympy.tan(38))
+	dort('sec(39)', sympy.sec(39))
+	dort('csc(40)', sympy.csc(40))
+	dort('cot(41)', sympy.cot(41))
+	dort('asin(42)', sympy.asin(42))
+	dort('acos(43)', sympy.acos(43))
+	dort('atan(44)', sympy.atan(44))
+	dort('asec(45)', sympy.asec(45))
+	dort('acsc(46)', sympy.acsc(46))
+	dort('acot(47)', sympy.acot(47))
+	dort('sind(37)', sympy.sin(37 * sympy.pi / sympy.Number(180)))
+	dort('cosd(38)', sympy.cos(38 * sympy.pi / sympy.Number(180)))
+	dort('tand(38)', sympy.tan(38 * sympy.pi / sympy.Number(180)))
+	dort('secd(39)', sympy.sec(39 * sympy.pi / sympy.Number(180)))
+	dort('cscd(40)', sympy.csc(40 * sympy.pi / sympy.Number(180)))
+	dort('cotd(41)', sympy.cot(41 * sympy.pi / sympy.Number(180)))
+	dort('asind(42)', sympy.asin(42) * sympy.Number(180) / sympy.pi)
+	dort('acosd(43)', sympy.acos(43) * sympy.Number(180) / sympy.pi)
+	dort('atand(44)', sympy.atan(44) * sympy.Number(180) / sympy.pi)
+	dort('asecd(45)', sympy.asec(45) * sympy.Number(180) / sympy.pi)
+	dort('acscd(46)', sympy.acsc(46) * sympy.Number(180) / sympy.pi)
+	dort('acotd(47)', sympy.acot(47) * sympy.Number(180) / sympy.pi)
+	dort('sinh(4)', sympy.sinh(4))
+	dort('cosh(5)', sympy.cosh(5))
+	dort('tanh(6)', sympy.tanh(6))
+	dort('asinh(4)', sympy.asinh(4))
+	dort('acosh(5)', sympy.acosh(5))
+	dort('atanh(6)', sympy.atanh(6))	
+	dort('int(E)', int(sympy.E))
+	dort('int(-E)', int(-sympy.E))
 
 def test_power():
 	doit("2^3^2", 2**3**2)
 	doit("2^3+2", 2**3+2)
 	doit("2^9", 2**9)
-	doit("E^PI", sympy.E**sympy.pi)
+	dort("E^PI", sympy.E**sympy.pi)
 
 # def test_mixed():
 # 	doit('round(sin(20))!', sympy.factorial(round(sympy.sin(20))))
@@ -138,17 +141,17 @@ def test_power():
 # 	doit('(2 * 3)!', sympy.factorial(2 * 3))
 
 def test_logarithms():
-	doit('log(5)', sympy.log(5, 10))
-	doit('ln(5)', sympy.log(5))
-	doit('ln(e)', 1)
-	doit('ln(-3)', sympy.log(-3))
-	doit('log(-3)', sympy.log(-3, 10))
+	dort('log(5)', sympy.log(5, 10))
+	dort('ln(5)', sympy.log(5))
+	dort('ln(e)', 1)
+	dort('ln(-3)', sympy.log(-3))
+	dort('log(-3)', sympy.log(-3, 10))
 
 def test_unicode():
 	doit('3×2', 6)
 	doit('6÷2', 3)
-	doit('π', sympy.pi)
-	doit('τ', 2 * sympy.pi)
+	dort('π', sympy.pi)
+	dort('τ', 2 * sympy.pi)
 	doit('5*0', 0)
 
 # def test_dice_rolling():
@@ -164,9 +167,9 @@ def test_factorial():
 	for i in range(0, 10):
 		doit('{}!'.format(i), sympy.factorial(i))
 	for i in range(1, 10):
-		doit('gamma({})'.format(i), sympy.gamma(i))
+		dort('gamma({})'.format(i), sympy.gamma(i))
 	doit('4.5!', sympy.gamma(sympy.Rational(9, 2) + 1))
-	doit('gamma(5) - 5!', -96)
+	dort('gamma(5) - 5!', -96)
 	throws('(-1)!')
 	doit('300!', sympy.factorial(300))
 	# throws('301!')
@@ -221,14 +224,14 @@ def test_macros():
 	doit('(x ~> x())(5 + 6)', 11)
 
 def test_logic():
-	doit('true  && true',  True)
-	doit('true  && false', False)
-	doit('false && true',  False)
-	doit('false && false', False)
-	doit('true  || true',  True)
-	doit('true  || false', True)
-	doit('false || true',  True)
-	doit('false || false', False)
+	dort('true  && true',  True)
+	dort('true  && false', False)
+	dort('false && true',  False)
+	dort('false && false', False)
+	dort('true  || true',  True)
+	dort('true  || false', True)
+	dort('false || true',  True)
+	dort('false || false', False)
 	doit('1 && 1 || 1 && 0', True)
 	doit('0 || 1 && 1 || 0', True)
 	doit('0 || 1 && 0 || 0', False)
@@ -247,8 +250,8 @@ def test_short_circuit():
 	throws('1 && x')
 
 def test_gcd():
-	doit('gcd(8, 6)', 2)
-	doit('lcm(3, 2)', 6)
+	dort('gcd(8, 6)', 2)
+	dort('lcm(3, 2)', 6)
 
 def test_type_checking():
 # 	doit('is_real(1)', True)
@@ -265,14 +268,14 @@ def test_type_checking():
 # 	doit('is_complex((x) -> x)', False)
 # 	doit('is_complex((x) ~> x)', False)
 
-	doit('is_function(1)', False)
-	doit('is_function(2.5)', False)
-	doit('is_function(3i)', False)
-	doit('is_function(sin)', True)
-	doit('is_function((x) -> x)', True)
-	doit('is_function((x) ~> x)', True)
-	doit('is_function(((x) ~> x)(1))', True)
-	doit('is_function(((x) ~> x)(1)())', False)
+	dort('is_function(1)', False)
+	dort('is_function(2.5)', False)
+	dort('is_function(3i)', False)
+	dort('is_function(sin)', True)
+	dort('is_function((x) -> x)', True)
+	dort('is_function((x) ~> x)', True)
+	dort('is_function(((x) ~> x)(1))', True)
+	dort('is_function(((x) ~> x)(1)())', False)
 
 def test_large_numbers():
 	doit('200! / 3', sympy.factorial(200) / sympy.Number(3))
@@ -283,7 +286,7 @@ def test_variadic_function():
 	doit('((n, a.) -> a(n))(1, 7, 8, 9)', 8)
 	doit('((a.) -> a(4) + 2)(0, 1, 2, 3, 4, 5, 7, 8, 9)', 6)
 	doit('list = (x.) -> x, list(9, 8, 7, 6, 5)', Ignore)
-	doit('''
+	dort('''
 		_min2 = (x, y) -> if (x < y, x, y),
 		_minV = (l, i) -> if (i == length(l) - 1, l(i), _min2(l(i), _minV(l, i + 1))),
 		_min = (x.) -> _minV(x, 0),
@@ -291,7 +294,7 @@ def test_variadic_function():
 	''', 3)
 
 def test_argument_expansion():
-	doit('sum(expand(array(1, 2)))', 3)
+	dort('sum(expand(array(1, 2)))', 3)
 	throws('msum = (x, y) ~> x() + y(), msum(expand(array(1, 2)))')
 
 def test_superscript():
@@ -305,46 +308,46 @@ def test_if_statement():
 	doit('if (0, 3, 4)', 4)
 	doit('if (1, 3, 4)', 3)
 	doit('if (2, 3, 4)', 3)
-	doit('x = if, x(0, 3, 4)', 4)
-	doit('x = if, x(1, 3, 4)', 3)
-	doit('x = if, x(2, 3, 4)', 3)
+	dort('x = if, x(0, 3, 4)', 4)
+	dort('x = if, x(1, 3, 4)', 3)
+	dort('x = if, x(2, 3, 4)', 3)
 
 def test_map():
-	doit("' \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 2)
-	doit("' \\ \\ \\ \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 8)
-	doit("' \\ map((x) ~> x() * 2, list(0, 1, 2, 3, 4, 5))", 2)
-	doit("' \\ \\ \\ map(sin, list(0, 1, 2, 3, 4))", sympy.sin(3))
-	doit("' \\ map((x) -> x * 2, range(0, 6))", 2)
-	doit("' \\ \\ \\ \\ map((x) -> x * 2, range(0, 6))", 8)
+	dort("' \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	dort("' \\ \\ \\ \\ map((x) -> x * 2, list(0, 1, 2, 3, 4, 5))", 8)
+	dort("' \\ map((x) ~> x() * 2, list(0, 1, 2, 3, 4, 5))", 2)
+	dort("' \\ \\ \\ map(sin, list(0, 1, 2, 3, 4))", sympy.sin(3))
+	dort("' \\ map((x) -> x * 2, range(0, 6))", 2)
+	dort("' \\ \\ \\ \\ map((x) -> x * 2, range(0, 6))", 8)
 	throws("' \\ \\ \\ \\ map((a, b) -> a + b, list(0, 1, 2, 3, 4, 5))")
-	doit("length(list(1, 2, 3))", 3)
-	doit("f = (x) -> x * 2, length(map(f, list()))", 0)
+	dort("length(list(1, 2, 3))", 3)
+	dort("f = (x) -> x * 2, length(map(f, list()))", 0)
 
 def test_reduce():
-	doit('reduce((a, b) -> a + b, list(0, 1, 2, 3, 4))', 10)
-	doit('reduce(sum, range(0, 5))', 10)
+	dort('reduce((a, b) -> a + b, list(0, 1, 2, 3, 4))', 10)
+	dort('reduce(sum, range(0, 5))', 10)
 	throws('reduce((a, b) -> a + b, list())')
 	throws('reduce(3, 4)')
 	throws('reduce(() -> f, list(1, 2))')
-	doit('msum = (x, y) ~> x() + y(), reduce(msum, list(1, 2, 3, 4))', 10)
+	dort('msum = (x, y) ~> x() + y(), reduce(msum, list(1, 2, 3, 4))', 10)
 
 def test_filter():
-	doit('''
+	dort('''
 		is_even = (x) -> (x ~mod 2 == 0),
 		length(filter(is_even, range(0, 100)))
 	''', 50)
-	doit('''
+	dort('''
 		is_small = (x) ~> x() < 5,
 		length(filter(is_small, range(0, 100)))
 	''', 5)
 
 def test_range():
 	# for i in range(0, 5):
-	# 	doit('range(0, 5)({})'.format(i), i)
-	# 	doit('range(10, 20)({})'.format(i), i + 10)
-	doit('length(range(0, 5))', 5)
-	doit('length(range(8, 10))', 2)
-	doit('length(range(7, 7))', 0)
+	# 	dort('range(0, 5)({})'.format(i), i)
+	# 	dort('range(10, 20)({})'.format(i), i + 10)
+	dort('length(range(0, 5))', 5)
+	dort('length(range(8, 10))', 2)
+	dort('length(range(7, 7))', 0)
 	# throws('range(5, 4)')
 
 def test_invalid_syntax():
@@ -378,15 +381,15 @@ def test_errors():
 	throws('0^0')
 
 def test_trig():
-	doit('sin(0)', 0)
-	doit('cos(pi)', -1)
-	doit('sin(8)', sympy.sin(8))
-	doit('sin(8i+3)', sympy.sin(3+sympy.Number(8) * sympy.I))
-	doit('atan(0.1)', sympy.atan(sympy.Rational(1, 10)))
+	dort('sin(0)', 0)
+	dort('cos(pi)', -1)
+	dort('sin(8)', sympy.sin(8))
+	dort('sin(8i+3)', sympy.sin(3+sympy.Number(8) * sympy.I))
+	dort('atan(0.1)', sympy.atan(sympy.Rational(1, 10)))
 
 def test_commaless():
-	doit('sum(1 2)', 3)
-	doit('sum(1 (1 + 1))', 3)
+	dort('sum(1 2)', 3)
+	dort('sum(1 (1 + 1))', 3)
 
 def test_strings():
 	doit(';a', 'a')
@@ -401,10 +404,10 @@ def test_lists():
 	doit("'[1 2 3]", 1)
 	doit("'\\[1 2 3]", 2)
 	doit("'\\\\[1 2 3]", 3)
-	doit("length([1 2 3])", 3)
-	doit("length(.)", 0)
-	doit("length([])", 0)
-	doit("'\\\\\\\\join([1 2 3] [4 5 6])", 5)
+	dort("length([1 2 3])", 3)
+	dort("length(.)", 0)
+	dort("length([])", 0)
+	dort("'\\\\\\\\join([1 2 3] [4 5 6])", 5)
 
 def test_percentage():
 	doit('100%', 1)
@@ -441,20 +444,20 @@ def test_small_floats():
 	doformatted('3.14', '157/50')
 
 def test_operator_fuctions():
-	doit('sum(1, 2)', 3)
-	doit('sum(5783, 3857)', 5783 + 3857)
-	doit('dif(5, 2)', 3)
-	doit('dif(4853, 246745)', 4853 - 246745)
-	doit('mul(4, 7)', 4 * 7)
-	doit('mul(37563, -35728)', 37563 * -35728)
-	doit('div(8, 4)', 2)
-	doit('div(5, 1)', 5)
-	doit('mod(7, 3)', 1)
+	dort('sum(1, 2)', 3)
+	dort('sum(5783, 3857)', 5783 + 3857)
+	dort('dif(5, 2)', 3)
+	dort('dif(4853, 246745)', 4853 - 246745)
+	dort('mul(4, 7)', 4 * 7)
+	dort('mul(37563, -35728)', 37563 * -35728)
+	dort('div(8, 4)', 2)
+	dort('div(5, 1)', 5)
+	dort('mod(7, 3)', 1)
 
 def test_object_equality():
 	doit('[] == []', True)
-	doit('[1, 2, 3] == \\range(0 4)', True)
-	doit('[1, 2, 3] == range(0 4)', False)
+	dort('[1, 2, 3] == \\range(0 4)', True)
+	dort('[1, 2, 3] == range(0 4)', False)
 	doit('["foo"] != [1 2 3]', True)
 	doit('2^100 == 2^101/2', True)
 	doit('"dx is the best xd" == "dx is the best xd"', True)

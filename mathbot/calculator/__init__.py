@@ -15,17 +15,19 @@ import calculator.bytecode
 import calculator.errors
 import calculator.blackbox
 
-def calculate(equation, tick_limit=None, trace=False):
+def calculate(equation, tick_limit=None, trace=False, use_runtime=True):
 	''' Evaluate an expression '''
+	interp = calculator.interpereter.Interpereter(trace=trace)
+	builder = calculator.bytecode.Builder()
+	# Setup the runtime
+	if use_runtime:
+		segment_runtime = runtime.prepare_runtime(builder)
+		interp.run(segment=segment_runtime)
+	# Run the actual program
 	_, ast = calculator.parser.parse(equation)
-	runtime = calculator.runtime.prepare_runtime()
-	program = calculator.bytecode.ast_to_bytecode(ast)
-	linker = calculator.bytecode.Linker()
-	runtime_location = linker.add_segments(runtime)
-	program_location = linker.add_segment(program)
-	interp = calculator.interpereter.Interpereter(linker.constructed(), trace=trace)
-	interp.run(start_address=runtime_location)
-	return interp.run(start_address=program_location, tick_limit=tick_limit, error_if_exhausted=True)
+	segment_program = builder.build(ast)
+	return interp.run(segment=segment_program, tick_limit=tick_limit, error_if_exhausted=True)
+
 
 async def calculate_async(equation):
 	''' Evaluate an expression asyncronously '''

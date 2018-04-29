@@ -133,7 +133,8 @@ class Pointer:
 class Destination:
 
 	def __init__(self):
-		self.location = None
+		self.segment = None
+		self.index = None
 
 
 class GlobalToken:
@@ -193,9 +194,18 @@ class Keys:
 
 class ConstructedBytecode:
 
-	def __init__(self, bytecode, error_link):
-		self.bytecode = bytecode
-		self.error_link = error_link
+	def __init__(self, segment):
+		self.bytecode = segment.bytecode
+		self.error_link = segment.error_link
+
+	def __getitem__(self, index):
+		return self.bytecode[index]
+
+	def __len__(self):
+		return len(self.bytecode)
+
+	def __repr__(self):
+		return f'Bytecode @{id(self.bytecode)}'
 
 	def dump(self, release = False):
 		''' Produces a representation of the bytecode that should,
@@ -234,82 +244,39 @@ class ConstructedBytecode:
 		return result
 
 
-class Linker:
-
-	def __init__(self, *segments):
-		self.globalscope = {}
-		self.bytecode = []
-		self.error_link = []
-		self.start_addresses = []
-		self.add_segments(segments)
-
-	def add_segments(self, segments):
-		if segments:
-			first = self.add_segment(segments[0])
-			for i in segments[1:]:
-				self.add_segment(i)
-			return first
-
-	def constructed(self):
-		return ConstructedBytecode(self.bytecode, self.error_link)
-
-	def resolve_name(self, name):
-		if name not in self.globalscope:
-			self.globalscope[name] = len(self.globalscope)
-		return self.globalscope[name]
-
-	def add_segment(self, segment):
-		start_address = len(self.bytecode)
-		self.start_addresses.append(start_address)
-		for i, v in enumerate(segment.bytecode):
-			if isinstance(v, Destination):
-				v.location = start_address + i
-		for v in segment.bytecode:
-			if isinstance(v, GlobalToken):
-				v = self.resolve_name(v.name)
-			if isinstance(v, Pointer):
-				v = v.destination.location
-			if isinstance(v, Destination):
-				v = I.NOTHING
-			self.bytecode.append(v)
-		# for v in segment.error_link:
-		# 	if isinstance(i, GlobalToken):
-		# 		i = self.resolve_name(i.name)
-		# 	if isinstance(i, BytecodeAddress):
-		# 		i = i.address + start_address
-		# 	self.error_link.append(v)
-		self.error_link += segment.error_link
-		return start_address
-
-
 class Builder:
 
+	''' Used to convert multiple ASTs into bytecode so that they
+		share a given scope.
+	'''
+
 	def __init__(self):
-		self.segments = []
 		self.globalscope = Scope([])
+		self.extrascope = {}
 
-	def create_segment(self):
+	def build(self, *asts, unsafe=False):
 		segment = CodeSegment(self)
-		self.segments.append(segment)
-		return segment
+		for i in asts:
+			segment.add_ast(i, unsafe=unsafe)
+		segment.resolve_jump_addresses()
+		segment.push(I.END)
+		return ConstructedBytecode(segment)
 
-	def flatten(self):
-		items = []
-		error_link = []
-		for i in self.segments:
-			items += i.items
-			error_link += i.error_link
-		return ConstructedBytecode(items, error_link)
+	def resolve_name(self, name):
+		if name not in self.extrascope:
+			self.extrascope[name] = len(self.extrascope)
+		return self.extrascope[name]
 
 
 class CodeSegment:
 
 	def __init__(self, master):
-		self.items = []
+		self.bytecode = []
 		self.error_link = []
 		self.master = master
 
-	def add_ast(self, ast, unsafe = False):
+
+	def add_ast(self, ast, unsafe=False):
 		self.bytecodeify(
 			ast,
 			Keys(
@@ -319,9 +286,25 @@ class CodeSegment:
 			)
 		)
 
-	def push(self, *items, error = None):
-		self.items += items
-		self.error_link += [error] * len(items)
+	def resolve_jump_addresses(self):
+		for i, v in enumerate(self.bytecode):
+			if isinstance(v, Destination):
+				v.index = i
+				v.segment = self
+		for i, v in enumerate(self.bytecode):
+			if isinstance(v, GlobalToken):
+				self.bytecode[i] = self.master.resolve_name(v.name)
+			if isinstance(v, Pointer):
+				self.bytecode[i] = (
+					ConstructedBytecode(v.destination.segment),
+					v.destination.index
+				)
+			if isinstance(v, Destination):
+				self.bytecode[i] = I.NOTHING
+
+	def push(self, *bytecode, error = None):
+		self.bytecode += bytecode
+		self.error_link += [error] * len(bytecode)
 
 	def bytecodeify(self, node, keys):
 		# TCO not allowed in most cirumstances. Get the value and then set it. The real value will be passed to the handler function if the function asks for it.
@@ -634,40 +617,42 @@ class CodeSegment:
 			self.push(I.LIST_PREPEND)
 
 	def define_function(self, node, keys):
-		contents = self.master.create_segment()
-		start_address = Destination()
-		contents.push(start_address)
-		contents.push(node.get('name', '?').lower())
+		# Ensure that none of the parameter names are illigal
 		params = [i['string'].lower() for i in node['parameters']['items']]
 		for n, i in zip(params, node['parameters']['items']):
 			if n in PROTECTED_NAMES:
-				m = '"{}" is not allowed as a funcation parameter'.format(n)
+				m = f'"{n}" is not allowed as a funcation parameter'
 				raise calculator.errors.CompilationError(m, i)
-		contents.push(len(params))
-		# for i in params:
-		# 	contents.push(i)
-		contents.push(node.get('variadic', 0))
 		is_macro = int(node.get('kind') == '~>')
-		contents.push(is_macro)
-		if len(params) == 0:
-			contents.bytecodeify(node['expression'], keys(allow_tco = True))
-		else:
-			subscope = Scope(params, superscope = keys['scope'])
-			contents.bytecodeify(node['expression'], keys(allow_tco = True, scope = subscope))
-		# if not is_macro:
-		# 	contents.push(I.STORE_IN_CACHE)
-		contents.push(I.STORE_IN_CACHE)
-		contents.push(I.RETURN)
+		contents = CodeSegment(self.master)
+		start_address = Destination()
+		# Function header information
+		contents.push(
+			start_address,                 # Landing place
+			node.get('name', '?').lower(), # name
+			len(params),                   # number of required parameters
+			node.get('variadic', 0),       # whether the function accepts additional parameters
+			is_macro                       # whether the function is a macro or not
+		)
+		# If the function has no parameters, there's no need to add an additional
+		# scope frame, since it would hold no information anyway.
+		subscope = Scope(params, superscope=keys['scope']) if params else keys['scope']
+		contents.bytecodeify(node['expression'], keys(allow_tco=True, scope=subscope))
+		contents.push(
+			I.STORE_IN_CACHE,
+			I.RETURN
+		)
+		contents.resolve_jump_addresses()
 		return Pointer(start_address)
 
 
 def ast_to_bytecode(ast, unsafe=False, add_terminal_byte=True) -> ConstructedBytecode:
 	builder = Builder()
-	segment = builder.create_segment()
-	segment.add_ast(ast, unsafe=unsafe)
+	segment = builder.build(ast)
 	if add_terminal_byte:
-		segment.push(I.END)
-	return builder.flatten()
+		segment.bytecode.append(I.END)
+		segment.error_link.append(None)
+	return segment
 
 
 def convert_number(x):

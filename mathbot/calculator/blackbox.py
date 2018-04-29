@@ -38,12 +38,11 @@ class Terminal:
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
-        self.linker = calculator.bytecode.Linker()
+        self.builder = calculator.bytecode.Builder()
         self.allow_special_commands = allow_special_commands
         self.colour_output = colour_output
         try:
-            runtime = calculator.runtime.prepare_runtime()
-            self.linker.add_segments(runtime)
+            runtime_segment = calculator.runtime.prepare_runtime()
         except calculator.parser.ParseFailed as e:
             print('RUNTIME ISSUE: Parse error')
             print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
@@ -54,7 +53,6 @@ class Terminal:
             raise e
         hooks = {}
         self.interpereter = calculator.interpereter.Interpereter(
-            self.linker.constructed(),
             yield_rate=yield_rate,
             hooks=hooks
         )

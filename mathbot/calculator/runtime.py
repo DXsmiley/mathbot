@@ -184,7 +184,7 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 
 
 def _assignment_code(name, value, add_terminal_byte=False):
-	ast = {
+	return {
 		'#': 'assignment',
 		'variable': {
 			'string': name,
@@ -194,39 +194,6 @@ def _assignment_code(name, value, add_terminal_byte=False):
 			'value': value
 		}
 	}
-	return calculator.bytecode.ast_to_bytecode(ast, unsafe=True, add_terminal_byte=add_terminal_byte)
-
-
-def strip_extra(t):
-	if isinstance(t, (str, int)):
-		return t
-	if isinstance(t, list):
-		return list(map(strip_extra, t))
-	return {k:strip_extra(v) for k, v in t.items() if k != 'source'}
-
-
-def findall(ast, tag, ignore_keys = {}):
-	if isinstance(ast, list):
-		for i in ast:
-			yield from findall(i, tag, ignore_keys)
-	if isinstance(ast, dict):
-		if ast.get('#') == tag:
-			yield ast
-		for k, v in ast.items():
-			if k not in ignore_keys:
-				yield from findall(v, tag, ignore_keys)
-
-
-def lib_pieces():
-	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
-	definitions = {}
-	for assignment in findall(ast, 'assignment', ignore_keys = {'token'}):
-		name = assignment['variable']['string'].lower()
-		definitions[name] = assignment
-	return definitions
-
-
-LIB_PIECES = lib_pieces()
 
 
 def _prepare_runtime(exportable=False):
@@ -239,12 +206,12 @@ def _prepare_runtime(exportable=False):
 		for name, func in BUILTIN_FUNCTIONS.items():
 			yield _assignment_code(name, BuiltinFunction(func, name))
 	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
-	yield calculator.bytecode.ast_to_bytecode(ast, unsafe=True)
+	yield ast
 
 
 @functools.lru_cache(4)
-def prepare_runtime(**kwargs):
-	return list(_prepare_runtime(**kwargs))
+def prepare_runtime(builder, **kwargs):
+	return  builder.build(*list(_prepare_runtime(**kwargs)), unsafe=True)
 
 
 def wrap_simple(ast):
