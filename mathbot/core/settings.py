@@ -95,7 +95,8 @@ async def get_server_prefix(context):
 		context = context.server
 	if not isinstance(context, discord.Server):
 		raise TypeError('{} is not a valid server'.format(context))
-	return (await core.keystore.get('s-prefix:' + context.id)) or '='
+	stored = await core.keystore.get('s-prefix:' + context.id)
+	return '=' if stored is None else str(stored)
 
 
 async def set_server_prefix(context, prefix):
