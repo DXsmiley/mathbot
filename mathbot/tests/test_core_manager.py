@@ -68,7 +68,7 @@ class MockMessage(discord.Message):
 		self.author = author or MockUser()
 
 
-class MockUser: # pylint: disable=too-few-public-methods
+class MockUser(discord.Member): # pylint: disable=too-few-public-methods
 	''' A mock object representing a user.
 		Contains the bare minimum amount of information
 		required to pass the tests.
