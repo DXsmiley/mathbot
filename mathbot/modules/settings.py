@@ -90,7 +90,7 @@ class SettingsModule(core.module.Module):
 	async def command_theme(self, message, theme):
 		theme = theme.lower()
 		if theme not in ['light', 'dark']:
-			return '`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
+			return f'`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
 
 			key = 'p-tex-colour:' + message.author.id
