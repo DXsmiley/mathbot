@@ -101,5 +101,8 @@ There are some additional tests that require a human to verify the bot's output.
 - *error-reporting*
 	- *channel*: ID of channel to send error reports to. If not specified, reports will not be sent.
 - *shards*
-	- "total": The total number of shards that the bot is running on.
-	- "mine": A list of integers (starting at `0`) specifying which shards should be run in this process.
+	- *total*: The total number of shards that the bot is running on.
+	- *mine*: A list of integers (starting at `0`) specifying which shards should be run in this process.
+- *calculator*
+	- *persistent*: `true` or `false`. Enable to remember calculator history between runs. Off by default.
+	- *libraries*: `true` or `false`. Enables the `=libs` set of commands. Off by default.

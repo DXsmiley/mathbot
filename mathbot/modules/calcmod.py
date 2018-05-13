@@ -10,6 +10,7 @@ import core.module
 import core.handles
 import core.settings
 import core.keystore
+import core.parameters
 import calculator
 import calculator.blackbox
 import collections
@@ -75,6 +76,24 @@ class ReplayState:
 		self.loaded = False
 
 
+def command_guard(parameter, name):
+	def _decorator(function):
+		async def _internal(*args, **kwargs):
+			if core.parameters.get(f'calculator.{parameter}'):
+				return await function(*args, **kwargs)
+			else:
+				return discord.Embed(
+					title='Feature not available',
+					description=f'{name} will be enabled at a later date.'
+				)
+		_internal.__name__ = function.__name__
+		return _internal
+	return _decorator
+
+guard_libs = command_guard('libraries', 'Calculator libraries')
+guard_history = command_guard('persistent', 'Calculator history')
+
+
 class CalculatorModule(core.module.Module):
 
 	def __init__(self):
@@ -87,6 +106,7 @@ class CalculatorModule(core.module.Module):
 		await self.perform_calculation(arg.strip(), message)
 
 	@core.handles.command('calc-history', '', perm_setting='c-calc')
+	@guard_history
 	async def handle_view_history(self, message):
 		''' Command to view the list of recently run expressions. '''
 		if not self.allow_calc_history(message.channel):
@@ -99,6 +119,7 @@ class CalculatorModule(core.module.Module):
 			await self.send_message(message, i)
 
 	@core.handles.command('libs-list', '', perm_setting='c-calc', no_dm=True)
+	@guard_libs
 	async def handle_libs_list(self, message):
 		''' Command to list all the libraries installed in this server '''
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id)
@@ -110,6 +131,7 @@ class CalculatorModule(core.module.Module):
 		return embed
 
 	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@guard_libs
 	async def handle_libs_add(self, message, url):
 		''' Command to add a new library to the server '''
 		# Filter out non-libraries
@@ -159,6 +181,7 @@ class CalculatorModule(core.module.Module):
 		)
 
 	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@guard_libs
 	async def handle_libs_remove(self, message, url):
 		''' Command to remove a library from the list '''
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
@@ -342,6 +365,8 @@ class CalculatorModule(core.module.Module):
 			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
 
 	def allow_calc_history(self, channel):
+		if not core.parameters.get('calculator.persistent'):
+			return False
 		if channel.is_private:
 			return patrons.tier(channel.user.id) >= patrons.TIER_QUADRATIC
 		else:
