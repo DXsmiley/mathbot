@@ -101,10 +101,14 @@ def do_setup():
 	print('My shards:', ' '.join(map(str, SHARDS_MINE)))
 
 
-# Used to ensure the beta bot only replies in the channel that it is supposed to
-def event_filter(channel):
-	return (RELEASE != 'beta') or ((not channel.is_private) and channel.id == '325908974648164352')
-
+# Used to ensure the beta bot only replies in the channel that it is supposed to.
+# Also filters out messages from bots.
+def event_filter(message):
+	if RELEASE == 'production' and message.author.bot:
+		return False
+	if RELEASE == 'beta':
+		return not message.channel.is_private and message.channel.id == '325908974648164352'
+	return True
 
 def create_shard_manager(shard_id, shard_count):
 
