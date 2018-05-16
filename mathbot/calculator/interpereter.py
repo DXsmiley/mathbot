@@ -449,7 +449,7 @@ class Interpereter:
 			if argument < -2000 or argument > 2000:
 				argument = sympy.Number(float(argument))
 			result = sympy.factorial(argument)
-			if result is sympy.zoo or result is sympy.oo:
+			if result == sympy.zoo or result == sympy.oo:
 				raise TypeError
 		except Exception:
 			raise EvaluationError('Cannot run factorial function on {}', original_value)
