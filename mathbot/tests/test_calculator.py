@@ -405,7 +405,7 @@ def test_lists():
 	doit("'\\[1 2 3]", 2)
 	doit("'\\\\[1 2 3]", 3)
 	dort("length([1 2 3])", 3)
-	dort("length(.)", 0)
+	# dort("length(.)", 0)
 	dort("length([])", 0)
 	dort("'\\\\\\\\join([1 2 3] [4 5 6])", 5)
 
@@ -432,8 +432,8 @@ def test_unicode():
 	assert calculator.formatter.format(result) == '🐱'
 
 	doformatted(';🐱', '🐱')
-	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
-	doformatted(';🐶 : ;🦊 :.', '"🐶🦊"')
+	doformatted(';🐶 : ;🦊 :[]', '"🐶🦊"')
+	doformatted(';🐶 : ;🦊 :[]', '"🐶🦊"')
 	doformatted('"🐶🦊"', '"🐶🦊"')
 	doformatted('ord(;🐱)', '128049')
 	doformatted('chr(ord(;🐱))', '🐱')

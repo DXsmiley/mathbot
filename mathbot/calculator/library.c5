@@ -23,8 +23,8 @@ or (a b) = a || b
 max (a b) = if(a > b a b)
 min (a b) = if(a < b a b)
 
-_zip(a b r) = if (!a || !b r _zip(\a, \b, ('a:'b:.):r))
-zip(a b) = reverse(_zip(a b .))
+_zip(a b r) = if (!a || !b r _zip(\a, \b, ('a:'b:[]):r))
+zip(a b) = reverse(_zip(a b []))
 
 # Like map but you get to iterate over two ranges at once
 zipmap (f a b) = map(
@@ -38,20 +38,20 @@ series (function start end) = reduce(sum map(function range(start end + 1)))
 # Bread and butter list mapipulation functions
 
 _repeat(item times result) = if (times <= 0 result _repeat(item times - 1 item : result))
-repeat(item times) = _repeat(item times .)
+repeat(item times) = _repeat(item times [])
 
 _reverse(i o) = if(!i o _reverse(\i 'i:o))
-reverse(l) = _reverse(l .)
+reverse(l) = _reverse(l [])
 
 _map(f l r) = if(!l r _map(f \l f('l):r))
-map(f l) = reverse(_map(f l .))
+map(f l) = reverse(_map(f l []))
 
 _filter(f l r) = ifelse(
 	!l    r
 	f('l) _filter(f \l 'l:r)
            _filter(f \l r)
 )
-filter(f l) = reverse(_filter(f l .))
+filter(f l) = reverse(_filter(f l []))
 
 # Reduce functions are now deprecated
 # Use foldl and foldr instead
@@ -78,15 +78,15 @@ foldr(f x l) = if (!l x
 )
 
 _list(a i r) = if (i < 0 r _list(a i - 1 a(i):r))
-list(x.) = _list(x length(x) - 1 .)
+list(x.) = _list(x length(x) - 1 [])
 
 _range(a b r) = if (a == b r _range(a, b - 1, (b - 1):r))
-range(a b) = _range(a b .)
+range(a b) = _range(a b [])
 
 toarray(l) = array(expand(l))
 
 _tolist(a o) = if (a _tolist(\a 'a:o) o)
-tolist(a) = reverse(_tolist(a .))
+tolist(a) = reverse(_tolist(a []))
 
 __join(a b) = if(a __join(\a 'a:b) b)
 _join(a b) = __join(reverse(a) b)
@@ -132,8 +132,8 @@ choose(n, k) = n! / k! / (n - k)!
 
 # String manipulation functions
 startswith(x z) = if(!z, true, (x && ('x == 'z) && startswith(\x \z)))
-drop(x n) = if (n == 0 x drop(\x n - 1))
-take(x n) = if (n == 0 . 'x:take(\x n - 1))
+drop(x n) = if (n == 0 x  drop(\x n - 1))
+take(x n) = if (n == 0 [] 'x:take(\x n - 1))
 
 _split(x z) = ifelse (
 	!x,              [""],

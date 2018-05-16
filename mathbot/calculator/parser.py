@@ -296,7 +296,7 @@ def eat_optionally_delimited(subrule, delimiters, binding, type, allow_nothing =
 
 
 def atom(tokens):
-	if tokens.peek(0, 'number', 'word', 'period', 'string', 'glyph'):
+	if tokens.peek(0, 'number', 'word', 'string', 'glyph'):
 		return tokens.eat_details()
 	raise UnableToFinishParsing(tokens)
 
