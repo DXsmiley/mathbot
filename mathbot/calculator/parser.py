@@ -672,6 +672,8 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 				raise TokenizationFailed(location)
 				# raise TokenizationFailed(original_string, len(original_string) - len(string))
 			# print(possible[0][1])
+			if possible[0][0] == '__illegal__':
+				raise TokenizationFailed(location)
 			if possible[0][0] != '__remove__':
 				result.append({
 					'#': possible[0][0],
@@ -697,6 +699,7 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 
 TOKEN_SPEC = [
 	('__remove__', r'#.*'),
+	('__illegal__', r'\d*\.?\d+([eE]-?\d+)?i?[a-zA-Z_][a-zA-Z0-9_]*'),
 	('kw_symbol', r'symbol\?'),
 	('kw_unload', r'unload\?'),
 	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
