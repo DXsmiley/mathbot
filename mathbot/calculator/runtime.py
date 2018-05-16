@@ -163,7 +163,7 @@ def _extract_from_sympy():
 		sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 		tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
 		exp root sqrt pi E I gcd lcm gamma factorial
-		oo:infinity:∞ zoo:complex_infinity
+		oo:infinity:∞ zoo:complex_infinity nan:not_a_number
 	'''
 	for i in names.split():
 		parts = i.split(':')
