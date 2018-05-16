@@ -17,7 +17,6 @@ def is_bad(sentence):
 		sentence = sentence.replace(c, ' ')
 	# See if any of the words are bad
 	for word in sentence.lower().split(' '):
-		print(word)
 		if word in bad_words:
 			return True
 	return False

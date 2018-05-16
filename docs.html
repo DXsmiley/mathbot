@@ -1,6 +1,14 @@
 
 <!DOCTYPE html>
 <html>
+	<!--
+
+		WARNING!
+
+		This file is auto-generated. Do not edit it manualy.
+		See generate_docs_page.py for details on how it is created.
+
+	-->
 	<head>
 		<meta charset="utf-8">
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata|Josefin+Sans:300|Titillium+Web:300" rel="stylesheet">
@@ -22,6 +30,8 @@
 <a href="#h-wolfram"><p>Wolfram|Alpha</p></a>
 
 <a href="#h-latex"><p>LaTeX</p></a>
+
+<a href="#h-roll"><p>Die Rolling</p></a>
 
 <a href="#h-calculator"><p>Calculator</p></a>
 
@@ -48,8 +58,9 @@
 <h1 id="h-wolfram">Wolfram|Alpha</h1>
 
 <p>The <code>=wolf</code> command is used to query Wolfram|Alpha.</p>
-<p>This command can be very slow at times, so please be patient.</p>
+<p>The <code>=pup</code> command will produce fewer results.</p>
 <p>You can use the <code>=theme</code> command to change the colour of the results.</p>
+<p>This command can be very slow at times, so please be patient.</p>
 <h2>Examples</h2>
 <p><code>=wolf intersection of sin(x) and cos(x)</code></p>
 <p><code>=wolf x^3 - x^2 + x - 1</code></p>
@@ -62,6 +73,9 @@
 <p>A server admin can be manually disable the filter in a channel by running <code>=set channel f-wolf-filter disable</code>.
 It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.</p>
 <p>See <code>=help settings</code> for more details on managing settings.</p>
+<h2>Mention</h2>
+<p>By default, the bot will mention the person who invoked the command. The <code>f-wolf-mention</code> setting can be modified to change this.</p>
+<p>Use <code>=set server f-wolf-mention disable</code> to prevent the bot from mentioning people on the whole server, and <code>=set server f-wolf-mention enable</code> to re-enable it.</p>
 
 <h1 id="h-latex">LaTeX</h1>
 
@@ -81,13 +95,22 @@ It can be re-enabled again with <code>=set channel f-wolf-filter enable</code>.<
 <li>Loading of external images, and other resources.</li>
 </ul>
 <h2>Inline LaTeX</h2>
-<p><em>This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command <code>=set server f-inline-tex enable</code>.</em></p>
+<p><em>This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command <code>=set server f-tex-inline enable</code>.</em></p>
 <p>You can insert LaTeX into the middle of a message by wrapping it in <code>$$</code> signs.</p>
 <p>Examples</p>
 <p><code>The answer is $$x^{2 + y}$$.</code></p>
 <p><code>$$1 + 2$$ equals $$3$$.</code></p>
-<h2>Custom commands</h2>
-<p>Some custom commands have been added to make typing quick LaTeX easy. These include <code>\bbR</code>, <code>\bbN</code> etc. for <code>\mathbb{R}</code>, <code>mathbb{N}</code> and other common set symbols and <code>\bigO</code> for <code>\mathcal{O}</code></p>
+<h2>Deleting Commands</h2>
+<p>You can get the bot to automatically delete invokation commands after a short time by setting <code>=set server f-tex-delete enable</code>.
+The bot will require the <em>manage messages</em> permission for this work properly.</p>
+<h2>Custom Macros</h2>
+<p>Some custom commands have been added to make typing quick LaTeX easy. These include <code>\bbR</code>, <code>\bbN</code> etc. for <code>\mathbb{R}</code>, <code>mathbb{N}</code> and other common set symbols and <code>\bigO</code> for <code>\mathcal{O}</code>. Some unicode characters (such as greek letters) are automatically convered to LaTeX macros for ease of use.</p>
+
+<h1 id="h-roll">Die Rolling</h1>
+
+<p><code>=roll number faces</code></p>
+<p>The amount of dice shown is by default limited, if you wish to remove this limit you can enable the setting <code>f-roll-unlimited</code>.</p>
+<p>Example: <code>=roll 2d8</code></p>
 
 <h1 id="h-calculator">Calculator</h1>
 
@@ -237,29 +260,29 @@ Use <code>=theme light</code> to apply the light theme.</p>
 <h1 id="h-settings">Settings</h1>
 
 <p>MathBot has a number of settings that can be changed in order to modify its behaviour.</p>
-<p>Most notably, server admins are able to enable or disable certain commands on their own servers, on a per-channel basis.</p>
+<p>Server admins are able to enable or disable certain commands on their own servers, on a per-channel basis.</p>
 <p>There are also settings for customising command output.</p>
 <h2>Command Description</h2>
 <p>The general structure of the settings command is:</p>
 <p><code>=set context setting value</code></p>
-<p><code>context</code> should be one of the following:</p>
-<ul>
-<li><code>server</code> - to apply the setting to the current server</li>
-<li><code>channel</code> - to apply the setting to the current channel</li>
-<li><code>self</code> - to apply the setting to yourself</li>
-</ul>
-<p><code>setting</code> should be the name of one of the settings, listed below.</p>
-<p><code>value</code> should be a valid value for the setting. See below for details.</p>
+<p><code>context</code> should be either <code>channel</code> or <code>server</code>.
+<code>setting</code> should be the name of one of the settings, listed below.
+<code>value</code> should be a valid value for the setting. Either <code>enable</code>, <code>disable</code> or <code>reset</code>.</p>
 <h2>Permission Settings</h2>
 <p>These settings can be applied to the <code>server</code> and <code>channel</code> contexts, but only by server admins.</p>
-<p><code>value</code> should be either <code>enable</code>, <code>disable</code>, or <code>original</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>original</code> will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to <code>original</code> will mean that it defers to the setting used by the server.</p>
+<p><code>value</code> should be either <code>enable</code>, <code>disable</code>, or <code>reset</code>. <code>enable</code> will allow people to use the command in the given context and <code>disable</code> will stop people from using it. <code>reset</code> will reset the value to the default. Note that if both a server-wide option and a channel-specific option apply to a specific channel, setting the channel to <code>reset</code> will mean that it defers to the setting used by the server.</p>
 <ul>
-<li><code>c-tex</code> : Enable or disable the <code>=tex</code> command. Default: Enabled</li>
-<li><code>c-calc</code> : Enable or disable the <code>=calc</code> command. Default: Enabled</li>
-<li><code>c-wolf</code> : Enable or disable the <code>=wolf</code> command. Default: Enabled</li>
-<li><code>f-calc-shortcut</code> : Enable or disable the <code>==</code> shortcut for the <code>=calc</code> command. Disabling this <strong>will not</strong> produce an error message if a user attempts to use this command. This is intended to be used <em>only</em> if this command conflicts with other bots on your server. Default: Enabled</li>
-<li><code>f-wolf-filter</code>: Enable or disable the word filter for W|A queries. This is enabled by default for all non-nsfw channels.</li>
-<li><code>f-inline-tex</code>: Enable or disable the ability to add inline tex to messages. See <code>=help tex</code> for details. Default: <strong>Disabled</strong>.</li>
+<li><code>c-calc</code> : Toggles the <code>=calc</code> command. Default: <em>Enabled</em></li>
+<li><code>c-tex</code> : Toggles the <code>=tex</code> command. Default: <em>Enabled</em></li>
+<li><code>c-wolf</code> : Toggles the <code>=wolf</code> command. Default: <em>Enabled</em></li>
+<li><code>c-roll</code> : Toggles the <code>=roll</code> command. Default: <em>Enabled</em></li>
+<li><code>f-calc-shortcut</code> : Toggles the <code>==</code> shortcut for the <code>=calc</code> command. Disabling this <strong>will not</strong> produce an error message if a user attempts to use this command. This is intended to be used <em>only</em> if this command conflicts with other bots on your server. Default: <em>Enabled</em></li>
+<li><code>f-tex-inline</code>: Toggles the ability to add inline tex to messages. See <code>=help tex</code> for details. Default: <em>Disabled</em>.</li>
+<li><code>f-tex-delete</code>: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: <em>Disabled</em>.</li>
+<li><code>f-wolf-filter</code>: Toggles the word filter for W|A queries. This is enabled by default for all non-nsfw channels.</li>
+<li><code>f-wolf-mention</code>: Toggles the <code>@mention</code> in the footer of W|A results. Default: <em>Enabled</em>.</li>
+<li><code>f-roll-unlimited</code>: When enabled there is no limit (apart from the discord message limit) to the amount of rolls shown with the roll command.</li>
+<li><code>m-disabled-cmd</code>: Toggles the "That command cannot be used in this location" message. Default: <em>Enabled</em>.</li>
 </ul>
 <h2>Examples</h2>
 <p>Disable the <code>=wolf</code> command on a server:
@@ -269,6 +292,8 @@ Use <code>=theme light</code> to apply the light theme.</p>
 <h2>Troubleshooting</h2>
 <p>Ensure you are typing words <em>exactly</em> as shown.
 If you are still having problems you can ask <a href="https://discord.gg/JbJbRZS">on the official server</a>.</p>
+<h2>Extra tools</h2>
+<p>To check which settings apply to a particular channel, run the <code>=checkallsettings</code> command in that channel.</p>
 
 <h1 id="h-prefix">Prefix</h1>
 
@@ -280,14 +305,14 @@ If you are still having problems you can ask <a href="https://discord.gg/JbJbRZS
 <h1 id="h-blame">Blame</h1>
 
 <p>The <code>=blame</code> command is used to find who caused the bot to post a certain message.</p>
-<p>Usage: <code>=blame message_id</code></p>
-<p>The <code>message_id</code> should be the id of the message that the bot posted. You can find this by enabling developer tools, and then right-clicking on the message you wish to investigate.</p>
+<p>Usage: <code>=blame message_id</code> or <code>=blame recent</code></p>
+<p>The <code>message_id</code> should be the id of the message that the bot posted. You can find this by enabling developer tools, and then right-clicking on the message you wish to investigate. Using <code>recent</code> will get the blame for the most recent message that the bot posted in this channel.</p>
 <p>The bot keeps message blames for only 50 hours. After this, blame records are removed to conserve space.</p>
 
 <h1 id="h-purge">Purge</h1>
 
 <p><code>=purge number</code></p>
-<p>This command will search through most recent <code>number</code> messages and delete any <em>that were sent by the bot</em>. The bot will not search more than the 500 most recent messages.</p>
+<p>This command will search through most recent <code>number</code> messages and delete any <em>that were sent by the bot</em>. The bot will not search more than the 200 most recent messages.</p>
 <p>This command can only be run by users who have the <em>manage messages</em> permission in the respective channel. It will <em>not</em> work in any private channels.</p>
 			</div>
 		</div>

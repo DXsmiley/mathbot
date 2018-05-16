@@ -1,4 +1,5 @@
 import asyncio
+import discord
 
 
 ANY_EMOJI = '<any>'
@@ -6,18 +7,24 @@ ANY_EMOJI = '<any>'
 
 class Command:
 
-	def __init__(self, names, format, func, perm_setting, perm_default):
+	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public, discord_perms):
 		self.names = names.split(' ')
 		self.name = self.names[0]
-		self.format = format
+		self.format = fmt
 		self.func = func
 		self.perm_setting = perm_setting
 		self.perm_default = perm_default
 		self.on_edit = None
 		self.require_before = True
 		self.require_after = True
+		self.no_dm = no_dm
+		self.no_public = no_public
+		self.discord_perms = discord_perms
 
-	def edit(self, require_before = True, require_after = True):
+	def edit(self, require_before=True, require_after=True):
+		self.require_before = require_before
+		self.require_after = require_after
+		''' Returns a decorator that can be used to hook an edit handler to the function '''
 		def applier(function):
 			self.on_edit = function
 			return None # Not really sure if this is a good idea...
@@ -64,10 +71,30 @@ class OnEdit:
 		self.func = func
 
 
-def command(name, format, perm_setting = None, perm_default = None):
-	assert(isinstance(format, str))
+class OnMemberJoined:
+
+	def __init__(self, func, servers = None):
+		self.func = func
+		self.servers = servers
+
+
+def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=False, no_public=False, discord_perms='') -> Command:
+	''' Flags a function as a command.
+		name - the name of the command, so it will be invoked with =name
+		fmt - the argument format specification, use * to just grab the entire string.
+		perm_setting - Permissions setting.
+		perm_default - Override for the default value of the permission.
+		no_dm - Specifies that a command cannot be used in private channels.
+		no_public - Specifies that a command cannot be used in public channels.
+	'''
+	if not isinstance(name, str):
+		raise TypeError('Command names should be strings')
+	if not isinstance(fmt, str):
+		raise TypeError('Command argument format specifiers should be strings')
+	d_perms = discord.Permissions.none()
+	d_perms.update(**{p: True for p in discord_perms.split()})
 	def applier(func):
-		return Command(name, format, func, perm_setting, perm_default)
+		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public, d_perms)
 	return applier
 
 
@@ -105,6 +132,12 @@ def on_message():
 def on_edit():
 	def applier(func):
 		return OnEdit(func)
+	return applier
+
+
+def on_member_joined(servers = None):
+	def applier(func):
+		return OnMemberJoined(func, servers = servers)
 	return applier
 
 

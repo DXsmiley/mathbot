@@ -7,11 +7,15 @@ import traceback
 import core.settings
 import core.parse_arguments
 import core.blame
+import signal
 
 
-DISALLOWED_COMMAND_ERROR = """\
-That command may not be used in this location.\
-"""
+DISALLOWED_COMMAND_ERROR = 'That command may not be used in this location.'
+NO_DM_ERROR = 'That command may not be used in private channels.'
+NO_PUBLIC_ERROR = 'That command may not be used in public channels.'
+INSUFFICIENT_PERMS_ERROR = 'You do not have the required permissions to use that command here.'
+
+GLOBAL_PERM_ELEVATION = ['133804143721578505']
 
 
 class CommandConflictError(Exception):
@@ -38,11 +42,13 @@ class Manager:
 		self.modules = []
 		self.raw_handlers_message = []
 		self.raw_handlers_edit = []
+		self.raw_handlers_member_joined = []
 		self.shard_id = shard_id
 		self.shard_count = shard_count
 		self.client = create_client(self, shard_id, shard_count)
 		self.token = token
 		self.done_setup = False
+		self.running = True
 
 	# Add modules to the bot
 	def add_modules(self, *modules):
@@ -57,6 +63,7 @@ class Manager:
 			# Tell the modules which shard the bot is, give them the client object
 			module.shard_id = self.shard_id
 			module.shard_count = self.shard_count
+			module.master = self
 			module.client = self.client
 			# Assign the background tasks
 			for task in module.collect_background_tasks():
@@ -74,12 +81,16 @@ class Manager:
 				self.raw_handlers_message.append(handler)
 				handler.module = module
 			# Get the edit handlers
-			for handler in module.collection_edit_handlers():
+			for handler in module.collect_edit_handlers():
 				self.raw_handlers_edit.append(handler)
 				handler.module = module
 			# Get the reaction handlers
-			for handler in module.collection_reaction_handlers():
+			for handler in module.collect_reaction_handlers():
 				self.reaction_handlers[handler.emoji].append((module, handler))
+			# Get the join handlers
+			for handler in module.collect_member_join_handlers():
+				self.raw_handlers_member_joined.append(handler)
+				handler.module = module
 		self.done_setup = True
 
 	# Run the bot. Blocking command.
@@ -92,22 +103,45 @@ class Manager:
 	async def run_async(self):
 		if not self.done_setup:
 			self.setup()
-		await self.client.start(self.token)
-		print('Shard', self.shard_id, 'has shutdown')
+		await asyncio.gather(
+			self.client.start(self.token)
+		)
+		print('Shard', self.shard_id, 'has shutdown gracefully')
+
+	async def shutdown(self):
+		self.running = False
+		for i in self.modules:
+			i.running = False
+		# Give things a change to stop before dying
+		await asyncio.sleep(8)
+		await self.client.logout()
 
 	# Find the proper handler for a given command
 	def find_command_handler(self, cmd_string):
 		parts = cmd_string.replace('\n', ' ').split(' ')
 		for num_parts in range(len(parts), 0, -1):
 			joined = ' '.join(parts[:num_parts])
-			command = self.commands.get(joined)
+			command = self.commands.get(joined.lower())
 			if command is not None:
 				arguments = ' '.join(parts[num_parts:])
 				return command, arguments
 		return None, ''
 
+	async def catch_handler_exception(self, exception, message):
+		traceback.print_exc()
+		if message.author == self.client.user:
+			print('Error while looking at own message.')
+			if message.channel.id == core.parameters.get('error-reporting channel'):
+				print("IT'S IN THE REPORTING CHANNEL! THIS IS REALLY BAD!")
+			else:
+				text = 'Error while looking at own message. Not reported to end user.'
+				await core.dreport.custom_report(self.client, text)
+		else:
+			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
+
 	# Handle an incoming message
-	async def handle_message(self, message, redirect_count = 0):
+	async def handle_message(self, message, redirect_count=0):
+		# print(message.author, self.client.user)
 		try:
 			for handler in self.raw_handlers_message:
 				# print('Passing to handler...', handler)
@@ -120,9 +154,8 @@ class Manager:
 				cmd_string = await self.check_prefixes(message)
 				if cmd_string:
 					await self.handle_redirect(message, cmd_string)
-		except Exception as e:
-			traceback.print_exc()
-			await core.dreport.send(self.client, message.channel, message.content, extra = traceback.format_exc())
+		except Exception as err:
+			await self.catch_handler_exception(err, message)
 
 	# Handle an incoming meddage edit event
 	async def handle_edit(self, before, after):
@@ -136,11 +169,10 @@ class Manager:
 				if command is not None and command.on_edit is not None:
 					await self.exec_edit_command(before, after, command, arguments)
 		except Exception as e:
-			traceback.print_exc()
-			await core.dreport.send(self.client, after.channel, after.content, extra = traceback.format_exc())
+			await self.catch_handler_exception(e, after)
 
 	# Handle redirects. Command handlers are allowed to redirect to other command handlers.
-	async def handle_redirect(self, message, cmd_string, redirect_count = 0, is_edit = False):
+	async def handle_redirect(self, message, cmd_string, redirect_count=0, is_edit=False):
 		if redirect_count > 20:
 			raise TooManyRedirects
 		command, arguments = self.find_command_handler(cmd_string)
@@ -149,6 +181,8 @@ class Manager:
 			if isinstance(result, core.handles.Redirect):
 				message.content = result.destination
 				await self.handle_redirect(message, result.destination, redirect_count + 1)
+			elif isinstance(result, str):
+				await self.send_message(message, result)
 		else:
 			if redirect_count > 0:
 				raise RedirectionFailed
@@ -176,15 +210,28 @@ class Manager:
 				tasks.append(command.func(module))
 		asyncio.gather(*tasks)
 
+	async def handle_member_joined(self, member):
+		for handler in self.raw_handlers_member_joined:
+			if handler.servers is None or member.server.id in handler.servers:
+				await handler.func(handler.module, member)
+
 	# Actually execute a command! There's so many layers to this stuff...
 	async def exec_command(self, message, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(message, perm)
-		if not allowed:
-			# TODO: Fix this up once the blame thing is moved
-			result = await self.client.send_message(message.channel, DISALLOWED_COMMAND_ERROR)
-			await core.blame.set_blame(result.id, message.author)
+		if perm is not None and not await core.settings.resolve_message(perm, message):
+			if await core.settings.resolve_message('m-disabled-cmd', message):
+				await self.send_message(message, DISALLOWED_COMMAND_ERROR)
+		elif command.no_dm and message.channel.is_private:
+			await self.send_message(message, NO_DM_ERROR)
+		elif command.no_public and not message.channel.is_private:
+			await self.send_message(message, NO_PUBLIC_ERROR)
+		elif (
+				not message.channel.is_private
+				and isinstance(message.author, discord.Member)
+				and not message.author.permissions_in(message.channel).is_superset(command.discord_perms)
+				and message.author.id not in GLOBAL_PERM_ELEVATION):
+			await self.send_message(message, INSUFFICIENT_PERMS_ERROR)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)
@@ -203,7 +250,7 @@ class Manager:
 	async def exec_edit_command(self, before, after, command, arguments):
 		perm = command.perm_setting
 		# TODO: Set the default override, check defaults work
-		allowed = perm is None or await core.settings.get_setting(after, perm)
+		allowed = perm is None or await core.settings.resolve_message(perm, after)
 		if not allowed:
 			# TODO: Fix this up once the blame thing is moved
 			result = await self.client.send_message(after.channel, DISALLOWED_COMMAND_ERROR)
@@ -240,15 +287,45 @@ class Manager:
 		results = [
 			'<@172240092331507712>',
 			'<@134073775925886976>',
-			'<@325886099937558528>'
+			'<@325886099937558528>',
+			'<@!172240092331507712>',
+			'<@!134073775925886976>',
+			'<@!325886099937558528>'
 		]
 		if message.channel.is_private:
 			results.append(await core.keystore.get('last-seen-prefix', message.author.id))
 			results.append('=')
 			results.append('')
 		else:
-			results.append(await core.settings.get_server_prefix(message.server.id))
-		return results
+			results.append(await core.settings.get_server_prefix(message.server))
+		for i, v in enumerate(results):
+			if v is not None and not isinstance(v, str):
+				print('Non-string prefix detected')
+				print(v)
+				m = 'Non-string prefix detected: `{}`'.format(str(v))
+				await core.dreport.custom_report(self.client, m)
+				results[i] = str(v)
+		return [i for i in results if i is not None]
+
+	async def send_message(self, destination, *args, blame=None, **kwargs):
+		''' Send a message and assigns blame to it.
+			If destination is a Message, then the reply will be in
+			wherever the message was, and the blame will be on the
+			person who sent that message.
+		'''
+		if isinstance(destination, discord.Message):
+			if blame is None:
+				blame = destination.author
+			destination = destination.channel
+		result = await self.client.send_message(destination, *args, **kwargs)
+		await core.blame.set_blame(result.id, blame)
+		return result
+
+	async def send_typing(self, *args, **kwargs):
+		try:
+			await self.client.send_typing(*args, **kwargs)
+		except discord.errors.HTTPException:
+			pass # Discord someties throws 500's here. Ignore them, because we can live without it.
 
 
 def create_client(manager, shard_id, shard_count):
@@ -266,7 +343,7 @@ def create_client(manager, shard_id, shard_count):
 	async def on_message(message):
 		# print('Received message', message.id)
 		# print(message.content)
-		if client._core_ready and manager.master_filter(message.channel):
+		if client._core_ready and manager.master_filter(message) and manager.running:
 			# print('Handling message')
 			await manager.handle_message(message)
 		# else:
@@ -274,14 +351,19 @@ def create_client(manager, shard_id, shard_count):
 
 	@client.event
 	async def on_message_edit(before, after):
-		if client._core_ready and manager.master_filter(before.channel):
+		if client._core_ready and manager.master_filter(before) and manager.running:
 			await manager.handle_edit(before, after)
 
 	@client.event
 	async def on_reaction_add(reaction, user):
-		if client._core_ready and manager.master_filter(reaction.message.channel):
+		if client._core_ready and manager.master_filter(reaction.message) and manager.running:
 			# print(shard_id, 'Reaction add!', reaction.message.id, reaction.emoji)
 			await manager.handle_reaction_add(reaction, user)
+
+	@client.event
+	async def on_member_join(member):
+		if client._core_ready and manager.running:
+			await manager.handle_member_joined(member)
 
 	# @client.event
 	# async def on_error(event, *args, **kwargs):

@@ -8,7 +8,7 @@ import datetime
 import core.help
 import core.module
 
-BOT_COLOUR = 1424337
+BOT_COLOUR = 0x19BAE5
 
 startup_time = datetime.datetime.now()
 
@@ -22,6 +22,7 @@ Uptime: {} days {} hours {} minutes {} seconds
 core.help.load_from_file('./help/help.md', topics = [''])
 core.help.load_from_file('./help/about.md')
 core.help.load_from_file('./help/management.md')
+core.help.load_from_file('./help/commands.md')
 
 
 async def get_bot_total_servers(id):
@@ -76,17 +77,6 @@ class AboutModule(core.module.Module):
 	@core.handles.command('about info', '')
 	async def command_about(self, message):
 		return core.handles.Redirect('help', 'about')
-
-	# Sets the playing status of the bot when it starts up
-	# Also send it intermittently in case it expires (is this a thing?)
-	@core.handles.background_task()
-	async def update_status_message(self):
-		while True:
-			# status = 'bit.ly/mathbot'
-			status = 'bit.ly/mb-code'
-			game = discord.Game(name = status)
-			await self.client.change_presence(game = game)
-			await asyncio.sleep(60 * 5)
 
 
 def get_uptime():
