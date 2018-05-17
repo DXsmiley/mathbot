@@ -9,6 +9,13 @@ import async_timeout
 import time
 
 
+# Using the default, 'fork', causes
+# =calc 3^7^7^7^7^7^8^8^7^7^7^8^8^8^7
+# to break, and also the interrupe handlers in
+# bot.py cause issues.
+multiprocessing.set_start_method('spawn')
+
+
 def child_function(pipe, func, args):
 	result = func(*args)
 	pipe.send(result)
@@ -27,7 +34,7 @@ async def run(function, arguments, timeout=None, raise_on_timeout=True):
 			async with async_timeout.timeout(timeout):
 				process.start()
 				while not parent_pipe.poll():
-					await asyncio.sleep(0.001)
+					await asyncio.sleep(0.02)
 				return parent_pipe.recv()
 	except asyncio.TimeoutError:
 		if raise_on_timeout:

@@ -82,9 +82,10 @@ async def protected_power(a, b):
 		sb = float(sympy.Abs(b))
 		if sa < 4000 and sb < 20:
 			return a ** b
-		else:
-			return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=0.5)
-	return a ** b
+	try:
+		return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=0.5)
+	except asyncio.TimeoutError:
+		raise EvaluationError('Operation timed out. Perhaps the values were too large?')
 
 
 # Top level function to prevent copying of scope
