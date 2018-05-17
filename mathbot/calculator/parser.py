@@ -699,7 +699,6 @@ def tokenizer(original_string, ttypes, source_name = '__unknown__'):
 
 TOKEN_SPEC = [
 	('__remove__', r'#.*'),
-	('__illegal__', r'\d*\.?\d+([eE]-?\d+)?i?[a-zA-Z_][a-zA-Z0-9_]*'),
 	('kw_symbol', r'symbol\?'),
 	('kw_unload', r'unload\?'),
 	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
@@ -727,7 +726,8 @@ TOKEN_SPEC = [
 	('head_op', r'\''),
 	('tail_op', r'\\'),
 	('prepend_op', r':'),
-	('concat_op', r'\+\+')
+	('concat_op', r'\+\+'),
+	('__illegal__', r'\d*\.?\d+([eE]-?\d+)?i?[a-zA-Z_][a-zA-Z0-9_]*')
 ]
 
 
