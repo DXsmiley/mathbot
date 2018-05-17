@@ -15,6 +15,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 	# to break, and also the interrupe handlers in
 	# bot.py cause issues.
 	multiprocessing.set_start_method('spawn')
+	print('Crucible set multiprocessing start method')
 
 
 def child_function(pipe, func, args):
