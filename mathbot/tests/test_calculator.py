@@ -278,13 +278,13 @@ def test_map():
 	dort("length(list(1, 2, 3))", 3)
 	dort("f = (x) -> x * 2, length(map(f, list()))", 0)
 
-def test_reduce():
-	dort('reduce((a, b) -> a + b, list(0, 1, 2, 3, 4))', 10)
-	dort('reduce(sum, range(0, 5))', 10)
-	throws('reduce((a, b) -> a + b, list())')
-	throws('reduce(3, 4)')
-	throws('reduce(() -> f, list(1, 2))')
-	dort('msum = (x, y) ~> x() + y(), reduce(msum, list(1, 2, 3, 4))', 10)
+def test_foldl():
+	dort('foldl((a, b) -> a + b, 0, list(0, 1, 2, 3, 4))', 10)
+	dort('foldl(sum, 0, range(0, 5))', 10)
+	throws('foldl((a, b) -> a + b, list())')
+	throws('foldl(3, 4)')
+	throws('foldl(() -> f, list(1, 2))')
+	dort('msum = (x, y) ~> x() + y(), foldl(msum, 0, list(1, 2, 3, 4))', 10)
 
 def test_filter():
 	dort('''
