@@ -75,15 +75,14 @@ async def do_nothing_async():
 
 
 async def protected_power(a, b):
-	if isinstance(a, sympy.Number) and isinstance(b, sympy.Number):
-		if a == 0 and b == 0:
-			raise EvaluationError('Cannot raise 0 to the power of 0')
-		sa = float(sympy.Abs(a))
-		sb = float(sympy.Abs(b))
-		if sa < 4000 and sb < 20:
-			return a ** b
+	if a == 0 and b == 0:
+		raise EvaluationError('Cannot raise 0 to the power of 0')
+	sa = float(sympy.Abs(a))
+	sb = float(sympy.Abs(b))
+	if sa < 4000 and sb < 20:
+		return a ** b
 	try:
-		return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=0.5)
+		return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
 	except asyncio.TimeoutError:
 		raise EvaluationError('Operation timed out. Perhaps the values were too large?')
 
