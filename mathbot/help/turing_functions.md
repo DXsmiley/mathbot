@@ -1,5 +1,6 @@
 # Calc command builtin functions
 
+
 ## Operator replacements
 
 ```
@@ -16,12 +17,12 @@ and (a b) -> a && b
 ## Comparitor utilities
 
 ### `max(a, b)`
-Returns the larger of a and b, as compared by `>`.
-If they are considered 'equal', will return b.
+Returns the larger of a and b, as compared by `<`.
+If they are considered 'equal', will return a.
 
 ### `min(a, b)`
 Returns the smaller of a and b, as compared by `<`.
-If they are considered 'equal', will return b.
+If they are considered 'equal', will return a.
 
 ## Sequence manipulation
 
