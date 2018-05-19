@@ -163,33 +163,25 @@ class Scope:
 		return self.superscope.find_value(name, depth + 1)
 
 
-class Keys:
+class ConstructionContext:
 
-	names = [
-		'scope',
-		'unsafe',
-		'allow_tco'
-	]
+	def __init__(self, *, scope, unsafe, allow_tco):
+		self._staged = False
+		self.scope = scope
+		self.unsafe = unsafe
+		self.allow_tco = allow_tco
 
-	def __init__(self, **kwargs):
-		self.checknames(kwargs)
-		for i in Keys.names:
-			if i not in kwargs:
-				raise NameError('Property {} not specified for Keys'.format(i))
-		self.values = kwargs
+	def readyup(self):
+		if self._staged:
+			raise calculator.errors.CompilationError('Attmped to re-use a ConstructionContext.')
+		self._staged = True
 
-	def __call__(self, **kwargs):
-		self.checknames(kwargs)
-		d = {k:kwargs.get(k, self.values.get(k)) for k in Keys.names}
-		return Keys(**d)
-
-	def __getitem__(self, k):
-		return self.values[k]
-
-	def checknames(self, dct):
-		for i in dct:
-			if i not in Keys.names:
-				raise NameError('{} is not a valid property for Keys'.format(i))
+	def __call__(self,  **kwargs):
+		return ConstructionContext(
+			scope=kwargs.get('scope', self.scope),
+			unsafe=kwargs.get('unsafe', self.unsafe),
+			allow_tco=kwargs.get('allow_tco', False)
+		)
 
 
 class ConstructedBytecode:
@@ -279,7 +271,7 @@ class CodeSegment:
 	def add_ast(self, ast, unsafe=False):
 		self.bytecodeify(
 			ast,
-			Keys(
+			ConstructionContext(
 				scope=self.master.globalscope,
 				allow_tco=False,
 				unsafe=unsafe
@@ -307,17 +299,12 @@ class CodeSegment:
 		self.error_link += [error] * len(bytecode)
 
 	def bytecodeify(self, node, keys):
-		# TCO not allowed in most cirumstances. Get the value and then set it. The real value will be passed to the handler function if the function asks for it.
-		allow_tco = keys['allow_tco']
-		keys = keys(allow_tco = False)
+		keys.readyup()
 		# Branch by the current node type
 		node_type = node['#']
 		handler = getattr(self, 'btcfy_' + node_type, None)
 		if handler is None:
 			raise calculator.errors.CompilationError('Unknown AST node: {}. Cannot convert to bytecode.'.format(node_type))
-		h_params = inspect.getfullargspec(handler).args
-		if 'allow_tco' in h_params:
-			return handler(node, keys, allow_tco)
 		return handler(node, keys)
 
 	def btcfy_number(self, node, _):
@@ -345,14 +332,14 @@ class CodeSegment:
 		er = node['token']['source']
 		if op == '&&': # Logical and
 			end = Destination()
-			self.bytecodeify(left, keys)
+			self.bytecodeify(left, keys())
 			self.push(
 				I.DUPLICATE,
 				I.JUMP_IF_FALSE,
 				Pointer(end),
 				error = er
 			)
-			self.bytecodeify(right, keys)
+			self.bytecodeify(right, keys())
 			self.push(
 				I.BIN_AND,
 				end,
@@ -360,39 +347,39 @@ class CodeSegment:
 			)
 		elif op == '||': # Logical or
 			end = Destination()
-			self.bytecodeify(left, keys)
+			self.bytecodeify(left, keys())
 			self.push(
 				I.DUPLICATE,
 				I.JUMP_IF_TRUE,
 				Pointer(end),
 				error = er
 			)
-			self.bytecodeify(right, keys)
+			self.bytecodeify(right, keys())
 			self.push(
 				I.BIN_OR_,
 				end,
 				error = er
 			)
 		else:
-			self.bytecodeify(right, keys)
-			self.bytecodeify(left, keys)
+			self.bytecodeify(right, keys())
+			self.bytecodeify(left, keys())
 			self.push(OPERATOR_DICT[op], error = node['token']['source'])
 
 	def btcfy_not(self, node, keys):
-		self.bytecodeify(node['expression'], keys)
+		self.bytecodeify(node['expression'], keys())
 		self.push(I.UNR_NOT, error = node['token']['source'])
 
 	def btcfy_uminus(self, node, keys):
-		self.bytecodeify(node['value'], keys)
+		self.bytecodeify(node['value'], keys())
 		self.push(I.UNR_MIN, error = node['token']['source'])
 
 	def btcfy_percent_op(self, node, keys):
-		self.bytecodeify({'#': 'number', 'string': '100'}, keys)
-		self.bytecodeify(node['value'], keys)
+		self.bytecodeify({'#': 'number', 'string': '100'}, keys())
+		self.bytecodeify(node['value'], keys())
 		self.push(I.BIN_DIV, error = node['token']['source'])
 
 	def btcfy_word(self, node, keys):
-		scope, depth, index = keys['scope'].find_value(node['string'].lower())
+		scope, depth, index = keys.scope.find_value(node['string'].lower())
 		if scope == self.master.globalscope:
 			# NOTE: Only global variables can fail to be found,
 			# so we only need the name for this one.
@@ -411,7 +398,7 @@ class CodeSegment:
 		self.push(I.CONSTANT, node['value'])
 
 	def btcfy_factorial(self, node, keys):
-		self.bytecodeify(node['value'], keys)
+		self.bytecodeify(node['value'], keys())
 		self.push(I.UNR_FAC, error = node['token']['source'])
 
 	def btcfy_assignment(self, node, keys):
@@ -419,26 +406,26 @@ class CodeSegment:
 		# NOTE: If not sure what these two lines are for
 		if (node['value']['#'] == 'function_definition'):
 			node['value']['name'] = name
-		self.bytecodeify(node['value'], keys)
-		if name in PROTECTED_NAMES and not keys['unsafe']:
+		self.bytecodeify(node['value'], keys())
+		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['variable'])
-		scope, depth, index = keys['scope'].find_value(name)
+		scope, depth, index = keys.scope.find_value(name)
 		assert scope == self.master.globalscope
 		# print(scope, depth, index)
 		self.push(I.ASSIGNMENT, index, error=node['variable'].get('source'))
 
 	def btcfy_unload_global(self, node, keys):
 		name = node['variable']['string'].lower()
-		scope, depth, index = keys['scope'].find_value(name)
+		scope, depth, index = keys.scope.find_value(name)
 		self.push(I.UNLOAD, index, error=node['variable'].get('source'))
 
 	def btcfy_declare_symbol(self, node, keys):
 		name = node['name']['string'].lower()
-		if name in PROTECTED_NAMES and not keys['unsafe']:
+		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['name'])
-		scope, depth, index = keys['scope'].find_value(name)
+		scope, depth, index = keys.scope.find_value(name)
 		assert scope == self.master.globalscope
 		self.push(I.DECLARE_SYMBOL)
 		self.push(index)
@@ -446,7 +433,7 @@ class CodeSegment:
 
 	def btcfy_program(self, node, keys):
 		for i in node['items']:
-			self.bytecodeify(i, keys)
+			self.bytecodeify(i, keys())
 
 	def btcfy_end(self, node, keys):
 		self.push(I.END)
@@ -462,8 +449,8 @@ class CodeSegment:
 	def btcfy_comparison(self, node, keys):
 		if len(node['rest']) == 1:
 			# Can get away with a simple binary operator like the others
-			self.bytecodeify(node['rest'][0]['value'], keys)
-			self.bytecodeify(node['first'], keys)
+			self.bytecodeify(node['rest'][0]['value'], keys())
+			self.bytecodeify(node['first'], keys())
 			op = node['rest'][0]['operator']
 			er = node['rest'][0]['token']['source']
 			self.push(OPERATOR_DICT[op], error = er)
@@ -471,7 +458,7 @@ class CodeSegment:
 			bailed = Destination()
 			end = Destination()
 			self.push(I.CONSTANT, 1)
-			self.bytecodeify(node['first'], keys)
+			self.bytecodeify(node['first'], keys())
 			for index, ast in enumerate(node['rest']):
 				if index > 0:
 					self.push(
@@ -481,7 +468,7 @@ class CodeSegment:
 						Pointer(bailed),
 						I.STACK_SWAP # Put the value back on top
 					)
-				self.bytecodeify(ast['value'], keys)
+				self.bytecodeify(ast['value'], keys())
 				self.push(COMPARATOR_DICT[ast['operator']], error = ast['token']['source'])
 			self.push(
 				I.JUMP,
@@ -496,28 +483,28 @@ class CodeSegment:
 		self.push(I.LIST_CREATE_EMPTY)
 
 	def btcfy_head(self, node, keys):
-		self.bytecodeify(node['expression'], keys)
+		self.bytecodeify(node['expression'], keys())
 		self.push(I.LIST_EXTRACT_FIRST, error = node['token']['source'])
 
 	def btcfy_tail(self, node, keys):
-		self.bytecodeify(node['expression'], keys)
+		self.bytecodeify(node['expression'], keys())
 		self.push(I.LIST_EXTRACT_REST, error = node['token']['source'])
 
 	def btcfy_list_literal(self, node, keys):
 		self.push(I.LIST_CREATE_EMPTY)
 		for item in node['items'][::-1]:
-			self.bytecodeify(item, keys)
+			self.bytecodeify(item, keys())
 			self.push(I.LIST_PREPEND)
 
-	def btcfy_function_call(self, node, keys, allow_tco):
+	def btcfy_function_call(self, node, keys):
 		args = node.get('arguments', {'items': []})['items']
 		function_name = node['function']['string'].lower() if node['function']['#'] == 'word' else None
 		handler = self.btcfy_function_call_normal
 		if function_name:
 			handler = getattr(self, 'btcfy_func_' + function_name, handler)
-		handler(node, keys, args, allow_tco)
+		handler(node, keys, args)
 
-	def btcfy_function_call_normal(self, node, keys, args, allow_tco):
+	def btcfy_function_call_normal(self, node, keys, args):
 		call_marker_errinfo = node['arguments']['edges']['start']['source']
 		# IDEA: If the function contains only a small amount of code, we can also
 		# inline it (for normal function calls). Cannot inline everything since
@@ -530,7 +517,7 @@ class CodeSegment:
 				'expression': i
 			}, keys) for i in args[::-1]
 		]
-		self.bytecodeify(node['function'], keys)
+		self.bytecodeify(node['function'], keys())
 		landing_macro = Destination()
 		landing_end = Destination()
 		# Need to jump because normal functions and macros are handled differently
@@ -542,7 +529,7 @@ class CodeSegment:
 			self.push(i)
 			self.push(I.ARG_LIST_END_NO_CACHE)
 			self.push(0)
-		if allow_tco:
+		if keys.allow_tco:
 			self.push(I.ARG_LIST_END_WITH_TCO)
 		else:
 			self.push(I.ARG_LIST_END)
@@ -559,14 +546,14 @@ class CodeSegment:
 		# Aaaaand we done here
 		self.push(landing_end)
 
-	def btcfy_func_try(self, node, keys, args, allow_tco):
+	def btcfy_func_try(self, node, keys, args):
 		if len(args) < 2:
 			raise calculator.error.CompilationError('Too few arguments for try function')
 		block_end = Destination()
 		land_on_error = Destination()
 		for case in args[:-1]:
 			self.push(I.PUSH_ERROR_STOPGAP, Pointer(land_on_error), 0)
-			self.bytecodeify(case, keys)
+			self.bytecodeify(case, keys())
 			self.push(
 				I.STACK_SWAP, # Swap the top two items so the stopgap is on top
 				I.DISCARD,    # Discard the swapgap
@@ -575,27 +562,27 @@ class CodeSegment:
 				land_on_error # This is the start of the next case
 			)
 			land_on_error = Destination()
-		self.bytecodeify(args[-1], keys)
+		self.bytecodeify(args[-1], keys(allow_tco=keys.allow_tco))
 		self.push(block_end)
 
-	def btcfy_func_ifelse(self, node, keys, args, allow_tco):
+	def btcfy_func_ifelse(self, node, keys, args):
 		if len(args) < 3 or len(args) % 2 == 0:
 			raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
 		p_end = Destination()
 		p_false = Destination()
 		for condition, result in zip(args[::2], args[1::2]):
-			self.bytecodeify(condition, keys)
+			self.bytecodeify(condition, keys())
 			self.push(I.JUMP_IF_FALSE)
 			self.push(Pointer(p_false))
-			self.bytecodeify(result, keys)
+			self.bytecodeify(result, keys(allow_tco=keys.allow_tco))
 			self.push(I.JUMP)
 			self.push(Pointer(p_end))
 			self.push(p_false)
 			p_false = Destination()
-		self.bytecodeify(args[-1], keys)
+		self.bytecodeify(args[-1], keys(allow_tco=keys.allow_tco))
 		self.push(p_end)
 
-	def btcfy_func_if(self, node, keys, args, allow_tco):
+	def btcfy_func_if(self, node, keys, args):
 		if len(args) != 3:
 			raise calculator.errors.CompilationError('Invalid number of arguments for if function')
 		p_end = Destination()
@@ -603,17 +590,17 @@ class CodeSegment:
 		self.bytecodeify(args[0], keys())
 		self.push(I.JUMP_IF_FALSE)
 		self.push(Pointer(p_false))
-		self.bytecodeify(args[1], keys(allow_tco = allow_tco))
+		self.bytecodeify(args[1], keys(allow_tco=keys.allow_tco))
 		self.push(I.JUMP)
 		self.push(Pointer(p_end))
 		self.push(p_false)
-		self.bytecodeify(args[2], keys(allow_tco = allow_tco))
+		self.bytecodeify(args[2], keys(allow_tco=keys.allow_tco))
 		self.push(p_end)
 
-	def btcfy_func_list(self, node, keys, args, allow_tco):
+	def btcfy_func_list(self, node, keys, args,):
 		self.push(I.LIST_CREATE_EMPTY)
 		for a in args[::-1]:
-			self.bytecodeify(a, keys)
+			self.bytecodeify(a, keys())
 			self.push(I.LIST_PREPEND)
 
 	def define_function(self, node, keys):
@@ -636,7 +623,7 @@ class CodeSegment:
 		)
 		# If the function has no parameters, there's no need to add an additional
 		# scope frame, since it would hold no information anyway.
-		subscope = Scope(params, superscope=keys['scope']) if params else keys['scope']
+		subscope = Scope(params, superscope=keys.scope) if params else keys.scope
 		contents.bytecodeify(node['expression'], keys(allow_tco=True, scope=subscope))
 		contents.push(
 			I.STORE_IN_CACHE,
