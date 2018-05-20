@@ -4,6 +4,7 @@
 
 # pylint: disable=missing-docstring
 
+import asyncio
 from conftest import automata_test, automata_test_human
 
 # @auto.setup()
@@ -150,25 +151,28 @@ async def test_error_throw(interface):
 
 @automata_test
 async def test_calc5_storage(interface):
-    await interface.wait_for_reply('=calc x = 3')
+    ''' This will fail if there's a history in this channel, or any libraries '''
+    await interface.send_message('=calc x = 3')
+    await asyncio.sleep(1)
     await interface.assert_reply_equals('=calc x ^ x', '27')
 
 
 @automata_test
 async def test_calc5_timeout(interface):
-    await interface.wait_for_reply(
+    await interface.send_message(
         '=calc f = (x, h) -> if (h - 40, f(x * 2, h + 1) + f(x * 2 + 1, h + 1), 0)')
-    await interface.assert_reply_equals('=calc f(1, 1)', 'Calculation took too long')
+    await asyncio.sleep(1)
+    await interface.assert_reply_equals('=calc f(1, 1)', 'Operation timed out')
 
 
 @automata_test
 async def test_calc5_token_failure(interface):
-    await interface.assert_reply_contains('=calc 4 @ 5', 'Invalid token at position 2')
+    await interface.assert_reply_contains('=calc 4 @ 5', 'Tokenization error')
 
 
 @automata_test
 async def test_calc5_syntax_failure(interface):
-    await interface.assert_reply_contains('=calc 4 + 6 -', 'Invalid syntax at position 7')
+    await interface.assert_reply_contains('=calc 4 + 6 -', 'Parse error')
 
 
 @automata_test
