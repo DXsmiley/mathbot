@@ -13,6 +13,9 @@ CONSTANTS = {
 }
 
 
+PREFIX_MEMORY_EXPIRE = 60 * 60 * 24 * 3 # 3 days
+
+
 def doubleformat(string, **replacements):
 	''' Acts a but like format, but works on things wrapped in *two* curly braces. '''
 	for key, value in replacements.items():
@@ -53,7 +56,7 @@ class HelpModule(core.module.Module):
 				prefix = await core.keystore.get('last-seen-prefix', msg.author.id) or '='
 			else:
 				prefix = await core.settings.get_server_prefix(msg.server)
-				await core.keystore.set('last-seen-prefix', msg.author.id, prefix)
+				await core.keystore.set('last-seen-prefix', msg.author.id, prefix, expire = PREFIX_MEMORY_EXPIRE)
 			page = doubleformat(
 				page,
 				prefix=prefix,
@@ -66,7 +69,7 @@ class HelpModule(core.module.Module):
 				was_private = False
 		if was_private and not msg.channel.is_private:
 			if topic:
-				reply = "Information on `{}` has been send to you privately.".format(topic)
+				reply = "Information on `{}` has been sent to you privately.".format(topic)
 			else:
 				reply = "Help has been sent to you privately."
 			await self.send_message(msg, reply)

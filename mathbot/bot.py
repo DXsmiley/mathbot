@@ -104,8 +104,10 @@ def do_setup():
 	print('My shards:', ' '.join(map(str, SHARDS_MINE)))
 
 
-# Used to ensure the beta bot only replies in the channel that it is supposed to
+# Filters out messages from other bots.
 def event_filter(message):
+	if RELEASE != 'development' and message.author.bot:
+		return False
 	return True
 
 
