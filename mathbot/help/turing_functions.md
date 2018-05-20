@@ -1,4 +1,4 @@
-:::topics turing-library
+:::topics turing-functions
 
 # Calc command builtin functions
 
