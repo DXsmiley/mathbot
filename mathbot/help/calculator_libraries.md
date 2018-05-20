@@ -1,6 +1,8 @@
-:::topics lib libs libraries libs-add libs-remove libs-list
+:::topics libraries lib libs libs-add libs-remove libs-list
 
 # Calculator Libraries
+
+**This feature is still in development**
 
 The mathbot calculator supports loading of custom libraries. Libraries can be used to specify new functions and values.
 

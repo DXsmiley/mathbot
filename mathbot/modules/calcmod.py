@@ -26,10 +26,12 @@ import typing
 import discord
 import abc
 
-core.help.load_from_file('./help/calculator.md')
-core.help.load_from_file('./help/calculator_sort.md')
+core.help.load_from_file('./help/calculator_brief.md')
+core.help.load_from_file('./help/calculator_full.md')
 core.help.load_from_file('./help/calculator_history.md')
 core.help.load_from_file('./help/calculator_libraries.md')
+core.help.load_from_file('./help/turing.md')
+core.help.load_from_file('./help/turing_functions.md')
 # core.help.load_from_file('./help/turing.md')
 
 

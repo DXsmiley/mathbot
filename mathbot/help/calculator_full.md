@@ -1,4 +1,4 @@
-:::topics calculator calc
+:::topics calc-more
 
 # Calculator
 
@@ -6,7 +6,8 @@ The calculator can be invoked with the command `{{prefix}}calc`.
 
 It is also possible to use the shortcut `==`, however *this may be disabled on some servers or channels*. Using the shortcut will not produce an error message if it is disabled.
 
-To see details on the calculator's Turing completeness, run `{{prefix}}help turing`.
+See `{{prefix}}help turing` for a list of extended features, such as function definition and list manipulation.
+See `{{prefix}}help turing-library` for builtin functions that operate over more complicated data structures.
 
 The calculator supports the following arithmetic operations:
 
@@ -15,7 +16,7 @@ The calculator supports the following arithmetic operations:
     - `*` : multiplication (can also use `×`)
     - `/` : division (can also use `÷`)
     - `^` : exponentiation
-    - `!` : factorial
+    - `!` : factorial (e.g. `5!`)
 
 The following comparisons are supported
 
@@ -34,7 +35,7 @@ The following logical operators are supported:
     - `&&` : And (`x && y`)
     - `!` : Not (`!x`)
 
-The value `0` is considered falsy. Everything else is truthy.
+`false`, `0` and the empty list is considered falsy. Everything else is considered truthy.
 
 The following constants exist:
 
@@ -44,6 +45,9 @@ The following constants exist:
     - `true`  : 1
     - `false` : 0
     - `i` : The imaginary unit
+    - `infinity` : representation of infinity
+    - `complex_infinity` : infinity, but it's complicated
+    - `not_a_number` : produced by some functions when given invalid input
 
 :::page-break
 
@@ -65,20 +69,26 @@ The following functions are available:
 |------------------------------------------------------------------|
 ```
 
+:::page-break
+
+    - `abs(x)` : the absolute value of x
     - `deg(r)` : converts radians to degrees
     - `rad(d)` : converts degrees to radians
     - `log(x)` : log in base 10
     - `log(x, b)` : log of `x` in base `b`
-    - `ln(x)`  : log in base `e`
+    - `ln(x)`  : natural logarithm `e`
     - `sqrt(x)` : calculates the square root of a number
-    - `round(x)` : rounds a number to the nearest integer
-    - `int(x)` : rounds *down* to the nearest integer
+    - `root(x, y)` : the `y`th root of `x`, equal to `x^(1/y)`
+    - `ceiling(x)` : rounds a number *up* to the nearest integer
+    - `floor(x)` : rounds *down* to the nearest integer
+    - `exp(x)` : equivilent to e^x
     - `gamma(x)` : computes the gamma function
+    - `factorial(x)` : computes the factorial function
     - `gcd(a, b)` : computes the greatest common denominator or a and b
     - `lcm(a, b)` : computes the lowest common multiple of a and b
     - `choose(n, k)` : computes `n` choose `k`
-    - `re(x)` : get the real part of a complex number
-    - `im(x)` : get the imaginary part of a complex number
+    - `re(x)` : extract the real part of a complex number
+    - `im(x)` : extract the imaginary part of a complex number
 
 :::page-break
 
@@ -91,7 +101,3 @@ The following functions are available:
 `{{prefix}}calc sin(pi / 2)`
 
 `{{prefix}}calc (4 + 3i) ^ 3`
-
-## Extended language
-
-[Extended Language Reference](https://github.com/DXsmiley/mathbot/blob/calculator-refactor/mathbot/help/turing.md)

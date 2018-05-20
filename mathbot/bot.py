@@ -117,19 +117,19 @@ def create_shard_manager(shard_id, shard_count):
 	# causes state changes that could interfere with tests if they're
 	# executed too early.
 
-	# import modules.wolfram
+	import modules.wolfram
 	import modules.about
 	import modules.blame
 	import modules.calcmod
 	import modules.help
-	# import modules.throws
+	import modules.throws
 	import modules.settings
-	# import modules.latex
-	# import modules.purge
-	# import modules.echo
-	# import modules.analytics
+	import modules.latex
+	import modules.purge
+	import modules.echo
+	import modules.analytics
 	import modules.reporter
-	# import modules.greeter
+	import modules.greeter
 	import modules.dice
 	import modules.heartbeat
 
@@ -144,30 +144,30 @@ def create_shard_manager(shard_id, shard_count):
 
 	manager.add_modules(
 		modules.help.HelpModule(),
-		# modules.wolfram.WolframModule(),
+		modules.wolfram.WolframModule(),
 		modules.settings.SettingsModule(),
 		modules.blame.BlameModule(),
 		modules.about.AboutModule(),
-		# modules.latex.LatexModule(),
+		modules.latex.LatexModule(),
 		modules.calcmod.CalculatorModule(),
 		modules.dice.DiceModule(),
-		# modules.purge.PurgeModule(),
+		modules.purge.PurgeModule(),
 		# Will only trigger stats if supplied with tokens
-		# modules.analytics.AnalyticsModule(),
-		# modules.reporter.ReporterModule(),
+		modules.analytics.AnalyticsModule(),
+		modules.reporter.ReporterModule(),
 		modules.heartbeat.Heartbeat()
 	)
 
-	# if RELEASE == 'production':
-	# 	manager.add_modules(
-	# 		modules.greeter.GreeterModule()
-	# 	)
+	if RELEASE == 'production':
+		manager.add_modules(
+			modules.greeter.GreeterModule()
+		)
 
-	# if RELEASE == 'development':
-	# 	manager.add_modules(
-	# 		modules.throws.ThrowsModule(),
-	# 		modules.echo.EchoModule()
-	# 	)
+	if RELEASE == 'development':
+		manager.add_modules(
+			modules.throws.ThrowsModule(),
+			modules.echo.EchoModule()
+		)
 
 	return manager
 

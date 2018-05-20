@@ -1,6 +1,9 @@
+:::topics turing
+
 # Turing Completeness
 
-[Standard Library Reference](https://github.com/DXsmiley/mathbot/blob/calculator-refactor/mathbot/help/turing_functions.md)
+See `{{prefic}}help calc-more` for a list of basic builtin functions.
+See `{{prefix}}help turing-library` for builtin functions that operate over more complicated data structures.
 
 ## Introduction
 
@@ -18,6 +21,8 @@ Commas are used in most programming languages to separate expressions, for examp
 For example `[x y z]` is the same as `[x, y, z]`. `[x y (z)]` is *not* the same as `[x, y, (z)]`. In the first case, `y(z)` is interpreted as a function call. Adding the comma prevents this from happening.
 
 Adding additional commas is a bad idea and will probably result in parsing errors.
+
+:::page-break
 
 ## Language Features
 
@@ -64,6 +69,8 @@ if (cond_1, expr_1,
 )
 ```
 
+:::page-break
+
 ### Defining Functions
 
 Anonymous functions are defined using the following syntax
@@ -107,6 +114,8 @@ sum_macro(x, y) ~> x() + y()
 sum_macro(3, 5)
 ```
 
+:::page-break
+
 ### Lists
 
 "Lists" are data structures that act like stacks: you can quickly access the head of a list, adding and removing things from it as required. You can access things further down a list but it'll be slower.
@@ -128,11 +137,20 @@ The `\` operator retrieves the tail of the list, i.e. all elements except the fi
 \[1 2 3 4] # Results in [2 3 4]
 ```
 
-# System details
+### Text
 
-## Optimisations
+"Strings" are defined as lists of "glyphs", where a glyph is a single character (like the letter `a`, digit `7`, or the poop emoji). String are denoted with double-quotes: "Hello, world!". Glyphs are denoted with the `;` character followed by the glyph itself.
 
-### Memoisation
+Appending a glyph to the start of a string (the brakets aren't required here)
+```
+(;h):("ello")
+```
+
+Note that `; ` is represents a single space.
+
+:::page-break
+
+# Memoisation
 
 User-defined non-macro functions have memoisation applied to them automatically.
 
@@ -143,7 +161,7 @@ fib(x) -> if (x < 2, 1, fib(x - 2) + fib(x - 1))
 
 The memoisation is not foolproof and could probably do with some improvement.
 
-### Tail recursion optimisation
+# Tail recursion optimisation
 
 Simple situations for tail-recursion are optimised in order to conserve stack frames.
 

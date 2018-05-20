@@ -1,6 +1,8 @@
-:::topics history calchistory
+:::topics history calchistory calc-history
 
 # Calculator History
+
+**This feature is still in development**
 
 By default, the calculator's memory (for assigned values, defined functions) is *at most* 24 hours, and resets whenever the bot restarts.
 

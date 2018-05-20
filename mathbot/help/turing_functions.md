@@ -1,5 +1,6 @@
-# Calc command builtin functions
+:::topics turing-library
 
+# Calc command builtin functions
 
 ## Operator replacements
 
@@ -24,6 +25,8 @@ If they are considered 'equal', will return a.
 Returns the smaller of a and b, as compared by `<`.
 If they are considered 'equal', will return a.
 
+:::page-break
+
 ## Sequence manipulation
 
 ### `zip(a, b)`
@@ -39,9 +42,6 @@ produces
 ```
 list(list(1, 4), list(2, 5), list(3, 6))
 ```
-
-### `zipmap(function, a, b)`
-Similar to `map`, but iterates over two sequences at once. Equivilent to `zipmap (f, a, b) -> map((x) -> f('x, '\x), zip(a, b))`.
 
 ### `repeat(item, times)`
 Returns a *list* with the item `item` repeated `times` times.
@@ -64,6 +64,8 @@ produces
 ```
 list(4, 8, 6, 8)
 ```
+
+:::page-break
 
 ### `reduce(function, sequence)`
 Example:
