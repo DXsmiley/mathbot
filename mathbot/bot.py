@@ -18,7 +18,7 @@ import json
 import typing
 
 
-# logging.basicConfig(level = logging.WARNING)
+logging.basicConfig(level = logging.INFO)
 
 
 DONE_SETUP = False
