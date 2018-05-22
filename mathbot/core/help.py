@@ -31,7 +31,7 @@ def add(topics, message, from_file = False):
 
 
 def get(topic):
-	return TOPICS.get(topic)
+	return TOPICS.get(topic.lower())
 
 
 def listing():
@@ -39,7 +39,7 @@ def listing():
 
 
 def get_similar(topic):
-	return sorted(difflib.get_close_matches(topic, PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
+	return sorted(difflib.get_close_matches(topic.lower(), PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
 
 
 def load_from_file(filename, topics = None):
