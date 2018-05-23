@@ -20,6 +20,10 @@ import typing
 
 logging.basicConfig(level = logging.INFO)
 
+print(f'Default recursion limit is {sys.getrecursionlimit()}')
+print(f'Upgrading to 2500')
+sys.setrecursionlimit(2500)
+
 
 DONE_SETUP = False
 RELEASE = None
