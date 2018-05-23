@@ -5,6 +5,7 @@ sympy
 aioredis==0.3.0
 coverage
 discord.py==0.16.12
+git+https://github.com/Rapptz/discord.py.git@6b75179c1fed1aac0304526d130e93ad21dc84c3#egg=discord.py
 git+https://github.com/DXsmiley/dismock.git@ddf18ffe30e7a0329a7dc298328276fd02c18ae2
 git+https://github.com/mailgun/expiringdict.git@2fa0e533c2737e89ccaf66e72b497f5a654d2607
 markdown
