@@ -32,7 +32,8 @@ class Terminal:
                  yield_rate=100,
                  colour_output=False,
                  runtime_protection_level=0,
-                 _called_directly=True):
+                 _called_directly=True,
+                 trap_unknown_errors=False):
         if _called_directly:
             raise Exception('You should not be calling Terminal.__init__ directly.')
         self.show_tree = False
@@ -45,6 +46,7 @@ class Terminal:
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
+        self.trap_unknown_errors = False
 
     @staticmethod
     def new_blackbox_sync(**kwargs):
@@ -194,7 +196,9 @@ class Terminal:
                 prt('Output was too large to display')
             except asyncio.TimeoutError:
                 prt('Operation timed out')
-            except Exception as e:
+            except Exception:
+                if not self.trap_unknown_errors:
+                    raise
                 traceback.print_exc()
                 prt('Some other unknown error occurred')
         if not self.retain_cache:
