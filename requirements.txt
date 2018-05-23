@@ -16,3 +16,4 @@ pytest-cov
 pytest-ordering
 pytest==3.3.2
 xmltodict
+yarl==<1.2
