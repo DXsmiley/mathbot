@@ -29,7 +29,7 @@ def _get_key(setting, context):
 	setting = redirect(setting)
 	if not isinstance(setting, str):
 		raise TypeError('{} is not a valid setting'.format(setting))
-	if isinstance(context, discord.Channel):
+	if isinstance(context, discord.TextChannel):
 		if not context.is_private and context.id == context.server.id:
 			return f'{setting}:{context.id}c'
 		else:
@@ -87,9 +87,9 @@ async def set(setting, context, value):
 async def get_server_prefix(context):
 	if isinstance(context, discord.message.Message):
 		context = context.channel
-	if isinstance(context, discord.channel.PrivateChannel):
+	if isinstance(context, discord.abc.PrivateChannel):
 		return '='
-	if isinstance(context, discord.channel.Channel):
+	if isinstance(context, discord.channel.TextChannel):
 		if context.is_private:
 			return '='
 		context = context.server
@@ -102,7 +102,7 @@ async def get_server_prefix(context):
 async def set_server_prefix(context, prefix):
 	if isinstance(context, discord.Message):
 		context = context.channel
-	if isinstance(context, discord.Channel):
+	if isinstance(context, discord.TextChannel):
 		if context.is_private:
 			return '='
 		context = context.server

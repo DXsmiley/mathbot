@@ -15,7 +15,7 @@ core.help.load_from_file('./help/prefix.md')
 CHECKSETTING_TEMPLATE = '''\
 Setting "{}" has the following values:
 ```
-Channel: {}
+TextChannel: {}
 Server:  {}
 Default: {}
 ```
@@ -106,7 +106,7 @@ class SettingsModule(core.module.Module):
 		value_channel = await core.settings.get_single(setting, message.channel)
 		print('Details for', setting)
 		print('Server: ', value_server)
-		print('Channel:', value_channel)
+		print('TextChannel:', value_channel)
 		default = core.settings.details(setting).get('default')
 		return CHECKSETTING_TEMPLATE.format(
 			setting,
@@ -118,7 +118,7 @@ class SettingsModule(core.module.Module):
 	@core.handles.command('checkallsettings', '', no_dm=True)
 	async def command_check_all_settings(self, message):
 		lines = [
-			' Setting          | Channel  | Server   | Default',
+			' Setting          | TextChannel  | Server   | Default',
 			'------------------+----------+----------+----------'
 		]
 		items = [

@@ -239,11 +239,11 @@ class Manager:
 				arguments = core.parse_arguments.parse(command.format, arguments)
 			except core.parse_arguments.InvalidArgumentNumber:
 				msg = 'Invalid number of arguments\nSee `=help {}` for help.'.format(command.name)
-				result = await self.client.send_message(message.channel, msg)
+				result = await message.send(msg)
 				await core.blame.set_blame(result.id, message.author)
 			except core.parse_arguments.InvalidArgumentType:
 				msg = 'One or more arguments were invaluid.\nSee `=help {}` for help.'.format(command.name)
-				result = await self.client.send_message(message.channel, msg)
+				result = await message.send(msg)
 				await core.blame.set_blame(result.id, message.author)
 			else:
 				return await command.func(command.module, message, *arguments)
@@ -255,14 +255,14 @@ class Manager:
 		allowed = perm is None or await core.settings.resolve_message(perm, after)
 		if not allowed:
 			# TODO: Fix this up once the blame thing is moved
-			result = await self.client.send_message(after.channel, DISALLOWED_COMMAND_ERROR)
+			result = await after.send(DISALLOWED_COMMAND_ERROR)
 			await core.blame.set_blame(result.id, after.author)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)
 			except core.parse_arguments.InvalidArgumentNumber:
 				msg = 'Invalid number of arguments\n\nSee `=help {}` for help.'.format(command.name)
-				result = await self.client.send_message(after.channel, msg)
+				result = await after.send(msg)
 				await core.blame.set_blame(result.id, after.author)
 			except core.parse_arguments.InvalidArgumentType:
 				# This should never happen! Yet...
@@ -319,7 +319,7 @@ class Manager:
 			if blame is None:
 				blame = destination.author
 			destination = destination.channel
-		result = await self.client.send_message(destination, *args, **kwargs)
+		result = await destination.send(*args, **kwargs)
 		await core.blame.set_blame(result.id, blame)
 		return result
 

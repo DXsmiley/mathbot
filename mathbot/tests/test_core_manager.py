@@ -47,7 +47,7 @@ class SecurityModule(core.module.Module):
 		return 'Permission granted'
 
 
-class MockChannel(discord.Channel):
+class MockTextChannel(discord.TextChannel):
 
 	def __init__(self, is_private):
 		self.is_private = is_private
@@ -63,7 +63,7 @@ class MockMessage(discord.Message):
 
 	def __init__(self, content, author=None):
 		self.content = content
-		self.channel = MockChannel(False)
+		self.channel = MockTextChannel(False)
 		self.server = MockServer()
 		self.author = author or MockUser()
 
@@ -82,7 +82,7 @@ class MockUser(discord.Member): # pylint: disable=too-few-public-methods
 		''' Returns the permissions that a user would have if they
 			were operating in a given channel.
 		'''
-		assert isinstance(channel, MockChannel)
+		assert isinstance(channel, MockTextChannel)
 		return self.perms
 
 

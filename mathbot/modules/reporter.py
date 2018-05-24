@@ -42,7 +42,7 @@ class ReporterModule(core.module.Module):
 			report_channel = await self.get_report_channel()
 			if report_channel:
 				print('Shard', self.client.shard_id, 'will report errors!')
-				print('Channel:', report_channel)
+				print('TextChannel:', report_channel)
 				while self.running:
 					message = await core.keystore.rpop('error-report')
 					if message is not None:
@@ -59,7 +59,7 @@ class ReporterModule(core.module.Module):
 			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.client.shard_id))
 			traceback.print_exc()
 
-	async def get_report_channel(self) -> typing.Optional[discord.Channel]:
+	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = core.parameters.get('error-reporting channel')
 		if channel_id:
 			try:

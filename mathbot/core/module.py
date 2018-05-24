@@ -76,7 +76,7 @@ class Module:
 	async def send_typing(self, *args, **kwargs):
 		return await self.master.send_typing(*args, **kwargs)
 
-	async def send_private_fallback(self, to: discord.Member, fallback: discord.Channel, message: str, blame = None, supress_warning = False) -> bool:
+	async def send_private_fallback(self, to: discord.Member, fallback: discord.TextChannel, message: str, blame = None, supress_warning = False) -> bool:
 		''' Try and send a private message to a user. If it fails,
 			post it publicly with a warning.
 

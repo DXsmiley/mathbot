@@ -9,21 +9,45 @@ import collections
 import json
 import aioredis
 import time
+import warnings
+import abc
 
 
-class Interface:
-
-	async def get(self, key):
-		raise NotImplementedError
-
-	async def set(self, key, value):
-		raise NotImplementedError
-
-	async def expire(self, key, time):
-		raise NotImplementedError
+KEY_DELIMITER = ':'
+SETUP = False # TODO: Remove
+INTERFACE = None # TODO: Remove
 
 
-class Redis(Interface):
+class Driver(abc.ABC):
+
+	@abc.abstractmethod
+	async def get(self, key: str):
+		pass
+
+	@abc.abstractmethod
+	async def set(self, key: str, value):
+		pass
+
+	@abc.abstractmethod
+	async def delete(self, key: str, value) -> None:
+		pass
+
+	@abc.abstractmethod
+	async def expire(self, key: str, time: int):
+		pass
+
+	@abc.abstractmethod
+	async def lpush(self, key, value):
+		pass
+
+	@abc.abstractmethod
+	async def rpop(self, key):
+		pass
+
+
+class Redis(Driver):
+
+	__slots__ = ['url', 'db_number', 'started', 'connection', 'startup_lock']
 
 	def __init__(self, url, number = 0):
 		self.url = url
@@ -82,9 +106,11 @@ class Redis(Interface):
 		return self.decipher(await self.connection.rpop(key))
 
 
-class Disk(Interface):
+class Disk(Driver):
 
-	def __init__(self, filename = None):
+	__slots__ = ['filename', 'data']
+
+	def __init__(self, filename:str=None):
 		self.filename = filename
 		self.data = collections.defaultdict(
 			lambda : {
@@ -162,21 +188,77 @@ class Disk(Interface):
 		return self.data[key]['value'].pop()
 
 
-KEY_DELIMITER = ':'
-SETUP = False
-INTERFACE = None
+class Interface:
+
+	__slots__ = ['driver']
+
+	def __init__(self, driver: Driver) -> None:
+		self.driver = driver
 
 
-def setup_redis(url, number = 0):
+	async def get(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.get(key)
+
+
+	# It's a bit strange how the end of this is the value
+	async def set(self, *args, expire = None):
+		if len(args) < 2:
+			raise ValueError(f'keystore.set requires at least 2 arguments')
+		key, value = reduce_key_val(args)
+		await self.driver.set(key, value)
+		if expire is not None:
+			await self.driver.expire(key, expire)
+
+
+	async def get_json(self, *keys):
+		data = await get(*keys)
+		return None if data is None else json.loads(data)
+
+
+	async def set_json(self, *args, expire = None):
+		if len(args) < 2:
+			raise ValueError(f'keystore.set_json requires at least 2 arguments')
+		key, value = reduce_key_val(args)
+		await self.driver.set(key, json.dumps(value))
+		if expire is not None:
+			await self.driver.expire(key, expire)
+
+	async def lpush(self, *args):
+		key, value = reduce_key_val(args)
+		await self.driver.lpush(key, value)
+
+	async def rpop(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.rpop(key)
+
+	async def delete(self, *args):
+		assert(len(args) >= 1)
+		key = reduce_key(args)
+		await self.driver.delete(key)
+
+	async def expire(self, *args):
+		if len(args) < 2:
+			raise ValueError(f'keystore.expire requires at least 2 arguments')
+		# args = list(args)
+		# time = args.pop()
+		# key = reduce_key(args)
+		key, time = reduce_key_val(args)
+		await self.driver.expire(key, time)
+
+
+def create_redis(url, number = 0):
 	global INTERFACE
 	INTERFACE = Redis(url, number)
 	SETUP = True
+	return Interface(INTERFACE)
 
 
-def setup_disk(filename):
+def create_disk(filename):
 	global INTERFACE
 	INTERFACE = Disk(filename)
 	SETUP = True
+	return Interface(INTERFACE)
 
 
 def reduce_key(keys):
@@ -187,17 +269,19 @@ def reduce_key(keys):
 
 
 def reduce_key_val(keys):
-	assert(len(keys) >= 2)
-	return KEY_DELIMITER.join(keys[:-1]), keys[-1]
+	assert len(keys) >= 2
+	return KEY_DELIMITER.join(map(str, keys[:-1])), keys[-1]
 
 
 async def get(*keys):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	key = reduce_key(keys)
 	return await INTERFACE.get(key)
 
 
 # It's a bit strange how the end of this is the value
 async def set(*args, expire = None):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	assert(len(args) >= 2)
 	key, value = reduce_key_val(args)
 	await INTERFACE.set(key, value)
@@ -206,11 +290,13 @@ async def set(*args, expire = None):
 
 
 async def get_json(*keys):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	data = await get(*keys)
 	return None if data is None else json.loads(data)
 
 
 async def set_json(*args, expire = None):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	assert(len(args) >= 2)
 	key, value = reduce_key_val(args)
 	await INTERFACE.set(key, json.dumps(value))
@@ -218,20 +304,24 @@ async def set_json(*args, expire = None):
 		await INTERFACE.expire(key, expire)
 
 async def lpush(*args):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	key, value = reduce_key_val(args)
 	await INTERFACE.lpush(key, value)
 
 async def rpop(*keys):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	key = reduce_key(keys)
 	return await INTERFACE.rpop(key)
 
 async def delete(*args):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	assert(len(args) >= 1)
 	key = reduce_key(args)
 	await INTERFACE.delete(key)
 
 
 async def expire(*args):
+	warnings.warn('global keystore object is deprecated', DeprecationWarning)
 	assert(len(args) >= 2)
 	args = list(args)
 	time = args.pop()
