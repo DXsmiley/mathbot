@@ -1,5 +1,6 @@
 import sys
 import functools
+import discord
 
 def listify(function):
 	@functools.wraps(function)
@@ -20,3 +21,6 @@ def apply(*functions):
 
 def err(*args, **kwargs):
 	return print(*args, **kwargs, file=sys.stderr)
+
+def is_private(channel):
+	return isinstance(channel, discord.abc.PrivateChannel)

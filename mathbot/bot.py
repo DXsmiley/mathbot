@@ -11,8 +11,11 @@ import json
 import typing
 import traceback
 
+import termcolor
 import discord
 import discord.ext.commands
+from discord.ext.commands.errors import *
+
 import core.blame
 import core.keystore
 import utils
@@ -38,6 +41,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		self.release = parameters.get('release')
 		self.keystore = _create_keystore(parameters)
 		assert self.release in ['development', 'beta', 'release']
+		self.remove_command('help')
 		for i in _get_extensions(parameters):
 			self.load_extension(i)
 
@@ -48,6 +52,23 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		if self.release != 'production' or not message.author.is_bot:
 			await self.process_commands(message)
 
+	async def on_error(self, event, *args, **kwargs):
+		print('On Error')
+		print(event, *args, **kwargs)
+		traceback.print_exc()
+
+	async def on_command_error(self, context, error):
+		if isinstance(error, CommandNotFound):
+			return
+		termcolor.cprint('An error occurred while running a command', 'red')
+		termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
+		embed = discord.Embed(
+			title='An error occurred',
+			colour=discord.Colour.red(),
+			description='Yes this is a thing.'
+		)
+		await context.send(embed=embed)
+
 
 def run(parameters):
 	if sys.getrecursionlimit() < 2500:
@@ -57,13 +78,13 @@ def run(parameters):
 
 @utils.listify
 def _get_extensions(parameters):
-	# yield 'modules.about'
+	yield 'modules.about'
 	yield 'modules.blame'
 	# yield 'modules.calcmod'
 	# yield 'modules.dice'
 	# yield 'modules.greeter'
 	# yield 'modules.heartbeat'
-	# yield 'modules.help'
+	yield 'modules.help'
 	# yield 'modules.purge'
 	# yield 'modules.reporter'
 	# yield 'modules.settings'

@@ -6,11 +6,12 @@ import asyncio
 import aiohttp
 import datetime
 import core.help
-import core.module
+from discord.ext.commands import command
+
+
 
 BOT_COLOUR = 0x19BAE5
-
-startup_time = datetime.datetime.now()
+STARTUP_TIME = datetime.datetime.now()
 
 
 STATS_MESSAGE = """\
@@ -33,56 +34,58 @@ async def get_bot_total_servers(id):
 			return jdata.get('server_count')
 
 
-class AboutModule(core.module.Module):
+class AboutModule:
 
 	# Send a message detailing the shard number, server count,
 	# uptime and and memory using of this shard
-	@core.handles.command('stats stat status', '')
-	async def command_stats(self, message):
-		embed = discord.Embed(title = 'MathBot Stats', colour = BOT_COLOUR)
+	@command()
+	async def stats(self, context):
+		embed = discord.Embed(title='MathBot Stats', colour=BOT_COLOUR)
 		embed.add_field(
-			name = 'Total Servers',
+			name='Total Servers',
 			# MathBot's ID, hard coded for proper testing.
-			value = await get_bot_total_servers('134073775925886976'),
-			inline = True
+			value=await get_bot_total_servers('134073775925886976'),
+			inline=True
+		)
+		# TODO: Details about current shard.
+		# embed.add_field(
+		# 	name='Shard Servers',
+		# 	value=len(context.bot.guilds),
+		# 	inline=True
+		# )
+		# embed.add_field(
+		# 	name='Shard ID',
+		# 	value='{} of {}'.format(context.bot.shard_id + 1, self.shard_count),
+		# 	inline=True
+		# )
+		embed.add_field(
+			name='Uptime',
+			value=get_uptime(),
+			inline=True
 		)
 		embed.add_field(
-			name = 'Shard Servers',
-			value = len(self.client.servers),
-			inline = True
+			name='Memory Usage',
+			value='{} MB'.format(get_memory_usage()),
+			inline=True
 		)
-		embed.add_field(
-			name = 'Shard ID',
-			value = '{} of {}'.format(self.shard_id + 1, self.shard_count),
-			inline = True
-		)
-		embed.add_field(
-			name = 'Uptime',
-			value = get_uptime(),
-			inline = True
-		)
-		embed.add_field(
-			name = 'Memory Usage',
-			value = '{} MB'.format(get_memory_usage()),
-			inline = True
-		)
-		embed.set_footer(text = 'Time is in hh:mm')
-		await self.send_message(message.channel, embed = embed, blame = message.author)
+		embed.set_footer(text='Time is in hh:mm')
+		await context.send(embed=embed)
 
-	@core.handles.command('ping', '')
-	async def pong(self, message):
-		await self.send_message(message.channel, 'Pong!', blame = message.author)
+	@command()
+	async def ping(self, context):
+		await context.send(f'Pong! Latency {context.bot.latency}.')
 
 	# Aliases for the help command
-	@core.handles.command('about info', '')
-	async def command_about(self, message):
-		return core.handles.Redirect('help', 'about')
+	@command()
+	async def about(self, context):
+		cmd = context.bot.get_command('help')
+		await context.invoke(cmd, topic='about')
 
 
 def get_uptime():
 	''' Returns a string representing how long the bot has been running for '''
 	cur_time = datetime.datetime.now()
-	up_time = cur_time - startup_time
+	up_time = cur_time - STARTUP_TIME
 	up_hours = up_time.seconds // (60 * 60) + (up_time.days * 24)
 	up_minutes = (up_time.seconds // 60) % 60
 	return '{:02d}:{:02d}'.format(up_hours, up_minutes)
@@ -93,3 +96,7 @@ def get_memory_usage():
 	proc = psutil.Process(os.getpid())
 	mem = proc.memory_info().rss
 	return mem // (1024 * 1024)
+
+
+def setup(bot):
+	bot.add_cog(AboutModule())
