@@ -53,9 +53,8 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			await self.process_commands(message)
 
 	async def on_error(self, event, *args, **kwargs):
-		print('On Error')
-		print(event, *args, **kwargs)
-		traceback.print_exc()
+		termcolor.cprint('An error occurred outside of a command', 'red')
+		termcolor.cprint(traceback.format_exc(), 'blue')
 
 	async def on_command_error(self, context, error):
 		if isinstance(error, CommandNotFound):
