@@ -60,7 +60,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		if isinstance(error, CommandNotFound):
 			return
 		termcolor.cprint('An error occurred while running a command', 'red')
-		termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
+		termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
 		embed = discord.Embed(
 			title='An error occurred',
 			colour=discord.Colour.red(),
@@ -84,6 +84,7 @@ def _get_extensions(parameters):
 	# yield 'modules.greeter'
 	# yield 'modules.heartbeat'
 	yield 'modules.help'
+	yield 'modules.latex'
 	# yield 'modules.purge'
 	# yield 'modules.reporter'
 	# yield 'modules.settings'
