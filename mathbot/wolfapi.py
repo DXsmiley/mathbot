@@ -82,7 +82,7 @@ class Client:
 		self._default_plot_with = None
 		self._default_location = None
 
-	async def request(self, query: str, assumptions: typing.List[str] = [], session=None, debug=False, download_images=True, timeout=20) -> Result:
+	async def request(self, query: str, assumptions: typing.List[str] = [], *, location=None, session=None, debug=False, download_images=True, timeout=20) -> Result:
 		if session is None:
 			async with aiohttp.ClientSession() as session:
 				return await self.request(query, assumptions, session=session, debug=debug, download_images=download_images, timeout=timeout)
@@ -90,9 +90,11 @@ class Client:
 			payload = [
 				('appid', self._appid),
 				('input', query)
-			] + [
-				('assumption', i) for i in assumptions
 			]
+			for i in assumptions:
+				payload.append(('assumption', i))
+			if location:
+				payload.append(('location', location))
 			async with session.get(self._server, params=payload, timeout=timeout) as result:
 				result.raise_for_status()
 				xml = await result.text()

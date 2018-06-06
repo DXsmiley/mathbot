@@ -9,6 +9,7 @@ import core.module
 
 core.help.load_from_file('./help/settings.md')
 core.help.load_from_file('./help/theme.md')
+core.help.load_from_file('./help/location.md')
 core.help.load_from_file('./help/prefix.md')
 
 
@@ -88,7 +89,6 @@ class SettingsModule(core.module.Module):
 
 	@core.handles.command('theme', 'string|lower')
 	async def command_theme(self, message, theme):
-		theme = theme.lower()
 		if theme not in ['light', 'dark']:
 			return f'`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
@@ -97,6 +97,15 @@ class SettingsModule(core.module.Module):
 			await core.keystore.set(key, theme)
 			m = 'Your theme has been set to `{theme}`.'
 		await self.send_message(message.channel, m.format(theme = theme), blame = message.author)
+
+	@core.handles.command('location', '*')
+	async def command_location(self, message, new):
+		new = new.strip().replace('\n', ' ')[:300]
+		if not new:
+			existing = await core.keystore.get('p-wolf-location', message.author.id)
+			return f'Your location is `{existing}`.' if existing else 'You have not set a location.'
+		await core.keystore.set('p-wolf-location', message.author.id, new)
+		return f'Your location has been set to `{new}`.'
 
 	@core.handles.command('checksetting', 'string', no_dm=True)
 	async def command_checksetting(self, message, setting):

@@ -236,7 +236,8 @@ class WolframModule(core.module.Module):
 			return
 		try:
 			print('Making request')
-			result = await api.request(query, assumptions, debug=debug)
+			location = await core.keystore.get('p-wolf-location', blame.id)
+			result = await api.request(query, assumptions, location=location, debug=debug)
 		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
 			await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame=blame)
 		except asyncio.TimeoutError:
