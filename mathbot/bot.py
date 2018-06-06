@@ -18,6 +18,7 @@ from discord.ext.commands.errors import *
 
 import core.blame
 import core.keystore
+import core.settings
 import utils
 
 
@@ -40,6 +41,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		self.parameters = parameters
 		self.release = parameters.get('release')
 		self.keystore = _create_keystore(parameters)
+		self.settings = core.settings.Settings(self.keystore)
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 		for i in _get_extensions(parameters):

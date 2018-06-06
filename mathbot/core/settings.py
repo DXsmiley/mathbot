@@ -25,6 +25,15 @@ SETTINGS = {
 }
 
 
+class Settings:
+
+	def __init__(self, keystore):
+		self.keystore = keystore
+
+	# TODO: Add any functions that require the keystore to this class.
+	
+
+
 def _get_key(setting, context):
 	setting = redirect(setting)
 	if not isinstance(setting, str):
