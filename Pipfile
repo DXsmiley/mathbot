@@ -9,19 +9,18 @@ aiohttp = "==2.1.0"
 sympy = "*"
 aioredis = "==0.3.0"
 coverage = "*"
-"discord.py" = "==0.16.12"
-dismock = {git = "https://github.com/DXsmiley/dismock.git", ref = "ddf18ffe30e7a0329a7dc298328276fd02c18ae2"}
 expiringdict = {git = "https://github.com/mailgun/expiringdict.git", ref = "2fa0e533c2737e89ccaf66e72b497f5a654d2607"}
+"discord.py" = {git = "https://github.com/DXsmiley/discord.py", ref = "9a8d0e321b9df0901e201167aa1b3d3ff832ac3b"}
 psutil = "*"
-pytest-asyncio = "*"
-pytest-cov = "*"
-pytest-ordering = "*"
-pytest = "==3.3.2"
 xmltodict = "*"
 Markdown = "*"
 Pillow = "*"
 
 [dev-packages]
+pytest-asyncio = "*"
+pytest-cov = "*"
+pytest-ordering = "*"
+pytest = "==3.3.2"
 
 [requires]
 python_version = "3.6"
