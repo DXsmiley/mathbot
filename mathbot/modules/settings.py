@@ -9,7 +9,7 @@ import core.module
 
 core.help.load_from_file('./help/settings.md')
 core.help.load_from_file('./help/theme.md')
-core.help.load_from_file('./help/location.md')
+core.help.load_from_file('./help/units.md')
 core.help.load_from_file('./help/prefix.md')
 
 

@@ -7,7 +7,7 @@ The `{{prefix}}wolf` command is used to query Wolfram|Alpha.
 The `{{prefix}}pup` command will produce fewer results.
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
-You can use the `{{prefix}}location` command to localise your query results.
+You can use the `{{prefix}}units` command to set your default units (metric or imperial).
 
 This command can be very slow at times, so please be patient.
 
