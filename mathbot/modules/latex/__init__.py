@@ -29,7 +29,8 @@ LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 # Load data from external files
 
 def load_templates():
-	raw = open_relative('template.tex', encoding = 'utf-8').read()
+	with open_relative('template.tex', encoding = 'utf-8') as f:
+		raw = f.read()
 	# Remove any comments from the template
 	cleaned = re.sub(r'%.*\n', '', raw)
 	template = cleaned.replace('#BLOCK', 'gather*')
@@ -38,7 +39,8 @@ def load_templates():
 
 TEMPLATE, TEMPLATE_INLINE = load_templates()
 
-repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
+with open_relative('replacements.json', encoding = 'utf-8') as _f:
+	repl_json = _f.read()
 TEX_REPLACEMENTS = json.loads(repl_json)
 
 
