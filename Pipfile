@@ -17,10 +17,11 @@ Markdown = "*"
 Pillow = "*"
 
 [dev-packages]
+pytest = "==3.6.1"
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-ordering = "*"
-pytest = "==3.3.2"
+pytest-quickcheck = "==0.8.3"
 
 [requires]
 python_version = "3.6"

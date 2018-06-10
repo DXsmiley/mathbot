@@ -40,7 +40,7 @@ git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
 pipenv --python 3.6
-pipenv install --skip-lock
+pipenv install --dev --skip-lock
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
