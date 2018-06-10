@@ -450,3 +450,13 @@ def test_object_ordering():
 	throws('[[]] <= [0]')
 	throws('[[]] >  [0]')
 	throws('[[]] >= [0]')
+
+def test_floats():
+	doit('0.1', sympy.Rational(1, 10))
+	doit('0.01', sympy.Rational(1, 100))
+	doit('1e-1', sympy.Rational(1, 10))
+	doit('1e-2', sympy.Rational(1, 100))
+	doit('1e1', 10)
+	doit('1e2', 100)
+	doit('1e+1', 10)
+	doit('1e+2', 100)

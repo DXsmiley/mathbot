@@ -701,7 +701,7 @@ TOKEN_SPEC = [
 	('__remove__', r'#.*'),
 	('kw_symbol', r'symbol\?'),
 	('kw_unload', r'unload\?'),
-	('number', r'\d*\.?\d+([eE]-?\d+)?i?'),
+	('number', r'\d*\.?\d+([eE][+-]?\d+)?i?'),
 	('string', r'"(?:\\.|[^\\"])*"'),
 	('glyph', r';\\.|;[^\\]'),
 	('word', r'π|τ|∞|[a-zA-Z_][a-zA-Z0-9_]*'),
