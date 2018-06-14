@@ -51,7 +51,7 @@ Unlike normal functions, the arguments that are passed to the `if` statement are
 
 Additional arguments can be passed in order to make the function act as an if-elif-else block.
 ```
-if (cond_1, expr_1,
+ifelse(cond_1, expr_1,
 	cond_2, expr_2,
 	cond_3, expr_3,
 	otherwise
