@@ -196,16 +196,6 @@ class WolframModule(core.module.Module):
 						elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
 							data['used'] = True
 
-	@core.handles.add_reaction(EXPAND_EMOJI)
-	async def expand_assumptions(self, reaction, user):
-		async with AssumptionDataScope(reaction.message, self.client) as data:
-			if data is not None and data['hidden'] and data['blame'] == user.id:
-				data['hidden'] = False
-				assumption_text = self.get_assumption_text(data['assumptions'])
-				text = data['message'].content.replace(ASSUMPTIONS_MADE_MESSAGE, assumption_text)
-				await self.client.edit_message(data['message'], text)
-				await self.add_reaction_emoji(data['message'], data['assumptions'])
-
 	async def lock_wolf(self, channel, blame, query, assumptions = [], pup = False):
 		lock_id = blame.id if channel.is_private else channel.server.id
 		lock_set = dm_locks if channel.is_private else server_locks
@@ -272,32 +262,13 @@ class WolframModule(core.module.Module):
 				await self.send_image(channel, img, 'result.png', blame=blame)
 				await asyncio.sleep(1.05)
 
-			# Assumptions
-			assumption_text = ''
-			if not small:
-				assumption_text = self.get_assumption_text(result.assumptions)
-				hidden_assumptions = assumption_text.count('\n') > 5
-				if hidden_assumptions:
-					assumption_text = ASSUMPTIONS_MADE_MESSAGE
+			embed, show_assuptions = await self.format_adm(channel, blame, query, result.assumptions, small)
 
-			url = urllib.parse.urlencode({'i': query})
+			posted = await self.send_message(channel, embed=embed, blame=blame)
 
-			# Determine if the footer should be long or short
-			adm = await self.format_adm(channel, blame, query, small)
-			output = assumption_text + adm
-			too_long = False
-			if len(output) >= 2000:
-				too_long = True
-				output = adm
-
-			# Send the result
-			posted = await self.send_message(channel, output, blame=blame)
-			if not small and result.assumptions.count_known > 0 and not too_long:
+			if not small and show_assuptions:
 				try:
-					if hidden_assumptions:
-						await self.client.add_reaction(posted, EXPAND_EMOJI)
-					else:
-						await self.add_reaction_emoji(posted, result.assumptions)
+					await self.add_reaction_emoji(posted, result.assumptions)
 					payload = {
 						'assumptions': result.assumptions.to_json(),
 						'query': query,
@@ -305,34 +276,26 @@ class WolframModule(core.module.Module):
 						'blame': blame.id,
 						'channel id': posted.channel.id,
 						'message id': posted.id,
-						'no change warning': False,
-						'hidden': hidden_assumptions
+						'no change warning': False
 					}
-					# print(json.dumps(payload, indent=4))
-					# self.sent_footer_messages[str(posted.id)] = payload
 					await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
-					# print(self.shard_id, 'Footer message id:', posted.id)
 				except discord.errors.Forbidden:
 					await self.send_message(channel, REACTION_PERM_FAILURE, blame=blame)
 
 			print('Done.')
 
 	@staticmethod
-	async def format_adm(channel, blame, query, small):
-		result = []
+	async def format_adm(channel, blame, query, assuptions, small):
+		embed = discord.Embed(
+			title='Do more with Wolfram|Alpha pro',
+			url='http://www.wolframalpha.com/pro/'
+		)
 		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
-			result.append('Query made by {}\n'.format(blame.mention))
-		url = urllib.parse.urlencode({'i': query})
-		result.append(FOOTER_LINK.format(query=url))
-		if not small:
-			result.append('🐺 **Try out the new `=pup` command!** It\'s much more concise.\n')
-		return ''.join(result)
-
-	@staticmethod
-	def get_assumption_text(assumptions):
-		if assumptions.count == 0:
-			return ''
-		return '**Assumptions**\n{}\n\n'.format(str(assumptions))
+			embed.add_field(name='Query made by', value=blame.mention)
+		if assuptions.count > 0 and len(str(assuptions)) <= 800:
+			embed.add_field(name='Assumptions', value=str(assuptions))
+			return embed, True
+		return embed, False
 
 	async def add_reaction_emoji(self, message, assumptions):
 		''' Adds assumption emoji to a message. '''
