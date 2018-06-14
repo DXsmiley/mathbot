@@ -292,7 +292,7 @@ class WolframModule(core.module.Module):
 		)
 		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
 			embed.add_field(name='Query made by', value=blame.mention)
-		if assuptions.count > 0 and len(str(assuptions)) <= 800:
+		if not small and assuptions.count > 0 and len(str(assuptions)) <= 800:
 			embed.add_field(name='Assumptions', value=str(assuptions))
 			return embed, True
 		return embed, False
