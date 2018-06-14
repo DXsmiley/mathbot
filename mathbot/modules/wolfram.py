@@ -354,7 +354,7 @@ def retheme_images(strip):
 		recolours the ones that need to me
 	'''
 	for image, section, is_title in strip:
-		if is_title or (not re.search(r'^Image:|:Colou?rData$', section.id)):
+		if is_title or (not re.search(r'^Flag:|Image:|:Colou?rData$', section.id)):
 			image_recolour_to_dark_theme(image)
 		yield image
 
