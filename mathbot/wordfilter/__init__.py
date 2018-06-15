@@ -11,5 +11,6 @@ with open(WORDFILE) as f:
 
 
 def is_bad(sentence):
-	s = ''.join(map(lambda c: c if c in string.ascii_letters else ' ', sentence))
+	s = sentence.replace('\u200B', '')
+	s = ''.join(map(lambda c: c if c in string.ascii_letters else ' ', s))
 	return bool(set(s.lower().split(' ')) & BAD_WORDS)

@@ -12,3 +12,4 @@ def test_malicious():
 
 def test_esoteric():
 	assert is_bad('\u200Bfuck')
+	assert is_bad('sh\u200Bit')
