@@ -12,5 +12,5 @@ with open(WORDFILE) as f:
 
 def is_bad(sentence):
 	words = sentence.lower().split()
-	words = (''.join(map(lambda c: c if c in ASCII_LOWERCASE else '', word)) for word in words)
+	words = (''.join(filter(lambda c: c in ASCII_LOWERCASE, word)) for word in words)
 	return bool(set(words) & BAD_WORDS)
