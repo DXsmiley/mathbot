@@ -16,7 +16,6 @@ LIST_OF_NOTHING = ['nothing'] * 4
 # Set of functions that call the asyncronous comparitors.
 # Only __aeq__ and __alt__ should be implemented.
 
-
 async def super_equals(a, b):
 	if hasattr(a, '__aeq__'):
 		return await a.__aeq__(b)

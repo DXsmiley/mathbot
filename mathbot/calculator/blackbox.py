@@ -42,7 +42,7 @@ class Terminal:
         self.builder = calculator.bytecode.Builder()
         self.allow_special_commands = allow_special_commands
         self.colour_output = colour_output
-        self.interpereter = calculator.interpereter.Interpereter(yield_rate=yield_rate)
+        self.interpereter = calculator.interpereter.Interpereter(yield_rate=yield_rate, use_crucible=True)
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit

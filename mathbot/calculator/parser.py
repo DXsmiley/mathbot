@@ -495,12 +495,9 @@ def uminus(tokens):
 modulo    = eat_delimited(uminus,    ['mod_op'],  DelimitedBinding.LEFT_FIRST,  'bin_op')
 product   = eat_delimited(modulo,    ['mul_op'],  DelimitedBinding.LEFT_FIRST,  'bin_op')
 addition  = eat_delimited(product,   ['add_op'],  DelimitedBinding.LEFT_FIRST,  'bin_op')
-logic_and = eat_delimited(addition,  ['land_op'], DelimitedBinding.LEFT_FIRST,  'bin_op')
-logic_or  = eat_delimited(logic_and, ['lor_op'],  DelimitedBinding.LEFT_FIRST,  'bin_op')
-
 
 def comparison_list(tokens):
-	result = logic_or(tokens)
+	result = addition(tokens)
 	if result and tokens.peek(0, 'comp_op'):
 		result = {
 			'#': 'comparison',
@@ -509,7 +506,7 @@ def comparison_list(tokens):
 		}
 		while tokens.peek(0, 'comp_op'):
 			token = tokens.eat_details()
-			value = logic_or(tokens)
+			value = addition(tokens)
 			result['rest'].append({
 				'operator': token['string'],
 				'token': token,
@@ -518,7 +515,9 @@ def comparison_list(tokens):
 	return result
 
 
-prepend_op = eat_delimited(comparison_list, ['prepend_op'], DelimitedBinding.RIGHT_FIRST, 'bin_op')
+logic_and = eat_delimited(comparison_list,  ['land_op'], DelimitedBinding.LEFT_FIRST,  'bin_op')
+logic_or  = eat_delimited(logic_and, ['lor_op'],  DelimitedBinding.LEFT_FIRST,  'bin_op')
+prepend_op = eat_delimited(logic_or, ['prepend_op'], DelimitedBinding.RIGHT_FIRST, 'bin_op')
 
 
 def function_definition(tokens, delimiter):

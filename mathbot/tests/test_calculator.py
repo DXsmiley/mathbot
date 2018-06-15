@@ -143,6 +143,9 @@ def test_equality():
 	doit('1 == 2', False)
 	doit('1 != 2', True)
 	doit('1 < 2 < 3 < 4 <= 4 >= 2 == 2 < 5', True)
+	doit('1 < 2 && 3 < 4', True)
+	doit('1 < 0 || 3 < 4', True)
+	doit('3 == 3 && 2 == 2', True)
 
 def test_assignment():
 	doit('x = 2', None)
