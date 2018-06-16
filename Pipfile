@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+cffi = "*"
+aiohttp = "==2.1.0"
+sympy = "*"
+aioredis = "==0.3.0"
+coverage = "*"
+expiringdict = {git = "https://github.com/mailgun/expiringdict.git", ref = "2fa0e533c2737e89ccaf66e72b497f5a654d2607"}
+"discord.py" = {git = "https://github.com/DXsmiley/discord.py", ref = "9a8d0e321b9df0901e201167aa1b3d3ff832ac3b"}
+psutil = "*"
+xmltodict = "*"
+Markdown = "*"
+Pillow = "*"
+
+[dev-packages]
+pytest = "==3.6.1"
+pytest-asyncio = "*"
+pytest-cov = "*"
+pytest-ordering = "*"
+pytest-quickcheck = "==0.8.3"
+
+[requires]
+python_version = "3.6"

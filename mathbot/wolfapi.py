@@ -76,31 +76,37 @@ class Client:
 
 	def __init__(self, appid, server = None):
 		self._appid = appid
-		self._server = server or r'https://api.wolframalpha.com/v2/query' #?input=pi&appid=XXXX
+		self._server = server or 'https://api.wolframalpha.com/v2/query'
 		self._default_width = None
 		self._default_max_width = None
 		self._default_plot_with = None
 		self._default_location = None
 
-	async def request(self, query: str, assumptions: typing.List[str] = [], session=None, debug=False, download_images=True, timeout=20) -> Result:
+	async def request(self, query: str, assumptions: typing.List[str] = [], *, session=None, **kwargs) -> Result:
 		if session is None:
 			async with aiohttp.ClientSession() as session:
-				return await self.request(query, assumptions, session=session, debug=debug, download_images=download_images, timeout=timeout)
+				return await self._request(query, assumptions, session=session, **kwargs)
 		else:
-			payload = [
-				('appid', self._appid),
-				('input', query)
-			] + [
-				('assumption', i) for i in assumptions
-			]
-			async with session.get(self._server, params=payload, timeout=timeout) as result:
-				result.raise_for_status()
-				xml = await result.text()
-			doc = xmltodict.parse(xml)
-			result = Result(doc['queryresult'])
-			if download_images:
-				await result.download_images(session)
-			return result
+			return await self._request(query, assumptions, session=session, **kwargs)	
+
+	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20) -> Result:
+		payload = [
+			('appid', self._appid),
+			('input', query),
+			('units', 'nonmetric' if imperial else 'metric')
+		]
+		for i in assumptions:
+			payload.append(('assumption', i))
+		async with session.get(self._server, params=payload, timeout=timeout) as result:
+			result.raise_for_status()
+			xml = await result.text()
+		doc = xmltodict.parse(xml)
+		result = Result(doc['queryresult'])
+		if download_images:
+			await result.download_images(session)
+		return result
+
+
 
 
 async def download_image(session, url):

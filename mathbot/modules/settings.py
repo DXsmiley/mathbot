@@ -9,6 +9,7 @@ import core.module
 
 core.help.load_from_file('./help/settings.md')
 core.help.load_from_file('./help/theme.md')
+core.help.load_from_file('./help/units.md')
 core.help.load_from_file('./help/prefix.md')
 
 
@@ -88,15 +89,20 @@ class SettingsModule(core.module.Module):
 
 	@core.handles.command('theme', 'string|lower')
 	async def command_theme(self, message, theme):
-		theme = theme.lower()
 		if theme not in ['light', 'dark']:
 			return f'`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		else:
-
 			key = 'p-tex-colour:' + message.author.id
 			await core.keystore.set(key, theme)
 			m = 'Your theme has been set to `{theme}`.'
 		await self.send_message(message.channel, m.format(theme = theme), blame = message.author)
+
+	@core.handles.command('units', 'string|lower')
+	async def command_units(self, message, units):
+		if units not in ['metric', 'imperial']:
+			return f'`{units}` is not a unit system. Valid units are `metric` and `imperial`.'
+		await core.keystore.set('p-wolf-units', message.author.id, units)
+		return f'Your units have been set to `{units}`.'
 
 	@core.handles.command('checksetting', 'string', no_dm=True)
 	async def command_checksetting(self, message, setting):

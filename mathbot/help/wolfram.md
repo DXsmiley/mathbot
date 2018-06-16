@@ -7,6 +7,7 @@ The `{{prefix}}wolf` command is used to query Wolfram|Alpha.
 The `{{prefix}}pup` command will produce fewer results.
 
 You can use the `{{prefix}}theme` command to change the colour of the results.
+You can use the `{{prefix}}units` command to set your default units (metric or imperial).
 
 This command can be very slow at times, so please be patient.
 
@@ -19,6 +20,8 @@ This command can be very slow at times, so please be patient.
 ## Refining your results
 
 This command will give you *all* the information that Wolfram|Alpha spits out, which is often more than you want. It understand some english, so you can use words to refine your query. For example, you might use `roots of x^2 - x - 1` rather than `y = x^2 - x - 1` if you only want the solutions to the equation.
+
+:::page-break
 
 ## Assumptions
 

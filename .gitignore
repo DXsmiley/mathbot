@@ -14,3 +14,4 @@ venv/
 htmlcov
 .mypy_cache
 *.pyc
+.pytest_cache

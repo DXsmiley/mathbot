@@ -56,8 +56,11 @@ def print_token_parse_caret(to):
 
 
 def interactive_terminal():
-	terminal = Terminal.new_blackbox_sync(allow_special_commands = True, yield_rate = 1)
-
+	terminal = Terminal.new_blackbox_sync(
+		allow_special_commands=True,
+		yield_rate=1,
+		trap_unknown_errors=True
+	)
 	while True:
 		try:
 			line = input('> ')

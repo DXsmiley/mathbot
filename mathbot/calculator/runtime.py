@@ -118,6 +118,11 @@ def int_to_glyph(integer):
 	return Glyph(chr(int(integer)))
 
 
+@protect_sympy_function
+def reduce_to_float(value):
+	return sympy.Number(float(value))
+
+
 BUILTIN_FUNCTIONS = {
 	'log': mylog,
 	'ln': sympy.log,
@@ -126,14 +131,15 @@ BUILTIN_FUNCTIONS = {
 	'length': array_length,
 	'expand': array_expand,
 	'int': sympy.Integer,
-	'decimal': lambda x: sympy.Number(float(x)),
+	'decimal': reduce_to_float,
+	'float': reduce_to_float,
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
 	'deg': to_degrees,
 	'rad': to_radians,
 	'repr': format_normal,
 	'str': format_smart,
 	'ord': glyph_to_int,
-	'chr': int_to_glyph
+	'chr': int_to_glyph,
 }
 
 
