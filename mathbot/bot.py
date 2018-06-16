@@ -61,14 +61,32 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 	async def on_command_error(self, context, error):
 		if isinstance(error, CommandNotFound):
 			return
-		termcolor.cprint('An error occurred while running a command', 'red')
-		termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
-		embed = discord.Embed(
-			title='An error occurred',
-			colour=discord.Colour.red(),
-			description='Yes this is a thing.'
-		)
-		await context.send(embed=embed)
+		elif isinstance(error, MissingRequiredArgument):
+			await context.send(f'Argument {error.param} required.')
+		elif isinstance(error, TooManyArguments):
+			await context.send(f'Too many arguments given.')
+		elif isinstance(error, NoPrivateMessage):
+			await context.send(f'That command cannot be used in DMs.')
+		elif isinstance(error, DisabledCommand):
+			await context.send(f'That command is disabled.')
+		elif isinstance(error, CommandInvokeError):
+			termcolor.cprint('An error occurred while running a command', 'red')
+			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
+			embed = discord.Embed(
+				title='An internal error occurred while running the command.',
+				colour=discord.Colour.red(),
+				description='Automatic reporting is currently disabled.'
+			)
+			await context.send(embed=embed)
+		else:
+			termcolor.cprint('An unknown issue occurred while running a command', 'red')
+			termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
+			embed = discord.Embed(
+				title='An unknown error occurred.',
+				colour=discord.Colour.red(),
+				description='This is even worse than normal.'
+			)
+			await context.send(embed=embed)
 
 
 def run(parameters):
@@ -89,7 +107,7 @@ def _get_extensions(parameters):
 	yield 'modules.latex'
 	# yield 'modules.purge'
 	# yield 'modules.reporter'
-	# yield 'modules.settings'
+	yield 'modules.settings'
 	# yield 'modules.wolfram'
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
