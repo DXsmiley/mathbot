@@ -18,7 +18,7 @@ import json
 import typing
 
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level = logging.WARNING)
 
 print(f'Default recursion limit is {sys.getrecursionlimit()}')
 print(f'Upgrading to 2500')
