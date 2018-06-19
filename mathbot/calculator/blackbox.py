@@ -6,6 +6,7 @@ import calculator.bytecode
 import calculator.errors
 import calculator.runtime
 import calculator.formatter
+import calculator.crucible
 import sympy
 import async_timeout
 import json
@@ -154,20 +155,18 @@ class Terminal:
                     # Note: This is handled with a try / except because 
                     f_res = calculator.formatter.format(result, limit = self.output_limit)
                     try:
-                        exact = result.evalf()
+                        exact = await calculator.crucible.run(result.evalf, (), timeout=2)
                         details['exact'] = exact
-                        f_ext = calculator.formatter.format(exact, limit = self.output_limit)
+                        f_ext = calculator.formatter.format(exact, limit=self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
                         f_ext = calculator.formatter.sympy_cleanup(f_ext)
                         if f_ext in ['inf', '-inf', f_res]:
                             raise Exception
                         prt(f_res, '=', f_ext)
+                    except asyncio.TimeoutError:
+                        prt(f_res, '[exact value timed out]')
                     except Exception as e:
                         prt(f_res)
-                    try:
-                        details['latex'] = formatter.latex(result)
-                    except Exception:
-                        pass
                     if self.show_result_type:
                         prt(result.__class__)
                         prt(result.__class__.__mro__)
