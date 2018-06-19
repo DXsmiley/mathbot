@@ -22,7 +22,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 
 def worker(pipe):
 	while True:
-		if pipe.poll():
+		if pipe.poll(None):
 			func, args = pipe.recv()
 			pipe.send(func(*args))
 			del func, args
