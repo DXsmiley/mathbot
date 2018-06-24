@@ -19,9 +19,6 @@ import typing
 
 
 logging.basicConfig(level = logging.WARNING)
-
-print(f'Default recursion limit is {sys.getrecursionlimit()}')
-print(f'Upgrading to 2500')
 sys.setrecursionlimit(2500)
 
 
@@ -31,32 +28,6 @@ TOKEN = None
 SHARDS_TOTAL = 0
 SHARDS_MINE = typing.List[int]
 BOT_RUNNING = True
-
-
-# class SecondSignal(Exception):
-# 	def __str__(self):
-# 		return 'A second signal was received.'
-
-
-# def handle_sigterm(signum, frame):
-# 	global BOT_RUNNING
-# 	if not BOT_RUNNING:
-# 		raise SecondSignal
-# 	BOT_RUNNING = False
-# 	print('\nCaught SIGTERM\n')
-
-
-# def handle_sigint(signum, frame):
-# 	global BOT_RUNNING
-# 	if not BOT_RUNNING:
-# 		raise SecondSignal
-# 	BOT_RUNNING = False
-# 	print('\nCaught SIGINT\n')
-
-
-# signal.signal(signal.SIGTERM, handle_sigterm)
-# signal.signal(signal.SIGINT, handle_sigint)
-
 
 
 def do_setup():
