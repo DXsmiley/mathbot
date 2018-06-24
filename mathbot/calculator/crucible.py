@@ -9,6 +9,10 @@ import asyncio
 import multiprocessing
 import async_timeout
 import time
+import logging
+
+
+log = logging.getLogger(__name__)
 
 
 if multiprocessing.get_start_method(allow_none=True) is None:
@@ -59,28 +63,34 @@ class Pool:
 		self._semaphore = asyncio.Semaphore(max_processess)
 		self._idle = []
 
-	def _get_process_for_use(self):
-		if self._idle:
-			return self._idle.pop()
-		return Process()
-
 	async def run(self, function, arguments, *, timeout=5):
 		proc = None
 		result = None
 		async with self._semaphore:
 			try:
-				proc = self._get_process_for_use()
+				if self._idle:
+					proc = self._idle.pop()
+				else:
+					proc = Process()
+					log.info(f'Starting new process: {id(proc)}')
+					# Starting a new process has an overhead,
+					# so we give it extra time.
+					timeout += 3
 				async with async_timeout.timeout(timeout):
 					proc.send((function, arguments))
 					while not proc.poll():
 						await asyncio.sleep(0.01)
 					result = proc.recv()
 			except asyncio.TimeoutError:
+				log.info(f'Process timed out: {id(proc)}')
 				try:
 					proc.terminate()
 				except Exception:
 					pass
 				raise
+			except Exception:
+				log.error('Crucible internal error')
+				log.error(traceback.format_exc())
 			else:
 				self._idle.append(proc)
 		return result
