@@ -2,15 +2,15 @@ import string
 import os
 
 
+ASCII_LOWERCASE = set(string.ascii_lowercase)  # fast containment check
 WORDFILE = os.path.dirname(os.path.abspath(__file__)) + '/bad_words.txt'
 BAD_WORDS = set()
 
 with open(WORDFILE) as f:
-	for i in map(str.strip, f):
-		BAD_WORDS |= {i, i + 's', i + 'ed'}
-
+	for word in map(str.strip, f):
+		BAD_WORDS |= {word, word + 's', word + 'ed'}
 
 def is_bad(sentence):
-	s = sentence.replace('\u200B', '')
-	s = ''.join(map(lambda c: c if c in string.ascii_letters else ' ', s))
-	return bool(set(s.lower().split(' ')) & BAD_WORDS)
+	words = sentence.lower().split()
+	words = (''.join(filter(lambda c: c in ASCII_LOWERCASE, word)) for word in words)
+	return bool(set(words) & BAD_WORDS)
