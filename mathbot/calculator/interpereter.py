@@ -690,9 +690,12 @@ class Interpereter:
 		should_pass = self.next()
 		self.push(ErrorStopGap(handler_segment, handler_address, should_pass))
 
-	def call_builtin_function(self, function, arguments, return_to):
+	async def call_builtin_function(self, function, arguments, return_to):
 		try:
-			result = function(*arguments)
+			if isinstance(function, BuiltinFunction) and function.is_coroutine:
+				result = await function(*arguments)
+			else:
+				result = function(*arguments)
 		except Exception:
 			# arg = arguments if len(arguments)
 			# pylint: disable=raising-format-tuple
@@ -709,7 +712,7 @@ class Interpereter:
 
 	async def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
-			self.call_builtin_function(function, arguments, return_to)
+			await self.call_builtin_function(function, arguments, return_to)
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
 			need_to_call = True

@@ -24,8 +24,7 @@ import utils
 
 warnings.simplefilter('default')
 logging.basicConfig(level = logging.INFO)
-
-
+sys.setrecursionlimit(2500)
 core.blame.monkey_patch()
 
 
