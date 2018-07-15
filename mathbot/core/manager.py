@@ -7,6 +7,7 @@ import traceback
 import core.settings
 import core.parse_arguments
 import core.blame
+import core.util
 import signal
 
 
@@ -231,9 +232,14 @@ class Manager:
 		elif (
 				not message.channel.is_private
 				and isinstance(message.author, discord.Member)
-				and not message.author.permissions_in(message.channel).is_superset(command.discord_perms)
-				and message.author.id not in GLOBAL_PERM_ELEVATION):
+				and not message.author.permissions_in(message.channel).is_superset(command.invoker_perms)):
 			await self.send_message(message, INSUFFICIENT_PERMS_ERROR)
+		elif (
+				not message.channel.is_private
+				and not message.server.me.permissions_in(message.channel).is_superset(command.bot_perms)):
+			perm_names = '\n'.join([f' - {i}' for i in core.util.permission_names(command.bot_perms)])
+			m = 'The bot does not have the required permission to run that command. The required permissions are:\n'
+			await self.send_message(message, m + perm_names)
 		else:
 			try:
 				arguments = core.parse_arguments.parse(command.format, arguments)

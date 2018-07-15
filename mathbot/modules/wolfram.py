@@ -73,16 +73,6 @@ The bot is already processing a Wolfram|Alpha query for you.
 Please wait for it to finish before making another one.
 """
 
-PERMS_FAILURE = '''\
-I don't have permission to upload images here :frowning:
-The owner of this server should be able to fix this issue.
-'''
-
-REACTION_PERM_FAILURE = '''\
-I don't have permission to add reactions here :frowning:
-The owner of this server should be able to fix this issue.
-'''
-
 FILTER_FAILURE = '''\
 **That query contains one or more banned words and will not be run.**
 The owner of this server has the power to turn this off.
@@ -147,25 +137,21 @@ class WolframModule(core.module.Module):
 
 	# sent_footer_messages = {}
 
-	@core.handles.command('wolf', '*', perm_setting='c-wolf')
+	@core.handles.command('wolf', '*', perm_setting='c-wolf', bot_perms='send_messages attach_files embed_links add_reactions')
 	async def command_wolf(self, msg, query):
 		if api is None:
 			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
 		elif query in ['', 'help']:
 			return core.handles.Redirect('help wolfram')
-		elif not msg.channel.is_private and not has_required_perms(msg.channel, msg.server.me):
-			await self.send_message(msg.channel, PERMS_FAILURE, blame=msg.author)
 		else:
 			await self.lock_wolf(msg.channel, msg.author, query)
 
-	@core.handles.command('pup', '*', perm_setting='c-wolf')
+	@core.handles.command('pup', '*', perm_setting='c-wolf', bot_perms='send_messages attach_files embed_links add_reactions')
 	async def command_pup(self, msg, query):
 		if api is None:
 			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
 		elif query in ['', 'help']:
 			return core.handles.Redirect('help wolfram')
-		elif not msg.channel.is_private and not has_required_perms(msg.channel, msg.server.me):
-			await self.send_message(msg.channel, PERMS_FAILURE, blame=msg.author)
 		else:
 			await self.lock_wolf(msg.channel, msg.author, query, pup=True)
 
@@ -190,10 +176,7 @@ class WolframModule(core.module.Module):
 						print('With assumptions')
 						for i in assumptions_to_use:
 							print('    -', i)
-						if not channel.is_private and not has_required_perms(channel, reaction.message.server.me):
-							await self.send_message(message, PERMS_FAILURE)
-							data['used'] = True
-						elif await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
+						if await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
 							data['used'] = True
 
 	async def lock_wolf(self, channel, blame, query, assumptions = [], pup = False):
@@ -267,20 +250,17 @@ class WolframModule(core.module.Module):
 			posted = await self.send_message(channel, embed=embed, blame=blame)
 
 			if not small and show_assuptions:
-				try:
-					await self.add_reaction_emoji(posted, result.assumptions)
-					payload = {
-						'assumptions': result.assumptions.to_json(),
-						'query': query,
-						'used': False,
-						'blame': blame.id,
-						'channel id': posted.channel.id,
-						'message id': posted.id,
-						'no change warning': False
-					}
-					await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
-				except discord.errors.Forbidden:
-					await self.send_message(channel, REACTION_PERM_FAILURE, blame=blame)
+				await self.add_reaction_emoji(posted, result.assumptions)
+				payload = {
+					'assumptions': result.assumptions.to_json(),
+					'query': query,
+					'used': False,
+					'blame': blame.id,
+					'channel id': posted.channel.id,
+					'message id': posted.id,
+					'no change warning': False
+				}
+				await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
 
 			print('Done.')
 

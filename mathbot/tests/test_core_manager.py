@@ -42,7 +42,7 @@ class AnotherModule(core.module.Module):
 
 class SecurityModule(core.module.Module):
 
-	@core.handles.command('test', '', discord_perms='manage_server')
+	@core.handles.command('test', '', invoker_perms='manage_server')
 	async def test(self, message):
 		return 'Permission granted'
 
@@ -57,6 +57,7 @@ class MockServer(discord.Server):
 
 	def __init__(self):
 		self.id = '0000000000000000'
+		self.me = MockUser(discord.Permissions.all())
 
 
 class MockMessage(discord.Message):

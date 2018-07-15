@@ -1,13 +1,13 @@
 import asyncio
 import discord
-
+import copy
 
 ANY_EMOJI = '<any>'
 
 
 class Command:
 
-	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public, discord_perms):
+	def __init__(self, names, fmt, func, perm_setting, perm_default, no_dm, no_public, invoker_perms, bot_perms):
 		self.names = names.split(' ')
 		self.name = self.names[0]
 		self.format = fmt
@@ -19,7 +19,8 @@ class Command:
 		self.require_after = True
 		self.no_dm = no_dm
 		self.no_public = no_public
-		self.discord_perms = discord_perms
+		self.invoker_perms = invoker_perms
+		self.bot_perms = bot_perms
 
 	def edit(self, require_before=True, require_after=True):
 		self.require_before = require_before
@@ -78,7 +79,16 @@ class OnMemberJoined:
 		self.servers = servers
 
 
-def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=False, no_public=False, discord_perms='') -> Command:
+def command(
+	name: str,
+	fmt: str,
+	*,
+	perm_setting=None,
+	perm_default=None,
+	no_dm=False,
+	no_public=False,
+	invoker_perms: str='',
+	bot_perms: str='') -> Command:
 	''' Flags a function as a command.
 		name - the name of the command, so it will be invoked with =name
 		fmt - the argument format specification, use * to just grab the entire string.
@@ -86,15 +96,18 @@ def command(name: str, fmt: str, *, perm_setting=None, perm_default=None, no_dm=
 		perm_default - Override for the default value of the permission.
 		no_dm - Specifies that a command cannot be used in private channels.
 		no_public - Specifies that a command cannot be used in public channels.
+		invoker_perms - The permissions that both the invoker and the bot need in order to perform this command.
 	'''
 	if not isinstance(name, str):
 		raise TypeError('Command names should be strings')
 	if not isinstance(fmt, str):
 		raise TypeError('Command argument format specifiers should be strings')
-	d_perms = discord.Permissions.none()
-	d_perms.update(**{p: True for p in discord_perms.split()})
+	i_perms = discord.Permissions.none()
+	i_perms.update(**{p: True for p in invoker_perms.split()})
+	b_perms = discord.Permissions.none()
+	b_perms.update(**{p: True for p in bot_perms.split()})
 	def applier(func):
-		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public, d_perms)
+		return Command(name, fmt, func, perm_setting, perm_default, no_dm, no_public, i_perms, b_perms)
 	return applier
 
 

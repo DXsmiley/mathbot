@@ -132,7 +132,7 @@ class CalculatorModule(core.module.Module):
 			embed.add_field(name=i['name'], value=i['url'])
 		return embed
 
-	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	@guard_libs
 	async def handle_libs_add(self, message, url):
 		''' Command to add a new library to the server '''
@@ -182,7 +182,7 @@ class CalculatorModule(core.module.Module):
 			footer='Run `=calc-reload` to load the library.'
 		)
 
-	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	@guard_libs
 	async def handle_libs_remove(self, message, url):
 		''' Command to remove a library from the list '''
@@ -200,7 +200,7 @@ class CalculatorModule(core.module.Module):
 			colour=discord.colour.blue()
 		)
 
-	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	async def handle_calc_reload(self, message):
 		with (await LOCKS[message.channel.id]):
 			if message.channel.id in SCOPES:

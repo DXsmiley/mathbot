@@ -68,7 +68,7 @@ class SettingsModule(core.module.Module):
 		False: 'disabled'
 	}.get
 
-	@core.handles.command('settings setting set', 'string string string', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('settings setting set', 'string string string', no_dm=True, invoker_perms='manage_server')
 	async def command_set(self, message, context, setting, value):
 		try:
 			async with ProblemReporter(self, message.channel) as problem:
@@ -154,7 +154,7 @@ class SettingsModule(core.module.Module):
 		return 'The prefix for this server is `{}`, which has been customised.'.format(prefix)
 
 
-	@core.handles.command('setprefix', '*', no_dm=True, discord_perms='manage_server')
+	@core.handles.command('setprefix', '*', no_dm=True, invoker_perms='manage_server')
 	async def command_set_prefix(self, message, arg):
 		prefix = arg.strip().replace('`', '')
 		await core.settings.set_server_prefix(message.server, prefix)
