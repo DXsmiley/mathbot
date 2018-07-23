@@ -7,6 +7,9 @@ import aiohttp
 import datetime
 import core.help
 import core.module
+import core.dreport
+import codecs
+
 
 BOT_COLOUR = 0x19BAE5
 
@@ -77,6 +80,12 @@ class AboutModule(core.module.Module):
 	@core.handles.command('about info', '')
 	async def command_about(self, message):
 		return core.handles.Redirect('help', 'about')
+
+	@core.handles.command(codecs.encode('shefhvg', 'rot_13'), '')
+	async def ignore_pls(self, message):
+		with open('not_an_image', 'rb') as f:
+			await self.send_file(message.channel, f, filename='youaskedforit.png')
+		await core.dreport.custom_report(self.client, 'It happened.')
 
 
 def get_uptime():
