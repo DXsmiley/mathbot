@@ -1,29 +1,24 @@
 import pytest
 import os
 
-import core.parameters
-from core.parameters import add_source, get
-def test_parameters():
-    sources_bak = core.parameters.sources
-    core.parameters.reset()
+from core.parameters import load_parameters
 
-    add_source({'test-1': 'first'})
-    add_source({'test-1': 'second'})
-    add_source({'test-1': 'third'})
-    add_source({'test-2': 'value'})
-    add_source({'test-2': {'dict': True}})
-    add_source({'test-3': 'env:core_parameter_test'})
-    add_source({'test-4': 'escape:string'})
+def test_parameters():
 
     os.environ['core_parameter_test'] = 'result'
 
-    assert get('test-1') == 'third'
-    assert get('test-2') == {'dict': True}
-    assert get('test-3') == 'result'
-    assert get('test-4') == 'string'
+    parameters = load_parameters([
+        {'test-1': 'first'},
+        {'test-1': 'second'},
+        {'test-1': 'third'},
+        {'test-2': 'value'},
+        {'test-2': {'dict': True}},
+        {'test-3': 'env:core_parameter_test'},
+        {'test-4': 'escape:string'}
+    ])
 
-    with pytest.raises(Exception):
-        add_source({'should_raise': True})
-
-    core.parameters.reset()
-    core.parameters.source = sources_bak
+    assert parameters.get('test-1') == 'third'
+    assert parameters.get('test-2') == {'dict': True}
+    assert parameters.get('test-2.dict') == True
+    assert parameters.get('test-3') == 'result'
+    assert parameters.get('test-4') == 'string'
