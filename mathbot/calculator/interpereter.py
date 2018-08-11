@@ -75,12 +75,6 @@ async def do_nothing_async():
 
 
 async def protected_power(use_crucible, a, b):
-	if a == 0 and b == 0:
-		raise EvaluationError('Cannot raise 0 to the power of 0')
-	sa = float(sympy.Abs(a))
-	sb = float(sympy.Abs(b))
-	if sa < 4000 and sb < 20:
-		return a ** b
 	if use_crucible:
 		try:
 			return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
@@ -92,7 +86,11 @@ async def protected_power(use_crucible, a, b):
 
 # Top level function to prevent copying of scope
 def _protected_power_crucible(a, b):
-	return a ** b
+	result = a ** b
+	# ensure that the result isn't going to expode on the main program
+	# if str(result) explodes, this process will time out
+	str(result)
+	return result
 
 
 class FunctionInspector:

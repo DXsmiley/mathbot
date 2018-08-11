@@ -69,10 +69,9 @@ class SettingsModule:
 		False: 'disabled'
 	}.get
 
-	# @core.handles.command('settings setting set', 'string string string', no_dm=True, discord_perms='manage_server')
 	@command(name='set')
 	@guild_only()
-	async def _set(self, ctx, context, setting, value):
+	async def _set(self, ctx, context: str, setting: str, value: str):
 		try:
 			async with ProblemReporter(ctx) as problem:
 				setting_details = core.settings.details(setting)

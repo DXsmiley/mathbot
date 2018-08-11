@@ -7,6 +7,8 @@ import aiohttp
 import datetime
 import core.help
 from discord.ext.commands import command
+import core.dreport
+import codecs
 
 
 
@@ -80,6 +82,12 @@ class AboutModule:
 	async def about(self, context):
 		cmd = context.bot.get_command('help')
 		await context.invoke(cmd, topic='about')
+
+	@command(name=codecs.encode('shefhvg', 'rot_13'))
+	async def ignore_pls(self, message):
+		with open('not_an_image', 'rb') as f:
+			await self.send_file(message.channel, f, filename='youaskedforit.png')
+		await core.dreport.custom_report(self.client, 'It happened.')
 
 
 def get_uptime():

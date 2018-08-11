@@ -92,8 +92,8 @@ class DiceModule(core.module.Module):
 			return self.gaussian_roll_single(dice, faces)
 		# passing this second test means we can do multiple rolls safely
 		elif math.log2(faces) < (PREC / 2):
-			dice_per = PREC - round(math.log2(faces))
-			times = round(dice / 2**(dice_per))
+			dice_per = 2**(PREC - round(math.log2(faces)))
+			times = round(dice / dice_per)
 			if times > limit:
 				raise ValuesTooBigException()
 			return sum([self.gaussian_roll_single(dice_per, faces) for _ in range(times)])
