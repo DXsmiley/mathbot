@@ -86,7 +86,11 @@ async def protected_power(use_crucible, a, b):
 
 # Top level function to prevent copying of scope
 def _protected_power_crucible(a, b):
-	return a ** b
+	result = a ** b
+	# ensure that the result isn't going to expode on the main program
+	# if str(result) explodes, this process will time out
+	str(result)
+	return result
 
 
 class FunctionInspector:

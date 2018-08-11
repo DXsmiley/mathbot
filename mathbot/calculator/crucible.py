@@ -10,6 +10,7 @@ import multiprocessing
 import async_timeout
 import time
 import logging
+import sys
 
 
 log = logging.getLogger(__name__)
