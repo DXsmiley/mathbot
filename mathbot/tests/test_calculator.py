@@ -336,7 +336,6 @@ def test_errors():
 	throws('low(1, 1)')
 	throws('cos(true)')
 	throws('sin(false)')
-	throws('0^0')
 
 def test_trig():
 	dort('sin(0)', 0)
