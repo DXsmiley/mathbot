@@ -8,8 +8,8 @@ class InvalidPatronRankError(Exception):
 	pass
 
 def tier(parameters, uid):
-	if not isinstance(uid, int):
-		raise TypeError('User IDs must be of type int')
+	if not isinstance(uid, (str, int)):
+		raise TypeError('User ID looks invalid')
 	rank_string = parameters.get('patrons').get(str(uid))
 	if rank_string is None:
 		return TIER_NONE
