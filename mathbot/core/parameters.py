@@ -43,6 +43,8 @@ def resolve_parameters(params):
 
 
 def load_parameters(sources):
+	if not isinstance(sources, list):
+		raise TypeError('Sources should be a list')
 	default = _load_json_file(DEFAULT_PARAMETER_FILE)
 	dictionary = resolve_parameters(dictionary_overwrite(default, *sources))
 	return Parameters(dictionary)
