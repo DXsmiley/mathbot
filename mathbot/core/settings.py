@@ -1,8 +1,8 @@
 import core.keystore
 import expiringdict
-import discord
 import warnings
-
+import discord
+import discord.ext.commands
 
 class None2:
 	pass
@@ -47,7 +47,7 @@ class Settings:
 
 	async def resolve(self, setting, *contexts, default=None2):
 		setting = redirect(setting)
-		for i in context:
+		for i in contexts:
 			result = await self.get_single(setting, i)
 			if result is not None:
 				return result
@@ -215,3 +215,11 @@ def get_cannon_name(setting):
 		if details.get('redirect', name) == setting and details.get('cannon-name'):
 			return name
 	return setting
+
+
+# Maybe move this to some other file??
+def command_allowed(setting):
+	async def predicate(context):
+		if not await context.bot.settings.resolve_message(setting, context.message):
+			raise discord.ext.commands.DisabledCommand
+	return discord.ext.commands.check(predicate)

@@ -35,7 +35,8 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			command_prefix=_determine_prefix,
 			pm_help=True,
 			shard_count=parameters.get('shards total'),
-			shard_ids=parameters.get('shards mine')
+			shard_ids=parameters.get('shards mine'),
+			max_messages=100
 		)
 		self.parameters = parameters
 		self.release = parameters.get('release')
@@ -67,7 +68,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		elif isinstance(error, NoPrivateMessage):
 			await context.send(f'That command cannot be used in DMs.')
 		elif isinstance(error, DisabledCommand):
-			await context.send(f'That command is disabled.')
+			await context.send(f'The server owner has disabled use of that command in this channel.')
 		elif isinstance(error, CommandInvokeError):
 			termcolor.cprint('An error occurred while running a command', 'red')
 			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
@@ -99,7 +100,7 @@ def _get_extensions(parameters):
 	yield 'modules.about'
 	yield 'modules.blame'
 	# yield 'modules.calcmod'
-	# yield 'modules.dice'
+	yield 'modules.dice'
 	# yield 'modules.greeter'
 	# yield 'modules.heartbeat'
 	yield 'modules.help'
