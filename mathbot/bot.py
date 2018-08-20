@@ -55,40 +55,17 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			await self.process_commands(message)
 
 	async def on_error(self, event, *args, **kwargs):
-		termcolor.cprint('An error occurred outside of a command', 'red')
-		termcolor.cprint(traceback.format_exc(), 'blue')
+		# TODO: Hook into DReport
+		was_handled = False
+		if event == 'message':
+			_, error, _ = sys.exc_info()
+			was_handled = await self.report_error(args[0].channel, error)
+		if not was_handled:
+			termcolor.cprint(f'An error occurred outside of a command and was not handled: {event}', 'red')
+			termcolor.cprint(traceback.format_exc(), 'blue')
 
 	async def on_command_error(self, context, error):
-		if isinstance(error, CommandNotFound):
-			return
-		elif isinstance(error, MissingRequiredArgument):
-			await context.send(f'Argument {error.param} required.')
-		elif isinstance(error, TooManyArguments):
-			await context.send(f'Too many arguments given.')
-		elif isinstance(error, NoPrivateMessage):
-			await context.send(f'That command cannot be used in DMs.')
-		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
-			await context.send(embed=discord.Embed(
-				title='Command disabled',
-				description=f'The sever owner has disabled that command in this location.',
-				colour=discord.Colour.orange()
-			))
-		elif isinstance(error, DisabledCommand):
-			await context.send(embed=discord.Embed(
-				title='Command globally disabled',
-				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
-				colour=discord.Colour.orange()
-			))
-		elif isinstance(error, CommandInvokeError):
-			termcolor.cprint('An error occurred while running a command', 'red')
-			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
-			embed = discord.Embed(
-				title='An internal error occurred while running the command.',
-				colour=discord.Colour.red(),
-				description='Automatic reporting is currently disabled.'
-			)
-			await context.send(embed=embed)
-		else:
+		if not await self.report_error(context, error):
 			termcolor.cprint('An unknown issue occurred while running a command', 'red')
 			termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
 			embed = discord.Embed(
@@ -98,6 +75,43 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			)
 			await context.send(embed=embed)
 
+	async def report_error(self, destination, error):
+		if isinstance(error, CommandNotFound):
+			return True # Ignore unfound commands
+		if isinstance(error, MissingRequiredArgument):
+			await destination.send(f'Argument {error.param} required.')
+			return True
+		if isinstance(error, TooManyArguments):
+			await destination.send(f'Too many arguments given.')
+			return True
+		if isinstance(error, NoPrivateMessage):
+			await destination.send(f'That command cannot be used in DMs.')
+			return True
+		if isinstance(error, core.settings.DisabledCommandByServerOwner):
+			await destination.send(embed=discord.Embed(
+				title='Command disabled',
+				description=f'The sever owner has disabled that command in this location.',
+				colour=discord.Colour.orange()
+			))
+			return True
+		if isinstance(error, DisabledCommand):
+			await destination.send(embed=discord.Embed(
+				title='Command globally disabled',
+				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
+				colour=discord.Colour.orange()
+			))
+			return True
+		if isinstance(error, CommandInvokeError):
+			termcolor.cprint('An error occurred while running a command', 'red')
+			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
+			embed = discord.Embed(
+				title='An internal error occurred while running the command.',
+				colour=discord.Colour.red(),
+				description='Automatic reporting is currently disabled.'
+			)
+			await destination.send(embed=embed)
+			return True
+		return False
 
 def run(parameters):
 	if sys.getrecursionlimit() < 2500:
