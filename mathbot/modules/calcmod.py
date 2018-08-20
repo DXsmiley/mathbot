@@ -212,12 +212,13 @@ class CalculatorModule():
 				del self.replay_state[message.channel.id]
 		return 'Calculator state has been flushed from this channel.'
 
-	# Trigger the calculator when the message is prefixed by "=="
 	async def on_message(self, message):
+		''' Trigger the calculator when the message is prefixed by "==" '''
 		arg = message.content
-		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&':
-			if await self.bot.settings.resolve_message('f-calc-shortcut', message):
-				await self.perform_calculation(arg.strip()[2:], message)
+		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&' and await self.bot.settings.resolve_message('f-calc-shortcut', message):
+			if not await self.bot.settings.resolve_message('c-calc', message):
+				raise core.settings.DisabledCommandByServerOwner
+			await self.perform_calculation(arg.strip()[2:], message)
 
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message):
