@@ -67,8 +67,18 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			await context.send(f'Too many arguments given.')
 		elif isinstance(error, NoPrivateMessage):
 			await context.send(f'That command cannot be used in DMs.')
+		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
+			await context.send(embed=discord.Embed(
+				title='Command disabled',
+				description=f'The sever owner has disabled that command in this location.',
+				colour=discord.Colour.orange()
+			))
 		elif isinstance(error, DisabledCommand):
-			await context.send(f'The server owner has disabled use of that command in this channel.')
+			await context.send(embed=discord.Embed(
+				title='Command globally disabled',
+				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
+				colour=discord.Colour.orange()
+			))
 		elif isinstance(error, CommandInvokeError):
 			termcolor.cprint('An error occurred while running a command', 'red')
 			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
@@ -99,7 +109,7 @@ def run(parameters):
 def _get_extensions(parameters):
 	yield 'modules.about'
 	yield 'modules.blame'
-	# yield 'modules.calcmod'
+	yield 'modules.calcmod'
 	yield 'modules.dice'
 	# yield 'modules.greeter'
 	# yield 'modules.heartbeat'

@@ -27,7 +27,8 @@ class DiceModule(core.module.Module):
 
 	''' Module to allow the user to roll dice '''
 
-	@command(perm_setting='c-roll')
+	# @command(perm_setting='c-roll')
+	@command()
 	@core.settings.command_allowed('c-roll')
 	@core.util.respond
 	async def roll(self, ctx, arg):

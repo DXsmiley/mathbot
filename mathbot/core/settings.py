@@ -217,9 +217,13 @@ def get_cannon_name(setting):
 	return setting
 
 
+class DisabledCommandByServerOwner(discord.ext.commands.CheckFailure): pass
+
+
 # Maybe move this to some other file??
 def command_allowed(setting):
 	async def predicate(context):
 		if not await context.bot.settings.resolve_message(setting, context.message):
-			raise discord.ext.commands.DisabledCommand
+			raise DisabledCommandByServerOwner
+		return True
 	return discord.ext.commands.check(predicate)

@@ -1,9 +1,8 @@
 # Calculator module
 
 import re
-
 import asyncio
-
+import utils
 import safe
 import core.help
 import core.module
@@ -11,6 +10,7 @@ import core.handles
 import core.settings
 import core.keystore
 import core.parameters
+import core.util
 import calculator
 import calculator.blackbox
 import collections
@@ -25,6 +25,9 @@ import traceback
 import typing
 import discord
 import abc
+import functools
+
+from discord.ext.commands import command, guild_only
 
 core.help.load_from_file('./help/calculator_brief.md')
 core.help.load_from_file('./help/calculator_full.md')
@@ -78,53 +81,45 @@ class ReplayState:
 		self.loaded = False
 
 
-def command_guard(parameter, name):
-	def _decorator(function):
-		async def _internal(*args, **kwargs):
-			if core.parameters.get(f'calculator.{parameter}'):
-				return await function(*args, **kwargs)
-			else:
-				return discord.Embed(
-					title='Feature not available',
-					description=f'{name} will be enabled at a later date.'
-				)
-		_internal.__name__ = function.__name__
-		return _internal
-	return _decorator
-
-guard_libs = command_guard('libraries', 'Calculator libraries')
-guard_history = command_guard('persistent', 'Calculator history')
+ENABLE_LIBS = False
+ENABLE_HISTORY = False
 
 
-class CalculatorModule(core.module.Module):
+class CalculatorModule():
 
-	def __init__(self):
+	__slots__ = ['bot', 'command_history', 'replay_state']
+
+	def __init__(self, bot):
+		self.bot = bot
 		self.command_history = collections.defaultdict(lambda : '')
 		self.replay_state = collections.defaultdict(ReplayState)
 
-	@core.handles.command('calc', '*', perm_setting='c-calc')
-	async def handle_calc(self, message, arg):
+	@command()
+	@core.settings.command_allowed('c-calc')
+	async def calc(self, ctx, *, arg):
 		''' Handle the standard =calc command '''
-		await self.perform_calculation(arg.strip(), message)
+		await self.perform_calculation(arg.strip(), ctx.message)
 
-	@core.handles.command('calc-history', '', perm_setting='c-calc')
-	@guard_history
-	async def handle_view_history(self, message):
+	@command(name='calc-history', enabled=ENABLE_HISTORY)
+	@core.util.respond
+	async def handle_view_history(self, ctx):
 		''' Command to view the list of recently run expressions. '''
-		if not self.allow_calc_history(message.channel):
-			return HISTORY_DISABLED_PRIVATE if message.channel.is_private else HISTORY_DISABLED
-		commands = await self.unpack_commands(message.channel)
+		if not self.allow_calc_history(ctx.channel):
+			return HISTORY_DISABLED_PRIVATE if utils.is_private(ctx.channel) else HISTORY_DISABLED
+		commands = await self.unpack_commands(ctx.channel)
 		if not commands:
 			return 'No persistent commands have been run in this channel.'
 		commands_text = map(lambda x: x['expression'], commands)
 		for i in history_grouping(commands_text):
-			await self.send_message(message, i)
+			await ctx.send(i)
 
-	@core.handles.command('libs-list', '', perm_setting='c-calc', no_dm=True)
-	@guard_libs
-	async def handle_libs_list(self, message):
+	@command(name='libs-list', enabled=ENABLE_LIBS)
+	@guild_only()
+	@core.settings.command_allowed('c-calc')
+	@core.util.respond
+	async def handle_libs_list(self, ctx):
 		''' Command to list all the libraries installed in this server '''
-		libs = await core.keystore.get_json('calculator', 'libs', message.server.id)
+		libs = await core.keystore.get_json('calculator', 'libs', ctx.server.id)
 		if not libs:
 			return 'This server has no calculator libraries installed.'
 		embed = discord.Embed(title="Installed libraries")
@@ -132,9 +127,12 @@ class CalculatorModule(core.module.Module):
 			embed.add_field(name=i['name'], value=i['url'])
 		return embed
 
-	@core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
-	@guard_libs
-	async def handle_libs_add(self, message, url):
+	# @core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
+	# TODO: Permissions guard
+	@command(name='libs-add', enabled=ENABLE_LIBS)
+	@guild_only()
+	@core.util.respond
+	async def handle_libs_add(self, ctx, *, url):
 		''' Command to add a new library to the server '''
 		# Filter out non-libraries
 		if not url.startswith('https://gist.github.com/'):
@@ -154,7 +152,7 @@ class CalculatorModule(core.module.Module):
 					url=lib_info.url
 				)
 		# Get list of existing libraries
-		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
+		libs = await core.keystore.get_json('calculator', 'libs', ctx.server.id) or []
 		# Ensure that the library is not already installed
 		if url in map(lambda x: x['url'], libs):
 			return discord.Embed(
@@ -174,7 +172,7 @@ class CalculatorModule(core.module.Module):
 			'url': url,
 			'name': lib_info.name
 		})
-		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
+		await core.keystore.set_json('calculator', 'libs', ctx.server.id, libs)
 		return discord.Embed(
 			title='Added library',
 			description=lib_info.name,
@@ -182,8 +180,10 @@ class CalculatorModule(core.module.Module):
 			footer='Run `=calc-reload` to load the library.'
 		)
 
-	@core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
-	@guard_libs
+	# @core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
+	# TODO: Permission guard
+	@command(name='libs-remove', enabled=ENABLE_LIBS)
+	@guild_only()
 	async def handle_libs_remove(self, message, url):
 		''' Command to remove a library from the list '''
 		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
@@ -200,7 +200,10 @@ class CalculatorModule(core.module.Module):
 			colour=discord.colour.blue()
 		)
 
-	@core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
+	# @core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
+	# TODO: Permission guards
+	@command(name='calc-reload')
+	@core.settings.command_allowed('c-calc')
 	async def handle_calc_reload(self, message):
 		with (await LOCKS[message.channel.id]):
 			if message.channel.id in SCOPES:
@@ -210,12 +213,11 @@ class CalculatorModule(core.module.Module):
 		return 'Calculator state has been flushed from this channel.'
 
 	# Trigger the calculator when the message is prefixed by "=="
-	@core.handles.on_message()
-	async def handle_raw_message(self, message):
+	async def on_message(self, message):
 		arg = message.content
 		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&':
-			if await core.settings.get_setting(message, 'f-calc-shortcut'):
-				return core.handles.Redirect('calc', arg[2:])
+			if await self.bot.settings.resolve_message('f-calc-shortcut', message):
+				await self.perform_calculation(arg.strip()[2:], message)
 
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message):
@@ -226,10 +228,10 @@ class CalculatorModule(core.module.Module):
 			if arg == '':
 				# If no equation was given, spit out the help.
 				if not message.content.startswith('=='):
-					await self.send_message(message, 'Type `=help calc` for information on how to use this command.')
+					await message.channel.send('Type `=help calc` for information on how to use this command.')
 			elif arg == 'help':
-				prefix = await core.settings.get_channel_prefix(message.channel)
-				await self.send_message(message, SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
+				prefix = await self.bot.settings.get_channel_prefix(message.channel)
+				await message.channel.send(SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
 			else:
 				safe.sprint('Doing calculation:', arg)
 				scope = await get_scope(message.channel.id)
@@ -245,7 +247,7 @@ class CalculatorModule(core.module.Module):
 					for special_char in ('\\', '*', '_', '~~', '`'):
 						result = result.replace(special_char, '\\' + special_char)
 				result = result.replace('@', '@\N{zero width non-joiner}')
-				if result == '' and (message.channel.is_private or message.channel.permissions_for(message.server.me).add_reactions):
+				if result == '' and self.bot.permissions_for(message.channel).add_reactions:
 					await self.client.add_reaction(message, '👍')
 				else:
 					if result == '':
@@ -253,9 +255,9 @@ class CalculatorModule(core.module.Module):
 					elif len(result) > 2000:
 						result = 'Result was too large to display.'
 					elif worked and len(result) < 1000:
-						if await advertising.should_advertise_to(message.author, message.channel):
+						if await advertising.should_advertise_to(self.bot, message.author, message.channel):
 							result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-					await self.send_message(message, result)
+					await message.channel.send(result)
 				if worked and expression_has_side_effect(arg):
 					await self.add_command_to_history(message.channel, arg)
 
@@ -292,7 +294,7 @@ class CalculatorModule(core.module.Module):
 				))
 
 	async def unpack_commands(self, channel):
-		commands = await core.keystore.get('calculator', 'history', channel.id)
+		commands = await self.bot.keystore.get('calculator', 'history', channel.id)
 		if commands is None:
 			print('No commands to unpack')
 			return []
@@ -367,12 +369,12 @@ class CalculatorModule(core.module.Module):
 			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
 
 	def allow_calc_history(self, channel):
-		if not core.parameters.get('calculator.persistent'):
+		if not self.bot.parameters.get('calculator.persistent'):
 			return False
-		if channel.is_private:
-			return patrons.tier(channel.user.id) >= patrons.TIER_QUADRATIC
+		if utils.is_private(channel):
+			return patrons.tier(self.bot.parameteres, channel.user.id) >= patrons.TIER_QUADRATIC
 		else:
-			return patrons.tier(channel.server.owner.id) >= patrons.TIER_QUADRATIC
+			return patrons.tier(self.bot.parameteres, channel.server.owner.id) >= patrons.TIER_QUADRATIC
 
 
 def expression_has_side_effect(expr):
@@ -521,3 +523,7 @@ async def download_text(session: aiohttp.ClientSession, url: str) -> str:
 		if len(data) > 1000 * 32: # 32 KB
 			raise LibraryDownloadError('Downloaded file is too large (limit of 32,000 bytes)')
 		return data
+
+
+def setup(bot):
+	bot.add_cog(CalculatorModule(bot))
