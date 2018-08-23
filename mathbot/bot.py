@@ -36,7 +36,8 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			pm_help=True,
 			shard_count=parameters.get('shards total'),
 			shard_ids=parameters.get('shards mine'),
-			max_messages=100
+			max_messages=100,
+			fetch_offline_members=False
 		)
 		self.parameters = parameters
 		self.release = parameters.get('release')
@@ -113,6 +114,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			return True
 		return False
 
+
 def run(parameters):
 	if sys.getrecursionlimit() < 2500:
 		sys.setrecursionlimit(2500)
@@ -126,7 +128,7 @@ def _get_extensions(parameters):
 	yield 'modules.calcmod'
 	yield 'modules.dice'
 	# yield 'modules.greeter'
-	# yield 'modules.heartbeat'
+	yield 'modules.heartbeat'
 	yield 'modules.help'
 	yield 'modules.latex'
 	# yield 'modules.purge'
@@ -158,6 +160,7 @@ async def _determine_prefix(bot, message):
 		prefixes.append('')
 	# TODO: Grab custom prefixes here
 	return prefixes
+
 
 if __name__ == '__main__':
 	print('bot.py found that it was the main module. You should be invoking the bot from entrypoint.py')
