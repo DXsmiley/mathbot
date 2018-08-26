@@ -76,7 +76,6 @@ class LatexModule:
 		# }
 		self.connections = {}
 
-	# @core.handles.command('tex latex rtex', '*', perm_setting = 'c-tex')
 	@command(aliases=['latex', 'rtex'])
 	async def tex(self, context, *, latex=''):
 		if latex == '':
@@ -107,7 +106,6 @@ class LatexModule:
 	# 		# print('Handling edit:', latex)
 	# 		await self.handle(after, latex, blob.get('template'))
 
-	# @core.handles.on_message()
 	async def on_message(self, message):
 		# TODO: Filter out messages that start with the server prefix.
 		if message.content.count('$$') >= 2:
@@ -116,7 +114,6 @@ class LatexModule:
 				if latex != '':
 					await self.handle(message, latex, 'inline')
 
-	# @core.handles.on_edit()
 	# async def inline_edit(self, before, after):
 	# 	server_prefix = await core.settings.get_server_prefix(before)
 	# 	if not after.content.startswith(server_prefix) and after.content.count('$$') >= 2 and before.content != after.content:

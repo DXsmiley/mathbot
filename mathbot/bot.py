@@ -166,8 +166,8 @@ def _get_extensions(parameters):
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
 		yield 'modules.throws'
-	if parameters.get('release') == 'production':
-		yield 'modules.analytics'
+	# if parameters.get('release') == 'production':
+	# 	yield 'modules.analytics'
 
 
 def _create_keystore(parameters):

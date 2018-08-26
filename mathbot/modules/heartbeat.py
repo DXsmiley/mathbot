@@ -1,7 +1,5 @@
 ''' Module to update the status icon of the bot whever it's being restarted or something. '''
 
-import core.module
-import core.handles
 import core.keystore
 import time
 import asyncio

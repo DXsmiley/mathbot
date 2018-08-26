@@ -4,7 +4,6 @@ import re
 import core.keystore
 import core.help
 import core.settings
-import core.module
 
 from core.util import invoker_requires_perms
 from discord.ext.commands import command, guild_only
@@ -91,7 +90,6 @@ class SettingsModule:
 			await ctx.bot.settings.set(setting, context, val)
 			await ctx.send('Setting applied.')
 
-	# @core.handles.command('theme', 'string|lower')
 	@command()
 	async def theme(self, ctx, theme):
 		theme = theme.lower()
@@ -109,7 +107,6 @@ class SettingsModule:
 			await ctx.bot.keystore.set(f'p-wolf-units:{ctx.author.id}', units)
 			await ctx.send(f'Your units have been set to `{units}`.')
 
-	# @core.handles.command('checksetting', 'string', no_dm=True)
 	@command()
 	@guild_only()
 	async def checksetting(self, ctx, setting):
@@ -128,7 +125,6 @@ class SettingsModule:
 			SettingsModule.expand_value(default)
 		))
 
-	# @core.handles.command('checkallsettings', '', no_dm=True)
 	@command()
 	@guild_only()
 	async def checkallsettings(self, ctx):
@@ -152,7 +148,6 @@ class SettingsModule:
 			))
 		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
 
-	# @core.handles.command('prefix', '*', no_dm=True)
 	@command()
 	@guild_only()
 	@invoker_requires_perms('administrator')
@@ -168,11 +163,6 @@ class SettingsModule:
 			else:
 				await ctx.send(f'The prefix for this server is `{prefix}`, which has been customised.')
 
-	# @core.handles.command('setprefix', '*', no_dm=True, discord_perms='manage_server')
-	# async def command_set_prefix(self, message, arg):
-	# 	prefix = arg.strip().replace('`', '')
-	# 	await core.settings.set_server_prefix(message.server, prefix)
-	# 	await self.send_message(message, 'Bot prefix for this server has been changed to `{}`.'.format(prefix))
 
 def setup(bot):
 	bot.add_cog(SettingsModule())

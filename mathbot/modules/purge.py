@@ -1,5 +1,3 @@
-import core.handles
-import core.module
 import core.help
 import discord
 import asyncio

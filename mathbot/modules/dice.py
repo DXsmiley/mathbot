@@ -4,8 +4,6 @@
 import re
 import random
 
-import core.module
-import core.handles
 import core.help
 import core.settings
 import core.util
@@ -23,11 +21,10 @@ class DiceException(Exception): pass
 class ValuesTooBigException(DiceException): pass
 
 
-class DiceModule(core.module.Module):
+class DiceModule:
 
 	''' Module to allow the user to roll dice '''
 
-	# @command(perm_setting='c-roll')
 	@command()
 	@core.settings.command_allowed('c-roll')
 	@core.util.respond

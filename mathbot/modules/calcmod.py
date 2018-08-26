@@ -5,12 +5,8 @@ import asyncio
 import utils
 import safe
 import core.help
-import core.module
-import core.handles
-import core.settings
-import core.keystore
-import core.parameters
 import core.util
+import core.settings
 import calculator
 import calculator.blackbox
 import collections
@@ -127,7 +123,6 @@ class CalculatorModule():
 			embed.add_field(name=i['name'], value=i['url'])
 		return embed
 
-	# @core.handles.command('libs-add', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	# TODO: Permissions guard
 	@command(name='libs-add', enabled=ENABLE_LIBS)
 	@guild_only()
@@ -180,7 +175,6 @@ class CalculatorModule():
 			footer='Run `=calc-reload` to load the library.'
 		)
 
-	# @core.handles.command('libs-remove', 'string', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	# TODO: Permission guard
 	@command(name='libs-remove', enabled=ENABLE_LIBS)
 	@guild_only()
@@ -200,7 +194,6 @@ class CalculatorModule():
 			colour=discord.colour.blue()
 		)
 
-	# @core.handles.command('calc-reload calc-flush', '', perm_setting='c-calc', no_dm=True, invoker_perms='manage_server')
 	# TODO: Permission guards
 	@command(name='calc-reload')
 	@core.settings.command_allowed('c-calc')

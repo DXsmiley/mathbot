@@ -3,8 +3,6 @@ import asyncio
 import traceback
 import discord
 
-import core.module
-import core.handles
 import core.keystore
 import core.parameters
 
