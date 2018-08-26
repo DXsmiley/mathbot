@@ -21,11 +21,21 @@ import core.keystore
 import core.settings
 import utils
 
+from modules.reporter import report
+
 
 warnings.simplefilter('default')
 logging.basicConfig(level = logging.INFO)
 sys.setrecursionlimit(2500)
 core.blame.monkey_patch()
+
+
+REQUIRED_PERMISSIONS_MESSAGE = '''\
+The bot does not have all the permissions it requires in order to run in this channel. The bot may behave unexpectedly without them.
+ - Add reactions
+ - Attach files
+ - Embed links
+'''
 
 
 class MathBot(discord.ext.commands.AutoShardedBot):
@@ -53,20 +63,31 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.is_bot:
+			# perms = message.channel.permissions_for(self.user)
+			# if perms.read_messages and perms.send_messages:
+			# TODO: Prevent processing commands in places where the bot cannot send messages.
 			await self.process_commands(message)
+
+	async def on_command(self, ctx):
+		perms = ctx.message.channel.permissions_for(ctx.me)
+		if not all([perms.add_reactions, perms.attach_files, perms.embed_links]):
+			await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
 
 	async def on_error(self, event, *args, **kwargs):
 		# TODO: Hook into DReport
 		was_handled = False
+		_, error, _ = sys.exc_info()
 		if event == 'message':
-			_, error, _ = sys.exc_info()
 			was_handled = await self.report_error(args[0].channel, error)
+		if event == 'on_command':
+			was_handled = await self.report_error(args[0], error)
 		if not was_handled:
 			termcolor.cprint(f'An error occurred outside of a command and was not handled: {event}', 'red')
 			termcolor.cprint(traceback.format_exc(), 'blue')
 
 	async def on_command_error(self, context, error):
-		if not await self.report_error(context, error):
+		details = f'{self.shard_ids} **Error while running command**\n```\n{context.message.clean_content}\n```'
+		if not await self.report_error(context, error, details):
 			termcolor.cprint('An unknown issue occurred while running a command', 'red')
 			termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
 			embed = discord.Embed(
@@ -76,7 +97,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			)
 			await context.send(embed=embed)
 
-	async def report_error(self, destination, error):
+	async def report_error(self, destination, error, human_details=''):
 		if isinstance(error, CommandNotFound):
 			return True # Ignore unfound commands
 		if isinstance(error, MissingRequiredArgument):
@@ -103,14 +124,16 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			))
 			return True
 		if isinstance(error, CommandInvokeError):
+			tb = ''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__))
 			termcolor.cprint('An error occurred while running a command', 'red')
-			termcolor.cprint(''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__)), 'blue')
+			termcolor.cprint(tb, 'blue')
 			embed = discord.Embed(
 				title='An internal error occurred while running the command.',
 				colour=discord.Colour.red(),
-				description='Automatic reporting is currently disabled.'
+				description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
 			)
 			await destination.send(embed=embed)
+			await report(self, f'{human_details}\n```\n{tb}\n```')
 			return True
 		return False
 
@@ -132,12 +155,12 @@ def _get_extensions(parameters):
 	yield 'modules.help'
 	yield 'modules.latex'
 	# yield 'modules.purge'
-	# yield 'modules.reporter'
+	yield 'modules.reporter'
 	yield 'modules.settings'
 	# yield 'modules.wolfram'
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
-		# yield 'modules.throws'
+		yield 'modules.throws'
 	if parameters.get('release') == 'production':
 		yield 'modules.analytics'
 

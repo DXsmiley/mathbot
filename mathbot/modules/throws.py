@@ -1,12 +1,10 @@
-import core.module
-import core.handles
+from discord.ext.commands import command
 
-class ThrowsModule(core.module.Module):
+class ThrowsModule:
 
-	@core.handles.command('throw', '')
-	async def throw(self, message):
+	@command()
+	async def throw(self, context):
 		raise Exception('I wonder what went wrong?')
 
-	@core.handles.command('throw_runtime', '')
-	async def throw_runtime(self, message):
-		raise RuntimeError('I wonder what went wrong?')
+def setup(bot):
+	bot.add_cog(ThrowsModule())
