@@ -1,6 +1,7 @@
 import sys
 import functools
 import discord
+import io
 
 
 class MessageEditedException(Exception):
@@ -54,3 +55,13 @@ def err(*args, **kwargs):
 
 def is_private(channel):
 	return isinstance(channel, discord.abc.PrivateChannel)
+
+
+def image_to_discord_file(image, fname):
+	''' Converts a PIL image to a discord.File object,
+		so that it may be sent over the internet.
+	'''
+	fobj = io.BytesIO()
+	image.save(fobj, format='PNG')
+	fobj = io.BytesIO(fobj.getvalue())
+	return discord.File(fobj, fname)

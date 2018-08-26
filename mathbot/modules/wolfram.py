@@ -30,12 +30,14 @@ import safe
 import wolfapi
 import wordfilter
 import core.help
-import core.module
-import core.handles
 import core.settings
 import core.keystore
 import core.parameters
 from imageutil import *
+
+from discord.ext.commands import command, check
+from core.util import respond
+from utils import is_private, image_to_discord_file
 
 
 core.help.load_from_file('./help/wolfram.md')
@@ -93,14 +95,10 @@ MAX_REACTIONS_IN_MESSAGE = 18
 ASSUMPTIONS_MADE_MESSAGE = \
 	'**Assumptions were made**\nPress {} to show them.\n\n'.format(EXPAND_EMOJI)
 
-api_key = core.parameters.get('wolfram key')
-api = None
-if api_key is not None:
-	api = wolfapi.Client(api_key)
-
-server_locks = set() # type: typing.Set[typing.Any]
-dm_locks = set() # type: typing.Set[typing.Any]
-
+# api_key = core.parameters.get('wolfram key')
+# api = None
+# if api_key is not None:
+# 	api = wolfapi.Client(api_key)
 
 class AssumptionDataScope:
 
@@ -126,36 +124,78 @@ class AssumptionDataScope:
 			await core.keystore.set_json('wolfram', 'message', self.message.id, self.data, expire = 60 * 60 * 30)
 
 
-# Dummy message. This is a sign that I need to work on the settings module somewhat.
-class Dummy:
-	def __init__(self, channel):
-		self.channel = channel
-		self.server = channel.server
+API_CLIENT = None
+def get_api(bot):
+	global API_CLIENT
+	key = bot.parameters.get('wolfram key')
+	if API_CLIENT is None and key:
+		API_CLIENT = wolfapi.Client(key)
+	return API_CLIENT
 
 
-class WolframModule(core.module.Module):
+def require_api(ctx):
+	return get_api(ctx.bot) is not None
 
-	# sent_footer_messages = {}
 
-	@core.handles.command('wolf', '*', perm_setting='c-wolf', bot_perms='send_messages attach_files embed_links add_reactions')
-	async def command_wolf(self, msg, query):
-		if api is None:
-			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
-		elif query in ['', 'help']:
-			return core.handles.Redirect('help wolfram')
+class Locker:
+
+	DM_LOCKS = set()
+	SERVER_LOCKS = set()
+
+	def __init__(self, ctx):
+		self.ctx = ctx
+		self.has_lock = False
+		if is_private(ctx.channel):
+			self.lock_id = ctx.author.id
+			self.lock_set = Locker.DM_LOCKS
 		else:
-			await self.lock_wolf(msg.channel, msg.author, query)
+			self.lock_id = ctx.guild.id
+			self.lock_set = Locker.SERVER_LOCKS
 
-	@core.handles.command('pup', '*', perm_setting='c-wolf', bot_perms='send_messages attach_files embed_links add_reactions')
-	async def command_pup(self, msg, query):
-		if api is None:
-			await self.send_message(msg.channel, NO_API_ERROR, blame=msg.author)
-		elif query in ['', 'help']:
-			return core.handles.Redirect('help wolfram')
+	async def __aenter__(self):
+		if self.lock_id in self.lock_set:
+			# Might move this out into another function later??
+			await self.ctx.send(
+				IGNORE_MESSAGE_DM if is_private(self.ctx.channel)
+				else IGNORE_MESSAGE_SERVER
+			)
+			return False
+		# There is no race condition here, because between checking the lock and adding the lock, there is no way to switch coroutines and do something else.
+		self.lock_set.add(self.lock_id)
+		self.has_lock = True
+		return True
+
+	async def __aexit__(self, exc_type, exc, tb):
+		if self.has_lock:
+			self.lock_set.remove(self.lock_id)
+
+
+class WolframModule:
+
+	@command()
+	@core.settings.command_allowed('c-wolf')
+	@check(require_api)
+	async def wolf(self, ctx, *, query):
+		if query in ['', 'help']:
+			# TODO: Use server prefix in this help message.
+			await ctx.send('Usage: `=wolf x^2 - 3`. Run `=help wolf` for details.')
 		else:
-			await self.lock_wolf(msg.channel, msg.author, query, pup=True)
+			async with Locker(ctx) as ok:
+				if ok:
+					await self.answer_query(ctx, query, small=False)
 
-	@core.handles.add_reaction(RERUN_EMOJI)
+	@command()
+	@core.settings.command_allowed('c-wolf')
+	@check(require_api)
+	async def pup(self, ctx, *, query):
+		if query in ['', 'help']:
+			# TODO: Use server prefix in this help message.
+			await ctx.send('Usage: `=pup plot x^2 - 3`. Run `=help pup` for details.')
+		else:
+			async with Locker(ctx) as ok:
+				if ok:
+					await self.answer_query(ctx, query, small=True)
+
 	async def rerun_rection(self, reaction, user):
 		async with AssumptionDataScope(reaction.message, self.client) as data:
 			if data is not None and not data['used'] and data['blame'] == user.id:
@@ -170,7 +210,7 @@ class WolframModule(core.module.Module):
 					if len(assumptions_to_use) == 0:
 						print('   with no assumptions!?')
 						if data['no change warning'] == False:
-							await self.send_message(channel, "Why would you re-run a query without changing the assumptions? :thinking:", blame = user)
+							await ctx.send("Why would you re-run a query without changing the assumptions? :thinking:", blame = user)
 						data['no change warning'] = True
 					else:
 						print('With assumptions')
@@ -179,100 +219,94 @@ class WolframModule(core.module.Module):
 						if await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
 							data['used'] = True
 
-	async def lock_wolf(self, channel, blame, query, assumptions = [], pup = False):
-		lock_id = blame.id if channel.is_private else channel.server.id
-		lock_set = dm_locks if channel.is_private else server_locks
-		did_work = False
-		if lock_id not in lock_set:
-			lock_set.add(lock_id)
-			did_work = True
-			try:
-				await self.answer_query(query, channel, blame, assumptions = assumptions, small=pup)
-			finally:
-				lock_set.remove(lock_id)
-		else:
-			await self.send_message(
-				channel,
-				IGNORE_MESSAGE_DM if channel.is_private else IGNORE_MESSAGE_SERVER,
-				blame = blame
-			)
-		return did_work
+	async def answer_query(self, ctx, query, assumptions=[], small=False, debug=False):
+		safe.sprint('wolfram|alpha :', ctx.author.name, ':', query)
+		channel = ctx.channel
+		author = ctx.author
+		api = get_api(ctx.bot)
 
-	async def answer_query(self, query, channel, blame, assumptions=[], small=False, debug = False):
-		safe.sprint('wolfram|alpha :', blame.name, ':', query)
-		await self.send_typing(channel)
-		enable_filter = False
-		if not channel.is_private:
-			enable_filter = await core.settings.resolve('f-wolf-filter', channel, channel.server, default = 'nsfw' not in channel.name)
-		if enable_filter and wordfilter.is_bad(query):
-			await self.send_message(channel, FILTER_FAILURE, blame=blame)
-			return
-		try:
-			print('Making request')
-			units = await core.keystore.get('p-wolf-units:' + str(blame.id))
-			result = await api.request(query, assumptions, imperial=(units == 'imperial'), debug=debug)
-		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
-			await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame=blame)
-		except asyncio.TimeoutError:
-			print('W|A timeout:', query)
-			await self.send_message(channel, ERROR_MESSAGE_TIMEOUT.format(query), blame=blame)
-		except aiohttp.ClientError as error:
-			print('Wolf: HTTP processing error:', error.message)
-			await self.send_message(channel, 'The server threw an error. Try again in a moment.', blame=blame)
-		except xml.parsers.expat.ExpatError as error:
-			print('Wolf: XML processing error:', error)
-			await self.send_message(channel, 'The server returned some malformed data. Try again in a moment.', blame=blame)
-		else:
+		async with ctx.typing():
 
-			if len(result.sections) == 0:
-				await self.send_message(channel, ERROR_MESSAGE_NO_RESULTS, blame = blame)
+			# Filter out bad words
+			enable_filter = False
+			if not is_private(channel):
+				enable_filter = await ctx.bot.settings.resolve('f-wolf-filter', channel, channel.guild, default = 'nsfw' not in channel.name)
+			if enable_filter and wordfilter.is_bad(query):
+				await ctx.send(FILTER_FAILURE)
 				return
 
-			is_dark = (await core.keystore.get('p-tex-colour:' + blame.id)) == 'dark'
+			# Perform the query
+			try:
+				units = await ctx.bot.keystore.get(f'p-wolf-units:{author.id}')
+				result = await api.request(query, assumptions, imperial=(units == 'imperial'), debug=debug)
+			except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
+				await ctx.send(ERROR_MESSAGE_NO_RESULTS)
+			except asyncio.TimeoutError:
+				print('W|A timeout:', query)
+				await ctx.send(ERROR_MESSAGE_TIMEOUT.format(query))
+			except aiohttp.ClientError as error:
+				print('Wolf: HTTP processing error:', error.message)
+				await ctx.send('The server threw an error. Try again in a moment.')
+			except xml.parsers.expat.ExpatError as error:
+				print('Wolf: XML processing error:', error)
+				await ctx.send('The server returned some malformed data. Try again in a moment.')
+			else:
 
-			sections_reduced = result.sections if not small else list(
-				cleanup_section_list(
-					itertools.chain(
-						[find_first(section_is_input, result.sections, None)],
-						list(filter(section_is_important, result.sections))
-						or [find_first(section_is_not_input, result.sections, None)]
+				if len(result.sections) == 0:
+					await ctx.send(ERROR_MESSAGE_NO_RESULTS)
+					return
+
+				is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
+
+				sections_reduced = result.sections if not small else list(
+					cleanup_section_list(
+						itertools.chain(
+							[find_first(section_is_input, result.sections, None)],
+							list(filter(section_is_important, result.sections))
+							or [find_first(section_is_not_input, result.sections, None)]
+						)
 					)
 				)
-			)
 
-			# Post images
-			for img in process_images(sections_reduced, is_dark):
-				await self.send_image(channel, img, 'result.png', blame=blame)
-				await asyncio.sleep(1.05)
+				# Post images
+				for img in process_images(sections_reduced, is_dark):
+					await ctx.send(file=image_to_discord_file(img, 'result.png'))
+					await asyncio.sleep(1.05)
 
-			embed, show_assuptions = await self.format_adm(channel, blame, query, result.assumptions, small)
+				# Assuptions are currently disabled because of a 'bug'.
+				# I think it's that discord sends emoji reaction updates
+				# on a different shard to the one that handles the channel
+				# that the message is in, which means that the shard
+				# receiving the notif doesn't know what to do with the info
+				# it receives.
+				embed, show_assuptions = await self.format_adm(ctx, None, small)
 
-			posted = await self.send_message(channel, embed=embed, blame=blame)
+				posted = await ctx.send(embed=embed)
 
-			if not small and show_assuptions:
-				await self.add_reaction_emoji(posted, result.assumptions)
-				payload = {
-					'assumptions': result.assumptions.to_json(),
-					'query': query,
-					'used': False,
-					'blame': blame.id,
-					'channel id': posted.channel.id,
-					'message id': posted.id,
-					'no change warning': False
-				}
-				await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
+				if not small and show_assuptions and False:
+					await self.add_reaction_emoji(posted, result.assumptions)
+					payload = {
+						'assumptions': result.assumptions.to_json(),
+						'query': query,
+						'used': False,
+						'blame': blame.id,
+						'channel id': posted.channel.id,
+						'message id': posted.id,
+						'no change warning': False
+					}
+					await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
 
-			print('Done.')
+				print('Done.')
 
 	@staticmethod
-	async def format_adm(channel, blame, query, assuptions, small):
+	async def format_adm(ctx, assuptions, small):
 		embed = discord.Embed(
 			title='Do more with Wolfram|Alpha pro',
 			url='http://www.wolframalpha.com/pro/'
 		)
-		if not channel.is_private and await core.settings.resolve('f-wolf-mention', channel, channel.server):
-			embed.add_field(name='Query made by', value=blame.mention)
-		if not small and assuptions.count > 0 and len(str(assuptions)) <= 800:
+		if not is_private(ctx.channel) and await ctx.bot.settings.resolve('f-wolf-mention', ctx.channel, ctx.channel.guild):
+			embed.add_field(name='Query made by', value=ctx.author.mention)
+		if not small and assuptions and assuptions.count > 0 and len(str(assuptions)) <= 800:
 			embed.add_field(name='Assumptions', value=str(assuptions))
 			return embed, True
 		return embed, False
@@ -298,7 +332,7 @@ class WolframModule(core.module.Module):
 SHOULD_ERROR = object()
 
 
-def find_first(predicate, iterator, default = SHOULD_ERROR):
+def find_first(predicate, iterator, default=SHOULD_ERROR):
 	''' Return the first item from iterator that conforms to the predicate '''
 	for i in iterator:
 		if predicate(i):
@@ -416,3 +450,7 @@ def cleanup_section_list(items):
 		if i is not None and id(i) not in seen:
 			seen.add(id(i))
 			yield i
+
+
+def setup(bot):
+	bot.add_cog(WolframModule())

@@ -77,7 +77,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		# TODO: Hook into DReport
 		was_handled = False
 		_, error, _ = sys.exc_info()
-		if event == 'message':
+		if event in ['message', 'on_message']:
 			was_handled = await self.report_error(args[0].channel, error)
 		if event == 'on_command':
 			was_handled = await self.report_error(args[0], error)
@@ -157,7 +157,7 @@ def _get_extensions(parameters):
 	# yield 'modules.purge'
 	yield 'modules.reporter'
 	yield 'modules.settings'
-	# yield 'modules.wolfram'
+	yield 'modules.wolfram'
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
 		yield 'modules.throws'
