@@ -63,10 +63,13 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.is_bot:
-			# perms = message.channel.permissions_for(self.user)
-			# if perms.read_messages and perms.send_messages:
-			# TODO: Prevent processing commands in places where the bot cannot send messages.
-			await self.process_commands(message)
+			should_run = False
+			if utils.is_private(message.channel) or self._can_post_in_guild(message):
+				await self.process_commands(message)
+
+	def _can_post_in_guild(self, message):
+		perms = message.channel.permissions_for(message.guild.me)
+		return perms.read_messages and perms.send_messages
 
 	async def on_command(self, ctx):
 		perms = ctx.message.channel.permissions_for(ctx.me)
@@ -74,7 +77,6 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
 
 	async def on_error(self, event, *args, **kwargs):
-		# TODO: Hook into DReport
 		was_handled = False
 		_, error, _ = sys.exc_info()
 		if event in ['message', 'on_message']:
@@ -105,6 +107,9 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			return True
 		if isinstance(error, TooManyArguments):
 			await destination.send(f'Too many arguments given.')
+			return True
+		if isinstance(error, BadArgument):
+			await destination.send(f'Bad argument: {error}')
 			return True
 		if isinstance(error, NoPrivateMessage):
 			await destination.send(f'That command cannot be used in DMs.')
@@ -154,7 +159,7 @@ def _get_extensions(parameters):
 	yield 'modules.heartbeat'
 	yield 'modules.help'
 	yield 'modules.latex'
-	# yield 'modules.purge'
+	yield 'modules.purge'
 	yield 'modules.reporter'
 	yield 'modules.settings'
 	yield 'modules.wolfram'
@@ -178,10 +183,11 @@ def _create_keystore(parameters):
 
 
 async def _determine_prefix(bot, message):
-	prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ', '=']
+	prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
 	if message.guild is None:
-		prefixes.append('')
-	# TODO: Grab custom prefixes here
+		prefixes += ['=', '']
+	custom = await bot.settings.get_server_prefix(message)
+	prefixes += [custom + ' ', custom]
 	return prefixes
 
 

@@ -6,6 +6,7 @@ import core.help
 import core.settings
 import core.module
 
+from core.util import invoker_requires_perms
 from discord.ext.commands import command, guild_only
 
 
@@ -71,6 +72,7 @@ class SettingsModule:
 
 	@command(name='set')
 	@guild_only()
+	@invoker_requires_perms('administrator')
 	async def _set(self, ctx, context: str, setting: str, value: str):
 		try:
 			async with ProblemReporter(ctx) as problem:
@@ -98,14 +100,14 @@ class SettingsModule:
 		await ctx.bot.keystore.set(f'p-tex-colour:{ctx.message.author.id}', theme)
 		await ctx.send(f'Your theme has been set to `{theme}`.')
 
-	# @core.handles.command('units', 'string|lower')
 	@command()
-	async def units(self, message, units):
+	async def units(self, ctx, units: str):
 		units = units.lower()
 		if units not in ['metric', 'imperial']:
-			return f'`{units}` is not a unit system. Valid units are `metric` and `imperial`.'
-		await ctx.bot.keystore.set(f'p-wolf-units:{ctx.message.author.id}', units)
-		await ctx.send(f'Your units have been set to `{units}`.')
+			await ctx.send(f'`{units}` is not a unit system. Valid units are `metric` and `imperial`.')
+		else:
+			await ctx.bot.keystore.set(f'p-wolf-units:{ctx.author.id}', units)
+			await ctx.send(f'Your units have been set to `{units}`.')
 
 	# @core.handles.command('checksetting', 'string', no_dm=True)
 	@command()
@@ -153,7 +155,8 @@ class SettingsModule:
 	# @core.handles.command('prefix', '*', no_dm=True)
 	@command()
 	@guild_only()
-	async def prefix(self, ctx, *, arg):
+	@invoker_requires_perms('administrator')
+	async def prefix(self, ctx, *, arg=''):
 		if arg:
 			prefix = arg.strip().replace('`', '')
 			await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
@@ -163,7 +166,7 @@ class SettingsModule:
 			if prefix in [None, '=']:
 				await ctx.send('The prefix for this server is `=`, which is the default.')
 			else:
-				await ctx.send('The prefix for this server is `{prefix}`, which has been customised.')
+				await ctx.send(f'The prefix for this server is `{prefix}`, which has been customised.')
 
 	# @core.handles.command('setprefix', '*', no_dm=True, discord_perms='manage_server')
 	# async def command_set_prefix(self, message, arg):
