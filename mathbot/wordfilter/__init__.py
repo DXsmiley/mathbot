@@ -13,4 +13,7 @@ with open(WORDFILE) as f:
 def is_bad(sentence):
 	words = sentence.lower().split()
 	words = {''.join(filter(ASCII_LOWERCASE.__contains__, word)) for word in words}
-	return bool(words & BAD_WORDS)
+	return bool(words & BAD_WORDS) or complex_rules(words)
+
+def complex_rules(words):
+	return ('rectum' in words and not {'latus', 'semilatus'} & words)

@@ -18,6 +18,7 @@ More help is also available:
 	`{{prefix}}help commands` - Get the full list of commands.
 	`{{prefix}}help topic` - Get help about a particular topic or command.
 	`{{prefix}}help management` - Get information about commands for server owners and moderators.
+	`{{prefix}}help settings` - Get information about settings.
 	`{{prefix}}about` - General information about the bot.
 
 Help is also available as a web page: <https://dxsmiley.github.io/mathbot/docs.html>
