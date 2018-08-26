@@ -62,7 +62,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		super().run(self.parameters.get('token'))
 
 	async def on_message(self, message):
-		if self.release != 'production' or not message.author.is_bot:
+		if self.release != 'production' or not message.author.bot:
 			should_run = False
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
 				await self.process_commands(message)
