@@ -101,34 +101,28 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 
 	async def report_error(self, destination, error, human_details=''):
 		if isinstance(error, CommandNotFound):
-			return True # Ignore unfound commands
-		if isinstance(error, MissingRequiredArgument):
+			pass # Ignore unfound commands
+		elif isinstance(error, MissingRequiredArgument):
 			await destination.send(f'Argument {error.param} required.')
-			return True
-		if isinstance(error, TooManyArguments):
+		elif isinstance(error, TooManyArguments):
 			await destination.send(f'Too many arguments given.')
-			return True
-		if isinstance(error, BadArgument):
+		elif isinstance(error, BadArgument):
 			await destination.send(f'Bad argument: {error}')
-			return True
-		if isinstance(error, NoPrivateMessage):
+		elif isinstance(error, NoPrivateMessage):
 			await destination.send(f'That command cannot be used in DMs.')
-			return True
-		if isinstance(error, core.settings.DisabledCommandByServerOwner):
+		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
 			await destination.send(embed=discord.Embed(
 				title='Command disabled',
 				description=f'The sever owner has disabled that command in this location.',
 				colour=discord.Colour.orange()
 			))
-			return True
-		if isinstance(error, DisabledCommand):
+		elif isinstance(error, DisabledCommand):
 			await destination.send(embed=discord.Embed(
 				title='Command globally disabled',
 				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
 				colour=discord.Colour.orange()
 			))
-			return True
-		if isinstance(error, CommandInvokeError):
+		elif isinstance(error, CommandInvokeError):
 			tb = ''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__))
 			termcolor.cprint('An error occurred while running a command', 'red')
 			termcolor.cprint(tb, 'blue')
@@ -139,8 +133,9 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			)
 			await destination.send(embed=embed)
 			await report(self, f'{human_details}\n```\n{tb}\n```')
-			return True
-		return False
+		else:
+			return False
+		return True
 
 
 def run(parameters):
@@ -183,12 +178,12 @@ def _create_keystore(parameters):
 
 
 async def _determine_prefix(bot, message):
-	prefixes = [f'<@!{bot.user.id}> ', f'<@{bot.user.id}> ']
 	if message.guild is None:
-		prefixes += ['=', '']
-	custom = await bot.settings.get_server_prefix(message)
-	prefixes += [custom + ' ', custom]
-	return prefixes
+		prefixes = ['= ', '=', '']
+	else:
+		custom = await bot.settings.get_server_prefix(message)
+		prefixes = [custom + ' ', custom]
+	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 
 
 if __name__ == '__main__':
