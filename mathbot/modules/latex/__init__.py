@@ -80,10 +80,13 @@ class LatexModule:
 	async def on_message(self, message):
 		# TODO: Filter out messages that start with the server prefix.
 		if message.content.count('$$') >= 2:
-			if is_private(message.channel) or (await self.bot.settings.get_setting(message, 'c-tex') and await self.bot.settings.get_setting(message, 'f-inline-tex')):
+			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
 					await self.handle(message, latex, 'inline')
+
+	async def on_message_edit(self, old, new):
+		await self.on_message(new)
 
 	async def handle(self, message, latex, template):
 		print(f'LaTeX - {message.author} - {latex}')
