@@ -21,6 +21,7 @@ import core.keystore
 import core.settings
 import utils
 
+from queuedict import QueueDict
 from modules.reporter import report
 
 
@@ -53,6 +54,7 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 		self.release = parameters.get('release')
 		self.keystore = _create_keystore(parameters)
 		self.settings = core.settings.Settings(self.keystore)
+		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 		for i in _get_extensions(parameters):
@@ -63,13 +65,38 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
-			should_run = False
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
 				await self.process_commands(message)
 
 	def _can_post_in_guild(self, message):
 		perms = message.channel.permissions_for(message.guild.me)
 		return perms.read_messages and perms.send_messages
+
+	# Enabling this will cause output to be deleted with the coresponding
+	# commands are deleted.
+	# async def on_message_delete(self, message):
+	# 	to_delete = self.command_output_map.pop(message.id, [])
+	# 	await self._delete_messages(to_delete)
+
+	# Using this, it's possible to edit a tex message
+	# into some other command, so I might add some additional
+	# restrictions to this later.
+	async def on_message_edit(self, before, after):
+		to_delete = self.command_output_map.pop(before.id, [])
+		if to_delete:
+			await asyncio.gather(
+				self._delete_messages(to_delete),
+				self.on_message(after)
+			)
+
+	async def _delete_messages(self, messages):
+		for i in messages:
+			await i.delete()
+			await asyncio.sleep(2)
+
+	def message_link(self, invoker, sent):
+		lst = self.command_output_map.get(invoker.id, default=[])
+		self.command_output_map[invoker.id] = lst + [sent]
 
 	async def on_command(self, ctx):
 		perms = ctx.message.channel.permissions_for(ctx.me)

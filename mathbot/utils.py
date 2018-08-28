@@ -2,6 +2,7 @@ import sys
 import functools
 import discord
 import io
+import core.blame
 
 
 class MessageEditedException(Exception):
@@ -9,9 +10,14 @@ class MessageEditedException(Exception):
 
 
 class MessageEditGuard:
+	''' Used to handle message cleanup for commands that
+		may be edited in order to re-invoke them.
+	'''
 
-	def __init__(self, message):
-		self._message = message
+	def __init__(self, trigger, destination, bot):
+		self._trigger = trigger
+		self._destination = destination
+		self._bot = bot
 		self._start_timestamp = self._get_timestamp()
 
 	def __enter__(self):
@@ -21,13 +27,16 @@ class MessageEditGuard:
 		return isinstance(value, MessageEditGuard)
 
 	def _get_timestamp(self):
-		return self._message.edited_at or self._message.created_at
+		return self._trigger.edited_at or self._trigger.created_at
 
 	async def send(self, *args, **kwargs):
 		if self._get_timestamp() != self._start_timestamp:
 			print('Edit guard prevented sending of message')
 			raise MessageEditedException
-		return await self._message.channel.send(*args, **kwargs)
+		sent_message = await self._destination.send(*args, **kwargs)
+		self._bot.message_link(self._trigger, sent_message)
+		await core.blame.set_blame(self._bot.keystore, sent_message, self._trigger.author)
+		return sent_message
 
 
 def listify(function):

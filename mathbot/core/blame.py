@@ -22,3 +22,4 @@ async def _context_send(context, *args, **kwargs):
 	sent = await Messageable.send(context, *args, **kwargs)
 	LOG.info(f'Setting blame for {sent.id}: {context.message.author}')
 	await set_blame(context.bot.keystore, sent, context.message.author)
+	return sent
