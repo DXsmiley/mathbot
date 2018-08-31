@@ -248,12 +248,11 @@ class CalculatorModule():
 						result = ':thumbsup:'
 					elif len(result) > 2000:
 						result = 'Result was too large to display.'
-					elif worked and len(result) < 1000:
-						if await advertising.should_advertise_to(self.bot, message.author, message.channel):
-							result += '\nSupport the bot on Patreon: <https://www.patreon.com/dxsmiley>'
 					await message.channel.send(result)
-				if worked and expression_has_side_effect(arg):
-					await self.add_command_to_history(message.channel, arg)
+				if worked:
+					await self.bot.advertise_to(message.author, message.channel, message.channel)
+					if expression_has_side_effect(arg):
+						await self.add_command_to_history(message.channel, arg)
 				safe.sprint('Finished calculation:', args)
 
 	async def ensure_loaded(self, channel, blame):
@@ -367,9 +366,9 @@ class CalculatorModule():
 		if not self.bot.parameters.get('calculator.persistent'):
 			return False
 		if utils.is_private(channel):
-			return patrons.tier(self.bot.parameteres, channel.user.id) >= patrons.TIER_QUADRATIC
+			return self.bot.patron_tier(self.bot.parameteres, channel.user.id) >= patrons.TIER_QUADRATIC
 		else:
-			return patrons.tier(self.bot.parameteres, channel.server.owner.id) >= patrons.TIER_QUADRATIC
+			return self.bot.patron_tier(self.bot.parameteres, channel.server.owner.id) >= patrons.TIER_QUADRATIC
 
 
 def expression_has_side_effect(expr):

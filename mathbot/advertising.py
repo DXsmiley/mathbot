@@ -1,18 +1,25 @@
 import patrons
 import random
+import discord
+from utils import is_private
 
-async def should_advertise_to(bot, user, channel):
-	result = False
-	if bot.parameters.get('advertising enable'):
-		if patrons.tier(bot.parameters, user.id) == patrons.TIER_NONE:
-			chan_id = channel.id if channel.is_private else channel.server.id
-			ad_count = (await bot.keystore.get('advert_counter', chan_id)) \
-			        or bot.parameters.get('advertising starting-amount')
-			if ad_count > bot.parameters.get('advertising interval'):
-				print('Did advertise!')
-				ad_count = 0
-				result = True
-			else:
-				ad_count += random.choice([1, 2])
-			await bot.keystore.set('advert_counter', chan_id, ad_count)
-	return result
+MESSAGES = [
+    'Every little bit helps',
+    'Keep it running',
+]
+
+class AdvertisingMixin:
+
+    async def advertise_to(self, user, channel, destination):
+        if self.parameters.get('advertising enable') and self.patron_tier(user.id) == patrons.TIER_NONE:
+            chan_id = str(channel.id if is_private(channel) else channel.guild.id)
+            counter = (await self.keystore.get('advert_counter', chan_id)) or 0
+            interval = self.parameters.get('advertising interval')
+            await self.keystore.set('advert_counter', chan_id, counter + 1)
+            if counter % interval == 0:
+                await destination.send(embed=discord.Embed(
+                    title='Support the bot on Patreon!',
+                    description=random.choice(MESSAGES),
+                    colour=discord.Colour.blue(),
+                    url='https://www.patreon.com/dxsmiley'
+                ))

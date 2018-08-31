@@ -106,11 +106,8 @@ class LatexModule:
 				except RenderingError:
 					await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
-					content = None
-					# TODO: Enable this again
-					# if await advertising.should_advertise_to(context.message.author, context.channel):
-					# 	content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-					await guard.send(content, file=discord.File(render_result, 'latex.png'))
+					await guard.send(file=discord.File(render_result, 'latex.png'))
+					await self.bot.advertise_to(message.author, message.channel, guard)
 
 	async def get_colours(self, user):
 		colour_setting = await self.bot.keystore.get('p-tex-colour', str(user.id)) or 'dark'
@@ -120,7 +117,6 @@ class LatexModule:
 			return '36393E', 'f0f0f0'
 		# Fallback in case of other weird things
 		return '36393E', 'f0f0f0'
-		# raise ValueError('{} is not a valid colour scheme'.format(colour_setting))
 
 
 async def generate_image_online(latex, colour_back):

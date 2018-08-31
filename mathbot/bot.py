@@ -24,6 +24,9 @@ import utils
 from queuedict import QueueDict
 from modules.reporter import report
 
+from advertising import AdvertisingMixin
+from patrons import PatronageMixin
+
 
 warnings.simplefilter('default')
 logging.basicConfig(level = logging.INFO)
@@ -39,7 +42,7 @@ The bot does not have all the permissions it requires in order to run in this ch
 '''
 
 
-class MathBot(discord.ext.commands.AutoShardedBot):
+class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
 	def __init__(self, parameters):
 		super().__init__(
@@ -104,29 +107,19 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 			await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
 
 	async def on_error(self, event, *args, **kwargs):
-		was_handled = False
 		_, error, _ = sys.exc_info()
 		if event in ['message', 'on_message']:
-			was_handled = await self.report_error(args[0].channel, error)
-		if event == 'on_command':
-			was_handled = await self.report_error(args[0], error)
-		if not was_handled:
-			termcolor.cprint(f'An error occurred outside of a command and was not handled: {event}', 'red')
+			msg = f'**Error while handling a message**'
+			await self.handle_contextual_error(args[0].channel, error, msg)
+		else:
 			termcolor.cprint(traceback.format_exc(), 'blue')
+			self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
 
 	async def on_command_error(self, context, error):
-		details = f'{self.shard_ids} **Error while running command**\n```\n{context.message.clean_content}\n```'
-		if not await self.report_error(context, error, details):
-			termcolor.cprint('An unknown issue occurred while running a command', 'red')
-			termcolor.cprint(''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)), 'blue')
-			embed = discord.Embed(
-				title='An unknown error occurred.',
-				colour=discord.Colour.red(),
-				description='This is even worse than normal.'
-			)
-			await context.send(embed=embed)
+		details = f'**Error while running command**\n```\n{context.message.clean_content}\n```'
+		await self.handle_contextual_error(context, error, details)
 
-	async def report_error(self, destination, error, human_details=''):
+	async def handle_contextual_error(self, destination, error, human_details=''):
 		if isinstance(error, CommandNotFound):
 			pass # Ignore unfound commands
 		elif isinstance(error, MissingRequiredArgument):
@@ -150,19 +143,25 @@ class MathBot(discord.ext.commands.AutoShardedBot):
 				colour=discord.Colour.orange()
 			))
 		elif isinstance(error, CommandInvokeError):
-			tb = ''.join(traceback.format_exception(etype=type(error.original), value=error.original, tb=error.original.__traceback__))
-			termcolor.cprint('An error occurred while running a command', 'red')
-			termcolor.cprint(tb, 'blue')
-			embed = discord.Embed(
-				title='An internal error occurred while running the command.',
-				colour=discord.Colour.red(),
-				description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
-			)
-			await destination.send(embed=embed)
-			await report(self, f'{human_details}\n```\n{tb}\n```')
+			# TODO: Get details of the command itself.
+			await self.report_error(destination, error.original, 'An error occurred while running a command')
 		else:
-			return False
-		return True
+			await self.report_error(destination, error, human_details)
+
+	async def report_error(self, destination, error, human_details):
+		tb = ''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__))
+		termcolor.cprint(human_details, 'red')
+		termcolor.cprint(tb, 'blue')
+		try:
+			if destination is not None:
+				embed = discord.Embed(
+					title='An internal error occurred.',
+					colour=discord.Colour.red(),
+					description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
+				)
+				await destination.send(embed=embed)
+		finally:
+			await report(self, f'{self.shard_ids} {human_details}\n```\n{tb}\n```')
 
 
 def run(parameters):
