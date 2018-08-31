@@ -6,6 +6,7 @@ else:
     
     print('Main process starting up')
 
+    import os
     import sys
     import json
     import re
