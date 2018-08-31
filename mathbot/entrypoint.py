@@ -18,8 +18,7 @@ else:
     def retrieve_parameters():
         for i in sys.argv[1:]:
             if re.fullmatch(r'\w+\.env', i):
-                with open(os.environ.get(i[:-4])) as f:
-                    yield json.load(f)
+                yield json.loads(os.environ.get(i[:-4]))
             elif i.startswith('{') and i.endswith('}'):
                 yield json.loads(i)
             else:
