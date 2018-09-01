@@ -253,7 +253,7 @@ class CalculatorModule():
 					await self.bot.advertise_to(message.author, message.channel, message.channel)
 					if expression_has_side_effect(arg):
 						await self.add_command_to_history(message.channel, arg)
-				safe.sprint('Finished calculation:', args)
+				safe.sprint('Finished calculation:', arg)
 
 	async def ensure_loaded(self, channel, blame):
 		# If command were previously run in this channel, re-run them
