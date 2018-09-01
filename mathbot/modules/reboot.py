@@ -9,7 +9,7 @@ class Reboot:
 		if ctx.author.id in ctx.bot.parameters.getd('reboot.allowed', []):
 			app = ctx.bot.parameters.get('reboot.app')
 			api_key = ctx.bot.parameters.get('reboot.heroku_key')
-			m = f'{ctx.mention} ({ctx.author}) is restarting the bot'
+			m = f'{ctx.author.mention} ({ctx.author}) is restarting the bot'
 			print(m)
 			await modules.reporter.report(ctx.bot, m)
 			await ctx.send('Restarting bot')
