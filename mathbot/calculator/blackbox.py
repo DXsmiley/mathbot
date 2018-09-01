@@ -152,8 +152,11 @@ class Terminal:
                 details['result'] = result_items
                 worked = True
                 for result in result_items:
-                    # Note: This is handled with a try / except because 
-                    f_res = calculator.formatter.format(result, limit = self.output_limit)
+                    f_res = await calculator.crucible.run(
+                        calculator.formatter.format,
+                        (result,),
+                        timeout = 2
+                    )
                     try:
                         exact = await calculator.crucible.run(result.evalf, (), timeout=2)
                         details['exact'] = exact
