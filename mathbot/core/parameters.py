@@ -66,3 +66,12 @@ class Parameters:
 		for i in peices:
 			result = result[i]
 		return result
+
+	def getd(self, path, default):
+		peices = path.replace('.', ' ').split(' ')
+		result = self.dictionary
+		for i in peices:
+			if i not in result:
+				return default
+			result = result[i]
+		return result

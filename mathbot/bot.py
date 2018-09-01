@@ -184,6 +184,7 @@ def _get_extensions(parameters):
 	yield 'modules.reporter'
 	yield 'modules.settings'
 	yield 'modules.wolfram'
+	yield 'modules.reboot'
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
 		yield 'modules.throws'
