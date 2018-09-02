@@ -74,22 +74,23 @@ async def do_nothing_async():
 	pass
 
 
-async def protected_power(a, b):
-	if a == 0 and b == 0:
-		raise EvaluationError('Cannot raise 0 to the power of 0')
-	sa = float(sympy.Abs(a))
-	sb = float(sympy.Abs(b))
-	if sa < 4000 and sb < 20:
-		return a ** b
-	try:
-		return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
-	except asyncio.TimeoutError:
-		raise EvaluationError('Operation timed out. Perhaps the values were too large?')
+async def protected_power(use_crucible, a, b):
+	if use_crucible:
+		try:
+			return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
+		except asyncio.TimeoutError:
+			raise EvaluationError('Operation timed out. Perhaps the values were too large?')
+	else:
+		return _protected_power_crucible(a, b)
 
 
 # Top level function to prevent copying of scope
 def _protected_power_crucible(a, b):
-	return a ** b
+	result = a ** b
+	# ensure that the result isn't going to expode on the main program
+	# if str(result) explodes, this process will time out
+	str(result)
+	return result
 
 
 class FunctionInspector:
@@ -174,7 +175,8 @@ class ErrorStopGap:
 
 class Interpereter:
 
-	def __init__(self, *, trace=False, yield_rate=100):
+	def __init__(self, *, trace=False, yield_rate=100, use_crucible=False):
+		self.use_crucible = use_crucible
 		self.calling_cache = CallingCache()
 		self.trace = trace
 		self.bytes = None
@@ -346,7 +348,8 @@ class Interpereter:
 				await inst()
 			except EvaluationError as error:
 				error._linking = self.erlnk[self.place]
-				self.panic(error)
+				if self.panic(error):
+					raise error
 		else:
 			await inst()
 		# Let the event loop do some work.
@@ -359,10 +362,11 @@ class Interpereter:
 				# No stopgap found, raise the error instead
 				self.pop()
 		except IndexError:
-			raise error
+			return True
 		stopgap = self.pop()
 		self.bytes = stopgap.handler_segment
 		self.place = stopgap.handler_address - 1
+		return False
 
 	async def inst_constant(self):
 		''' Push a constant to the stack '''
@@ -426,7 +430,7 @@ class Interpereter:
 	inst_sub = make_bin_op_instruction(operator.sub)
 	inst_div = make_bin_op_instruction(operator.truediv)
 	inst_mod = make_bin_op_instruction(operator.mod)
-	inst_pow = make_bin_op_instruction(protected_power, is_coroutine=True)
+	# inst_pow = make_bin_op_instruction(protected_power, is_coroutine=True)
 	inst_bin_less = make_bin_op_instruction(operators.super_less_than, is_coroutine=True)
 	inst_bin_more = make_bin_op_instruction(operators.super_more_than, is_coroutine=True)
 	inst_bin_l_eq = make_bin_op_instruction(operators.super_less_eq, is_coroutine=True)
@@ -436,6 +440,11 @@ class Interpereter:
 	# inst_bin_die = make_bin_op_instruction(rolldie)
 	inst_and = make_bin_op_instruction(lambda a, b: (bool(a) and bool(b)))
 	inst_or = make_bin_op_instruction(lambda a, b: (bool(a) or bool(b)))
+
+	async def inst_pow(self):
+		def _internal(a, b):
+			return protected_power(self.use_crucible, a, b)
+		await Interpereter.make_bin_op_instruction(_internal, is_coroutine=True)(self)
 
 	async def inst_unr_min(self):
 		self.push(-self.pop())
@@ -463,11 +472,16 @@ class Interpereter:
 	def make_comparison_instruction(comparator):
 		''' Create a handler for a binary comparison instruction '''
 		async def internal(self):
-			r = self.pop()
-			l = self.pop()
-			x = bool(await comparator(l, r))
-			self.stack[-1] = self.stack[-1] and x
-			self.push(r)
+			right = self.pop()
+			left = self.pop()
+			try:
+				result = bool(await comparator(left, right))
+			except EvaluationError:
+				raise
+			except Exception:
+				raise EvaluationError('Operation failed on {} and {}', left, right)
+			self.stack[-1] = self.stack[-1] and result
+			self.push(right)
 		return internal
 
 	inst_cmp_less = make_comparison_instruction(operators.super_less_than)
@@ -674,9 +688,12 @@ class Interpereter:
 		should_pass = self.next()
 		self.push(ErrorStopGap(handler_segment, handler_address, should_pass))
 
-	def call_builtin_function(self, function, arguments, return_to):
+	async def call_builtin_function(self, function, arguments, return_to):
 		try:
-			result = function(*arguments)
+			if isinstance(function, BuiltinFunction) and function.is_coroutine:
+				result = await function(*arguments)
+			else:
+				result = function(*arguments)
 		except Exception:
 			# arg = arguments if len(arguments)
 			# pylint: disable=raising-format-tuple
@@ -693,7 +710,7 @@ class Interpereter:
 
 	async def call_function(self, function, arguments, return_to, disable_cache=False, macro_unprepped=False, do_tco=False):
 		if isinstance(function, (BuiltinFunction, Array, Interval, SingularValue)):
-			self.call_builtin_function(function, arguments, return_to)
+			await self.call_builtin_function(function, arguments, return_to)
 		elif isinstance(function, Function):
 			inspector = FunctionInspector(self, function)
 			need_to_call = True
