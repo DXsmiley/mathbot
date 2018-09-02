@@ -462,3 +462,8 @@ def test_floats():
 	doit('1e2', 100)
 	doit('1e+1', 10)
 	doit('1e+2', 100)
+
+def test_global_bindings():
+	doit('x = 1, y = x, x = 2, y', 1)
+	doit('x = 1, y(a) = x, x = 2, y(0)', 2)
+	doit('x = 1, y = (a -> x), x = 2, y(0)', 2)

@@ -139,13 +139,29 @@ class Destination:
 
 class GlobalToken:
 
-	__slots__ = ['name']
+	__slots__ = ['index', 'name']
 
-	def __init__(self, name):
+	def __init__(self, index, name):
+		self.index = index
 		self.name = name
 
 
-class Scope:
+class GlobalScope:
+
+	__slots__ = ['name_mapping', 'counter']
+
+	def __init__(self):
+		self.counter = 0
+		self.name_mapping = {}
+
+	def find_value(self, name, depth = 0, is_assignment = False):
+		if is_assignment or name not in self.name_mapping:
+			self.name_mapping[name] = GlobalToken(self.counter, name)
+			self.counter += 1
+		return self, depth, self.name_mapping[name]
+
+
+class LocalScope:
 
 	__slots__ = ['superscope', 'name_mapping']
 
@@ -153,23 +169,20 @@ class Scope:
 		self.superscope = superscope
 		self.name_mapping = {n: i for i, n in enumerate(names)}
 
-	def find_value(self, name, depth = 0):
+	def find_value(self, name, depth = 0, is_assignment = False):
 		if name in self.name_mapping:
 			return self, depth, self.name_mapping[name]
-		if self.superscope is None:
-			# self.name_mapping[name] = len(self.name_mapping)
-			self.name_mapping[name] = GlobalToken(name)
-			return self, depth, self.name_mapping[name]
-		return self.superscope.find_value(name, depth + 1)
+		return self.superscope.find_value(name, depth + 1, is_assignment)
 
 
 class ConstructionContext:
 
-	def __init__(self, *, scope, unsafe, allow_tco):
+	def __init__(self, *, scope, unsafe, allow_tco, exposed_global_bindings):
 		self._staged = False
 		self.scope = scope
 		self.unsafe = unsafe
 		self.allow_tco = allow_tco
+		self.exposed_global_bindings = exposed_global_bindings
 
 	def readyup(self):
 		if self._staged:
@@ -180,7 +193,8 @@ class ConstructionContext:
 		return ConstructionContext(
 			scope=kwargs.get('scope', self.scope),
 			unsafe=kwargs.get('unsafe', self.unsafe),
-			allow_tco=kwargs.get('allow_tco', False)
+			allow_tco=kwargs.get('allow_tco', False),
+			exposed_global_bindings=kwargs.get('exposed_global_bindings', self.exposed_global_bindings)
 		)
 
 
@@ -243,7 +257,7 @@ class Builder:
 	'''
 
 	def __init__(self):
-		self.globalscope = Scope([])
+		self.globalscope = GlobalScope()
 		self.extrascope = {}
 
 	def build(self, *asts, unsafe=False):
@@ -274,7 +288,11 @@ class CodeSegment:
 			ConstructionContext(
 				scope=self.master.globalscope,
 				allow_tco=False,
-				unsafe=unsafe
+				unsafe=unsafe,
+				# If we pass in something that's supposed to be in
+				# a function, but we don't see the function,
+				# we'll get something invalid.
+				exposed_global_bindings=True
 			)
 		)
 
@@ -410,8 +428,8 @@ class CodeSegment:
 		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['variable'])
-		scope, depth, index = keys.scope.find_value(name)
-		assert scope == self.master.globalscope
+		scope, depth, index = keys.scope.find_value(name, is_assignment=True)
+		assert scope is self.master.globalscope
 		# print(scope, depth, index)
 		self.push(I.ASSIGNMENT, index, error=node['variable'].get('source'))
 
@@ -623,7 +641,7 @@ class CodeSegment:
 		)
 		# If the function has no parameters, there's no need to add an additional
 		# scope frame, since it would hold no information anyway.
-		subscope = Scope(params, superscope=keys.scope) if params else keys.scope
+		subscope = LocalScope(params, superscope=keys.scope) if params else keys.scope
 		contents.bytecodeify(node['expression'], keys(allow_tco=True, scope=subscope))
 		contents.push(
 			I.STORE_IN_CACHE,
