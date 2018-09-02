@@ -35,6 +35,7 @@ class I(enum.IntEnum):
 	END = 19
 	# FUNCTION_MACRO = 20
 	FUNCTION_NORMAL = 21
+	THUNKIFY = 70
 	RETURN = 22
 	JUMP = 23
 	JUMP_IF_TRUE = 24
@@ -82,7 +83,8 @@ class I(enum.IntEnum):
 	CONSTANT_STRING = 67
 	CONSTANT_GLYPH = 68
 
-	# Next to use: 70
+
+	# Next to use: 71
 
 
 OPERATOR_DICT = {
@@ -139,26 +141,43 @@ class Destination:
 
 class GlobalToken:
 
-	__slots__ = ['index', 'name']
+	__slots__ = ['exposed', 'tight', 'name']
 
-	def __init__(self, index, name):
-		self.index = index
+	# An exposed global binding links to whatever was defined at the time of execution (can be rebound with =)
+	# A tight one depend on the time of construction (cannot be rebound with =)
+	def __init__(self, exposed, tight, name):
+		self.exposed = exposed
+		self.tight = tight
 		self.name = name
 
 
 class GlobalScope:
 
-	__slots__ = ['name_mapping', 'counter']
+	__slots__ = ['tight_bindings', 'exposed_bindings', 'counter']
 
 	def __init__(self):
 		self.counter = 0
-		self.name_mapping = {}
+		self.tight_bindings = {}
+		self.exposed_bindings = {}
+
+	def next_slot(self):
+		self.counter += 1
+		return self.counter - 1
 
 	def find_value(self, name, depth = 0, is_assignment = False):
-		if is_assignment or name not in self.name_mapping:
-			self.name_mapping[name] = GlobalToken(self.counter, name)
-			self.counter += 1
-		return self, depth, self.name_mapping[name]
+		if is_assignment:
+			if name not in self.exposed_bindings:
+				self.exposed_bindings[name] = self.next_slot()
+			self.tight_bindings[name] = self.next_slot()
+		else:
+			if name not in self.exposed_bindings:
+				self.exposed_bindings[name] = self.next_slot()
+				self.tight_bindings[name] = self.next_slot()		
+		return self, depth, GlobalToken(
+			self.exposed_bindings[name],
+			self.tight_bindings[name],
+			name
+		)
 
 
 class LocalScope:
@@ -292,7 +311,7 @@ class CodeSegment:
 				# If we pass in something that's supposed to be in
 				# a function, but we don't see the function,
 				# we'll get something invalid.
-				exposed_global_bindings=True
+				exposed_global_bindings=False
 			)
 		)
 
@@ -398,11 +417,11 @@ class CodeSegment:
 
 	def btcfy_word(self, node, keys):
 		scope, depth, index = keys.scope.find_value(node['string'].lower())
-		if scope == self.master.globalscope:
+		if scope is self.master.globalscope:
 			# NOTE: Only global variables can fail to be found,
 			# so we only need the name for this one.
 			self.push(I.ACCESS_GLOBAL)
-			self.push(index)
+			self.push(index.exposed if keys.exposed_global_bindings else index.tight)
 			self.push(node['string'], error = node['source'])
 		elif depth == 0:
 			self.push(I.ACCESS_LOCAL)
@@ -421,17 +440,34 @@ class CodeSegment:
 
 	def btcfy_assignment(self, node, keys):
 		name = node['variable']['string'].lower()
-		# NOTE: If not sure what these two lines are for
-		if (node['value']['#'] == 'function_definition'):
-			node['value']['name'] = name
-		self.bytecodeify(node['value'], keys())
 		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
 			raise calculator.errors.CompilationError(m, node['variable'])
+		# NOTE: If not sure what these two lines are for
+		if node['value']['#'] == 'function_definition':
+			node['value']['name'] = name
+			self.bytecodeify(node['value'], keys())
+		else:
+			# Might want to do something about reusing btcfy_function_definition
+			start_pointer = self.define_function({
+				'#': 'function_definition',
+				'parameters': {
+					'items': []
+				},
+				'variadic': 0, # false
+				'kind': '->',
+				'name': '__thunk__' + name,
+				'expression': node['value']
+			}, keys, exposed_global_bindings=False)
+			self.push(I.FUNCTION_NORMAL)
+			self.push(start_pointer)
+			self.push(I.THUNKIFY)
 		scope, depth, index = keys.scope.find_value(name, is_assignment=True)
 		assert scope is self.master.globalscope
 		# print(scope, depth, index)
-		self.push(I.ASSIGNMENT, index, error=node['variable'].get('source'))
+		self.push(I.DUPLICATE)
+		self.push(I.ASSIGNMENT, index.tight, error=node['variable'].get('source'))
+		self.push(I.ASSIGNMENT, index.exposed, error=node['variable'].get('source'))
 
 	def btcfy_unload_global(self, node, keys):
 		name = node['variable']['string'].lower()
@@ -621,7 +657,7 @@ class CodeSegment:
 			self.bytecodeify(a, keys())
 			self.push(I.LIST_PREPEND)
 
-	def define_function(self, node, keys):
+	def define_function(self, node, keys, exposed_global_bindings=True):
 		# Ensure that none of the parameter names are illigal
 		params = [i['string'].lower() for i in node['parameters']['items']]
 		for n, i in zip(params, node['parameters']['items']):
@@ -642,7 +678,7 @@ class CodeSegment:
 		# If the function has no parameters, there's no need to add an additional
 		# scope frame, since it would hold no information anyway.
 		subscope = LocalScope(params, superscope=keys.scope) if params else keys.scope
-		contents.bytecodeify(node['expression'], keys(allow_tco=True, scope=subscope))
+		contents.bytecodeify(node['expression'], keys(allow_tco=True, scope=subscope, exposed_global_bindings=exposed_global_bindings))
 		contents.push(
 			I.STORE_IN_CACHE,
 			I.RETURN

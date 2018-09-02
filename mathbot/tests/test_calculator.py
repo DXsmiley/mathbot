@@ -464,6 +464,9 @@ def test_floats():
 	doit('1e+2', 100)
 
 def test_global_bindings():
-       doit('x = 1, y = x, x = 2, y', 1)
-       doit('x = 1, y(a) = x, x = 2, y(0)', 2)
-       doit('x = 1, y = (a -> x), x = 2, y(0)', 2)
+   doit('x = 1, y = x, x = 2, y', 1)
+   doit('x = 1, y(a) = x, x = 2, y(0)', 2)
+   doit('x = 1, y = (a -> x), x = 2, y(0)', 2)
+
+def test_lazy_assignment():
+	doit('x = [] + [], y = 1, y', 1)

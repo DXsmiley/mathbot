@@ -13,6 +13,7 @@ import calculator.errors as errors
 from calculator.runtime import prepare_runtime
 from calculator.blackbox import Terminal, format_error_place
 
+sys.setrecursionlimit(10000)
 
 def main():
 	if len(sys.argv) == 1:

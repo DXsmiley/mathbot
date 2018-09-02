@@ -251,7 +251,8 @@ class Interpereter:
 			b.LIST_PREPEND: self.inst_list_prepend,
 			b.PUSH_ERROR_STOPGAP: self.inst_push_error_stopgap,
 			b.CONSTANT_STRING: self.inst_constant_string,
-			b.CONSTANT_GLYPH: self.inst_constant_glyph
+			b.CONSTANT_GLYPH: self.inst_constant_glyph,
+			b.THUNKIFY: self.inst_thunkify
 		}
 
 	# def swap_bytecode(self, constructed_bytecode):
@@ -550,7 +551,16 @@ class Interpereter:
 		name = self.next()
 		try:
 			value = self.root_scope.get(index, 0)
-			self.push(value)
+			if isinstance(value, Thunk):
+				await self.call_function(
+					value.function,
+					[],
+					(self.bytes, self.place + 1),
+					disable_cache=False,
+					do_tco=False
+				)
+			else:
+				self.push(value)
 		except ScopeMissedError:
 			raise calculator.errors.AccessFailedError(name)
 
@@ -607,6 +617,9 @@ class Interpereter:
 		inspector = FunctionInspector(self, function)
 		function.name = inspector.name
 		self.push(function)
+
+	async def inst_thunkify(self):
+		self.push(Thunk(self.pop()))
 
 	# async def inst_function_normal(self):
 	# 	self.place += 1

@@ -70,6 +70,17 @@ class Function:
 		return f'Function {self.name} @{id(self.segment)}-{self.address}'
 
 
+class Thunk:
+
+	__slots__ = ['function']
+
+	def __init__(self, function):
+		self.function = function
+
+	def __repr__(self):
+		return f'Thunk:{self.function}'
+
+
 class SequenceBase:
 
 	async def __aeq__(a, b):
