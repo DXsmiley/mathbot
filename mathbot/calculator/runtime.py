@@ -15,6 +15,7 @@ from calculator.functions import *
 from calculator.errors import EvaluationError
 import calculator.parser as parser
 import calculator.formatter as formatter
+import calculator.crucible as crucible
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
@@ -118,6 +119,11 @@ def int_to_glyph(integer):
 	return Glyph(chr(int(integer)))
 
 
+@protect_sympy_function
+def reduce_to_float(value):
+	return sympy.Number(float(value))
+
+
 BUILTIN_FUNCTIONS = {
 	'log': mylog,
 	'ln': sympy.log,
@@ -126,15 +132,19 @@ BUILTIN_FUNCTIONS = {
 	'length': array_length,
 	'expand': array_expand,
 	'int': sympy.Integer,
-	'decimal': lambda x: sympy.Number(float(x)),
+	'decimal': reduce_to_float,
+	'float': reduce_to_float,
 	'subs': lambda expr, symbol, value: expr.subs(symbol, value),
 	'deg': to_degrees,
 	'rad': to_radians,
 	'repr': format_normal,
 	'str': format_smart,
 	'ord': glyph_to_int,
-	'chr': int_to_glyph
+	'chr': int_to_glyph,
 }
+
+
+BUILTIN_COROUTINES = {}
 
 
 FIXED_VALUES = {
@@ -156,13 +166,18 @@ FIXED_VALUES_EXPORTABLE = {
 }
 
 
-
 def _extract_from_sympy():
+	def _wrap_with_crucible(function, condition=lambda x: True):
+		async def _replacement(*args):
+			if condition(*args):
+				return await crucible.run(function, args, timeout=2)
+			return function(*args)
+		return protect_sympy_function(_replacement)
 	names = '''
 		re im sign Abs arg conjugate 
 		sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 		tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
-		exp root sqrt pi E I gcd lcm gamma factorial
+		exp root sqrt pi E I gcd lcm
 		oo:infinity:∞ zoo:complex_infinity nan:not_a_number
 	'''
 	for i in names.split():
@@ -175,6 +190,8 @@ def _extract_from_sympy():
 				BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
 			else:
 				FIXED_VALUES[name] = value
+	BUILTIN_COROUTINES['factorial'] = _wrap_with_crucible(sympy.factorial, lambda x: x > 100)
+	BUILTIN_COROUTINES['gamma'] = _wrap_with_crucible(sympy.gamma, lambda x: x > 100)
 _extract_from_sympy()
 
 
@@ -205,6 +222,8 @@ def _prepare_runtime(exportable=False):
 			yield _assignment_code(name, value)
 		for name, func in BUILTIN_FUNCTIONS.items():
 			yield _assignment_code(name, BuiltinFunction(func, name))
+		for name, func in BUILTIN_COROUTINES.items():
+			yield _assignment_code(name, BuiltinFunction(func, name, is_coroutine=True))
 	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
 	yield ast
 

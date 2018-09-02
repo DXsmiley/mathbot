@@ -43,53 +43,35 @@ def resolve_parameters(params):
 
 
 def load_parameters(sources):
-	return resolve_parameters(
-		dictionary_overwrite(*sources)
-	)
+	if not isinstance(sources, list):
+		raise TypeError('Sources should be a list')
+	default = _load_json_file(DEFAULT_PARAMETER_FILE)
+	dictionary = resolve_parameters(dictionary_overwrite(default, *sources))
+	return Parameters(dictionary)
 
 
-parameters = None
-sources = []
-
-
-def add_source(value):
-	global sources
-	if parameters:
-		raise Exception('Cannot add parameter source after parameters have been loaded')
-	sources.append(value)
-
-
-def add_source_filename(filename):
+def _load_json_file(filename):
 	with open(filename) as f:
-		add_source(json.load(f))
+		return json.load(f)
 
 
-add_source_filename(DEFAULT_PARAMETER_FILE)
+class Parameters:
 
+	def __init__(self, dictionary):
+		self.dictionary = dictionary
 
-def get(path):
-	global parameters
-	if parameters is None:
-		parameters = load_parameters(sources)
-	# Break the string down into its components
-	path = path.replace('.', ' ').split(' ')
-	# Reverse it because popping from the back is much faster
-	path = path[::-1]
-	# Follow the path through the parameters and return
-	# whatever we end up at
-	result = parameters
-	while len(path) > 0:
-		result = result[path.pop()]
-	return result
+	def get(self, path):
+		peices = path.replace('.', ' ').split(' ')
+		result = self.dictionary
+		for i in peices:
+			result = result[i]
+		return result
 
-
-def reset(add_default = True):
-	''' Clear the parameters and unloads them.
-		Should really only be used to write tests.
-	'''
-	global parameters
-	global sources
-	parameters = None
-	sources = []
-	if add_default:
-		add_source_filename(DEFAULT_PARAMETER_FILE)
+	def getd(self, path, default):
+		peices = path.replace('.', ' ').split(' ')
+		result = self.dictionary
+		for i in peices:
+			if i not in result:
+				return default
+			result = result[i]
+		return result

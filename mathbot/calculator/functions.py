@@ -39,9 +39,12 @@ class BuiltinFunction:
 		That is, a function
 	'''
 
-	def __init__(self, func, name=None):
+	__slots__ = ['func', 'name', 'is_coroutine']
+
+	def __init__(self, func, name=None, *, is_coroutine=False):
 		self.func = func
 		self.name = name or getattr(func, '__name__', '<unnamed>')
+		self.is_coroutine = is_coroutine
 
 	def __call__(self, *args):
 		return self.func(*args)

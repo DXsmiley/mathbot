@@ -1,54 +1,41 @@
 import pytest
 import core.parameters
-
-@pytest.fixture(scope = 'function')
-def patrons():
-    import patrons
-    core.parameters.reset()
-    patrons.PATRONS = {}
-    patrons.reset()
-
-    yield patrons
-    core.parameters.reset()
-    patrons.PATRONS = {}
-    patrons.reset()
+import patrons
 
 
-def test_simple_rankings(patrons):
-    core.parameters.add_source({'patrons': {
-        '1': 'none',
+def test_simple_rankings():
+    p = core.parameters.load_parameters([{'patrons': {
         '2': 'constant',
         '3': 'quadratic',
         '4': 'exponential',
         '5': 'special'    
-    }})
-    assert patrons.tier('1') == patrons.TIER_NONE
-    assert patrons.tier('2') == patrons.TIER_CONSTANT
-    assert patrons.tier('3') == patrons.TIER_QUADRATIC
-    assert patrons.tier('4') == patrons.TIER_EXPONENTIAL
-    assert patrons.tier('5') == patrons.TIER_SPECIAL
+    }}])
+    assert patrons.tier(p, '1') == patrons.TIER_NONE
+    assert patrons.tier(p, '2') == patrons.TIER_CONSTANT
+    assert patrons.tier(p, '3') == patrons.TIER_QUADRATIC
+    assert patrons.tier(p, '4') == patrons.TIER_EXPONENTIAL
+    assert patrons.tier(p, '5') == patrons.TIER_SPECIAL
 
 
-def test_complex_rankings(patrons):
-    core.parameters.add_source({'patrons': {
-        '56347856': 'none - Something extra',
+def test_complex_rankings():
+    p = core.parameters.load_parameters([{'patrons': {
         '68362367': 'constantkjdsgh',
         '27456542': 'quadraticsdkfjghdfks',
         '57235548': 'exponentialhfgjd',
         '58563757': 'special---98w475\'\'ekhjf'
-    }})
-    assert patrons.tier('75635675') == patrons.TIER_NONE
-    assert patrons.tier('26374267') == patrons.TIER_NONE
-    assert patrons.tier('56347856') == patrons.TIER_NONE
-    assert patrons.tier('68362367') == patrons.TIER_CONSTANT
-    assert patrons.tier('27456542') == patrons.TIER_QUADRATIC
-    assert patrons.tier('57235548') == patrons.TIER_EXPONENTIAL
-    assert patrons.tier('58563757') == patrons.TIER_SPECIAL
+    }}])
+    assert patrons.tier(p, '75635675') == patrons.TIER_NONE
+    assert patrons.tier(p, '26374267') == patrons.TIER_NONE
+    assert patrons.tier(p, '56347856') == patrons.TIER_NONE
+    assert patrons.tier(p, '68362367') == patrons.TIER_CONSTANT
+    assert patrons.tier(p, '27456542') == patrons.TIER_QUADRATIC
+    assert patrons.tier(p, '57235548') == patrons.TIER_EXPONENTIAL
+    assert patrons.tier(p, '58563757') == patrons.TIER_SPECIAL
 
 
-def test_invalid_ranking(patrons):
-    with pytest.raises(ValueError):
-        core.parameters.add_source({'patrons': {
+def test_invalid_ranking():
+    with pytest.raises(patrons.InvalidPatronRankError):
+        p = core.parameters.load_parameters([{'patrons': {
             '1': 'something'
-        }})
-        assert patrons.tier('1') == patrons.TIER_NONE
+        }}])
+        patrons.tier(p, '1')

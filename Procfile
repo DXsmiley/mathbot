@@ -1,1 +1,1 @@
-single: cd mathbot && python bot.py PARAMETERS.env '{"shards": {"mine": [0]}}'
+beta: cd mathbot && python entrypoint.py PARAMETERS.env

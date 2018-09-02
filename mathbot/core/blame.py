@@ -1,11 +1,25 @@
-import core.keystore
+import logging
+from discord.ext.commands import Context
+from discord.abc import Messageable
 
-async def set_blame(message_id, blame):
+
+LOG = logging.getLogger(__name__)
+
+
+def monkey_patch():
+	Context.send = _context_send
+
+
+async def set_blame(keystore, sent, blame):
 	''' Assigns blame to a particular message.
 		i.e. specifies the user that the was responsible for causing the
 		bot the send a particular message.
 	'''
-	if blame is None:
-		print('Warning: Sending a message without a blame flag')
-	else:
-		await core.keystore.set('blame', message_id, blame.mention, expire = 60 * 60 * 80)
+	await keystore.set('blame', sent.id, blame.mention, expire = 60 * 60 * 80)
+
+
+async def _context_send(context, *args, **kwargs):
+	sent = await Messageable.send(context, *args, **kwargs)
+	LOG.info(f'Setting blame for {sent.id}: {context.message.author}')
+	await set_blame(context.bot.keystore, sent, context.message.author)
+	return sent

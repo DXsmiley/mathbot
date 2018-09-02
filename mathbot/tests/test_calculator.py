@@ -143,6 +143,9 @@ def test_equality():
 	doit('1 == 2', False)
 	doit('1 != 2', True)
 	doit('1 < 2 < 3 < 4 <= 4 >= 2 == 2 < 5', True)
+	doit('1 < 2 && 3 < 4', True)
+	doit('1 < 0 || 3 < 4', True)
+	doit('3 == 3 && 2 == 2', True)
 
 def test_assignment():
 	doit('x = 2', None)
@@ -333,7 +336,6 @@ def test_errors():
 	throws('low(1, 1)')
 	throws('cos(true)')
 	throws('sin(false)')
-	throws('0^0')
 
 def test_trig():
 	dort('sin(0)', 0)
@@ -450,3 +452,13 @@ def test_object_ordering():
 	throws('[[]] <= [0]')
 	throws('[[]] >  [0]')
 	throws('[[]] >= [0]')
+
+def test_floats():
+	doit('0.1', sympy.Rational(1, 10))
+	doit('0.01', sympy.Rational(1, 100))
+	doit('1e-1', sympy.Rational(1, 10))
+	doit('1e-2', sympy.Rational(1, 100))
+	doit('1e1', 10)
+	doit('1e2', 100)
+	doit('1e+1', 10)
+	doit('1e+2', 100)

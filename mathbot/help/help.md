@@ -1,14 +1,26 @@
 :::topics help
 
-**MathBot Beta**
+Hello! I'm a bot that provides some maths-related features.
 
-This is the beta version of MathBot. Only the `=calc` command is enabled.
-The open beta ends on the 3th of March, 2018.
+Add MathBot to your server using this link: <{{add_link}}>
 
-The basics of the command can be found by running `=help calc`.
+MathBot is developed by DXsmiley. You can talk to him via the official MathBot server: <{{server_link}}>
 
-Full documentation on the calculator language can be found here: https://github.com/DXsmiley/mathbot/blob/calculator-refactor/mathbot/help/turing.md
+The following user commands are available:
 
-Add the beta bot to your server: https://discordapp.com/oauth2/authorize?client_id=325886099937558528&scope=bot&permissions=3072
+	`{{prefix}}tex latex` - Renders *LaTeX* equations. See `{{prefix}}help latex` for details.
+	`{{prefix}}wolf query` - Query wolfram alpha. Can be slow. See `{{prefix}}help wolf` for details.
+	`{{prefix}}calc equation` - Does calculations. See `{{prefix}}help calc` for full list of features.
+	`{{prefix}}theme theme` - Change the colour of the `{{prefix}}tex` and `{{prefix}}wolf` results. See `{{prefix}}help theme` for details.
+
+More help is also available:
+
+	`{{prefix}}help commands` - Get the full list of commands.
+	`{{prefix}}help topic` - Get help about a particular topic or command.
+	`{{prefix}}help management` - Get information about commands for server owners and moderators.
+	`{{prefix}}help settings` - Get information about settings.
+	`{{prefix}}about` - General information about the bot.
+
+All commands can be invoked by mentioning the bot. For example, the command \`{{mention}} prefix\` will always tell you the bot's prefix on the current server even if you don't know what it is.
 
 Support the bot on Patreon: https://www.patreon.com/dxsmiley

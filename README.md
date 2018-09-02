@@ -12,7 +12,6 @@ The bot is currently developed for python `3.6.4`.
 ## Links
 
 - [Add the bot to your own server](https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016)
-- [Command documentation for users](https://dxsmiley.github.io/mathbot/docs.html)
 - [Support me on Patreon](https://www.patreon.com/dxsmiley)
 - [Project Trello Board](https://trello.com/b/j6b7vpGA/mathbot)
 - [Official Discord Server](https://discord.gg/JbJbRZS)
@@ -23,7 +22,8 @@ The bot is currently developed for python `3.6.4`.
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requirements.txt
+pipenv --python 3.6
+pipenv install --skip-lock
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
@@ -38,7 +38,8 @@ Then navigate into the `mathbot` directory and run the bot with `python bot.py p
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requirements.txt
+pipenv --python 3.6
+pipenv install --dev --skip-lock
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.

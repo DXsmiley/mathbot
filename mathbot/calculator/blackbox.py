@@ -6,6 +6,7 @@ import calculator.bytecode
 import calculator.errors
 import calculator.runtime
 import calculator.formatter
+import calculator.crucible
 import sympy
 import async_timeout
 import json
@@ -32,7 +33,8 @@ class Terminal:
                  yield_rate=100,
                  colour_output=False,
                  runtime_protection_level=0,
-                 _called_directly=True):
+                 _called_directly=True,
+                 trap_unknown_errors=False):
         if _called_directly:
             raise Exception('You should not be calling Terminal.__init__ directly.')
         self.show_tree = False
@@ -41,10 +43,11 @@ class Terminal:
         self.builder = calculator.bytecode.Builder()
         self.allow_special_commands = allow_special_commands
         self.colour_output = colour_output
-        self.interpereter = calculator.interpereter.Interpereter(yield_rate=yield_rate)
+        self.interpereter = calculator.interpereter.Interpereter(yield_rate=yield_rate, use_crucible=True)
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
+        self.trap_unknown_errors = False
 
     @staticmethod
     def new_blackbox_sync(**kwargs):
@@ -149,23 +152,24 @@ class Terminal:
                 details['result'] = result_items
                 worked = True
                 for result in result_items:
-                    # Note: This is handled with a try / except because 
-                    f_res = calculator.formatter.format(result, limit = self.output_limit)
+                    f_res = await calculator.crucible.run(
+                        calculator.formatter.format,
+                        (result,),
+                        timeout = 2
+                    )
                     try:
-                        exact = result.evalf()
+                        exact = await calculator.crucible.run(result.evalf, (), timeout=2)
                         details['exact'] = exact
-                        f_ext = calculator.formatter.format(exact, limit = self.output_limit)
+                        f_ext = calculator.formatter.format(exact, limit=self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
                         f_ext = calculator.formatter.sympy_cleanup(f_ext)
                         if f_ext in ['inf', '-inf', f_res]:
                             raise Exception
                         prt(f_res, '=', f_ext)
+                    except asyncio.TimeoutError:
+                        prt(f_res, '[exact value timed out]')
                     except Exception as e:
                         prt(f_res)
-                    try:
-                        details['latex'] = formatter.latex(result)
-                    except Exception:
-                        pass
                     if self.show_result_type:
                         prt(result.__class__)
                         prt(result.__class__.__mro__)
@@ -194,7 +198,9 @@ class Terminal:
                 prt('Output was too large to display')
             except asyncio.TimeoutError:
                 prt('Operation timed out')
-            except Exception as e:
+            except Exception:
+                if not self.trap_unknown_errors:
+                    raise
                 traceback.print_exc()
                 prt('Some other unknown error occurred')
         if not self.retain_cache:
