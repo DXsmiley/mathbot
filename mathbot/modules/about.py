@@ -49,17 +49,16 @@ class AboutModule:
 			value=await get_bot_total_servers('134073775925886976'),
 			inline=True
 		)
-		# TODO: Details about current shard.
-		# embed.add_field(
-		# 	name='Shard Servers',
-		# 	value=len(context.bot.guilds),
-		# 	inline=True
-		# )
-		# embed.add_field(
-		# 	name='Shard ID',
-		# 	value='{} of {}'.format(context.bot.shard_id + 1, self.shard_count),
-		# 	inline=True
-		# )
+		embed.add_field(
+			name='Visible Servers',
+			value=len(context.bot.guilds),
+			inline=True
+		)
+		embed.add_field(
+			name='Shard IDs',
+			value=', '.join([str(i + 1) for i in context.bot.shard_ids]),
+			inline=True
+		)
 		embed.add_field(
 			name='Uptime',
 			value=get_uptime(),
@@ -83,11 +82,11 @@ class AboutModule:
 		cmd = context.bot.get_command('help')
 		await context.invoke(cmd, topic='about')
 
-	@command(name=codecs.encode('shefhvg', 'rot_13'))
-	async def ignore_pls(self, message):
-		with open('not_an_image', 'rb') as f:
-			await self.send_file(message.channel, f, filename='youaskedforit.png')
-		await core.dreport.custom_report(self.client, 'It happened.')
+	# @command(name=codecs.encode('shefhvg', 'rot_13'))
+	# async def ignore_pls(self, message):
+	# 	with open('not_an_image', 'rb') as f:
+	# 		await self.send_file(message.channel, f, filename='youaskedforit.png')
+	# 	await core.dreport.custom_report(self.client, 'It happened.')
 
 
 def get_uptime():

@@ -39,14 +39,8 @@ class HelpModule:
 			await context.send(self._suggest_topics(topic))
 			return
 
-		prefix = '='
-
-		# TODO: Determine last seen prefix, and get server's prefix
-		# if msg.channel.is_private:
-		# 	prefix = await context.bot.keystore.get('last-seen-prefix', msg.author.id) or '='
-		# else:
-		# 	prefix = await context.bot.settings.get_server_prefix(msg.server)
-		# 	await context.bot.keystore.set('last-seen-prefix', msg.author.id, prefix, expire = PREFIX_MEMORY_EXPIRE)
+		# Display the default prefix if the user is in DMs and uses no prefix.
+		prefix = context.prefex or '='
 		
 		was_private = True
 		
@@ -74,8 +68,14 @@ class HelpModule:
 
 	async def _send_topic_list(self, context):
 		# TODO: Get this working again
-		listing = ' - `' + '`\n - `'.join(core.help.listing()) + '`\n'
-		reply = 'The following help topics exist:\n{}'.format(listing)
+		topics = core.help.listing()
+		column_width = max(map(len, topics))
+		columns = 3
+		reply = 'The following help topics exist:\n```\n'
+		for i, t in enumerate(topics):
+			reply += t.ljust(column_width)
+			reply += '\n' if (i + 1) % columns == 0 else '  ';
+		reply += '```\n'
 		await context.send(reply)
 
 	def _suggest_topics(self, typo):

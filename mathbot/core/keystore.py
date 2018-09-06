@@ -14,8 +14,6 @@ import abc
 
 
 KEY_DELIMITER = ':'
-SETUP = False # TODO: Remove
-INTERFACE = None # TODO: Remove
 
 
 class Driver(abc.ABC):
@@ -271,59 +269,3 @@ def reduce_key(keys):
 def reduce_key_val(keys):
 	assert len(keys) >= 2
 	return KEY_DELIMITER.join(map(str, keys[:-1])), keys[-1]
-
-
-async def get(*keys):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	key = reduce_key(keys)
-	return await INTERFACE.get(key)
-
-
-# It's a bit strange how the end of this is the value
-async def set(*args, expire = None):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	assert(len(args) >= 2)
-	key, value = reduce_key_val(args)
-	await INTERFACE.set(key, value)
-	if expire is not None:
-		await INTERFACE.expire(key, expire)
-
-
-async def get_json(*keys):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	data = await get(*keys)
-	return None if data is None else json.loads(data)
-
-
-async def set_json(*args, expire = None):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	assert(len(args) >= 2)
-	key, value = reduce_key_val(args)
-	await INTERFACE.set(key, json.dumps(value))
-	if expire is not None:
-		await INTERFACE.expire(key, expire)
-
-async def lpush(*args):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	key, value = reduce_key_val(args)
-	await INTERFACE.lpush(key, value)
-
-async def rpop(*keys):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	key = reduce_key(keys)
-	return await INTERFACE.rpop(key)
-
-async def delete(*args):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	assert(len(args) >= 1)
-	key = reduce_key(args)
-	await INTERFACE.delete(key)
-
-
-async def expire(*args):
-	warnings.warn('global keystore object is deprecated', DeprecationWarning)
-	assert(len(args) >= 2)
-	args = list(args)
-	time = args.pop()
-	key = reduce_key(args)
-	await INTERFACE.expire(key, time)

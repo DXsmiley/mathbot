@@ -177,8 +177,7 @@ class WolframModule:
 	@check(require_api)
 	async def wolf(self, ctx, *, query):
 		if query in ['', 'help']:
-			# TODO: Use server prefix in this help message.
-			await ctx.send('Usage: `=wolf x^2 - 3`. Run `=help wolf` for details.')
+			await ctx.send(f'Usage: `{ctx.prefix}wolf x^2 - 3`. Run `{ctx.prefix}help wolf` for details.')
 		else:
 			async with Locker(ctx) as ok:
 				if ok:
@@ -189,8 +188,7 @@ class WolframModule:
 	@check(require_api)
 	async def pup(self, ctx, *, query):
 		if query in ['', 'help']:
-			# TODO: Use server prefix in this help message.
-			await ctx.send('Usage: `=pup plot x^2 - 3`. Run `=help pup` for details.')
+			await ctx.send(f'Usage: `{ctx.prefix}pup plot x^2 - 3`. Run `{ctx.prefix}help pup` for details.')
 		else:
 			async with Locker(ctx) as ok:
 				if ok:
