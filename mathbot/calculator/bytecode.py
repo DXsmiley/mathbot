@@ -153,31 +153,15 @@ class GlobalToken:
 
 class GlobalScope:
 
-	__slots__ = ['tight_bindings', 'exposed_bindings', 'counter']
+	__slots__ = ['name_mapping']
 
 	def __init__(self):
-		self.counter = 0
-		self.tight_bindings = {}
-		self.exposed_bindings = {}
-
-	def next_slot(self):
-		self.counter += 1
-		return self.counter - 1
+		self.name_mapping = {}
 
 	def find_value(self, name, depth = 0, is_assignment = False):
-		if is_assignment:
-			if name not in self.exposed_bindings:
-				self.exposed_bindings[name] = self.next_slot()
-			self.tight_bindings[name] = self.next_slot()
-		else:
-			if name not in self.exposed_bindings:
-				self.exposed_bindings[name] = self.next_slot()
-				self.tight_bindings[name] = self.next_slot()		
-		return self, depth, GlobalToken(
-			self.exposed_bindings[name],
-			self.tight_bindings[name],
-			name
-		)
+		if name not in self.name_mapping:
+			self.name_mapping[name] = len(self.name_mapping)
+		return self, depth, self.name_mapping[name]
 
 
 class LocalScope:
@@ -421,7 +405,7 @@ class CodeSegment:
 			# NOTE: Only global variables can fail to be found,
 			# so we only need the name for this one.
 			self.push(I.ACCESS_GLOBAL)
-			self.push(index.exposed if keys.exposed_global_bindings else index.tight)
+			self.push(index)
 			self.push(node['string'], error = node['source'])
 		elif depth == 0:
 			self.push(I.ACCESS_LOCAL)
@@ -465,9 +449,7 @@ class CodeSegment:
 		scope, depth, index = keys.scope.find_value(name, is_assignment=True)
 		assert scope is self.master.globalscope
 		# print(scope, depth, index)
-		self.push(I.DUPLICATE)
-		self.push(I.ASSIGNMENT, index.tight, error=node['variable'].get('source'))
-		self.push(I.ASSIGNMENT, index.exposed, error=node['variable'].get('source'))
+		self.push(I.ASSIGNMENT, index, error=node['variable'].get('source'))
 
 	def btcfy_unload_global(self, node, keys):
 		name = node['variable']['string'].lower()
