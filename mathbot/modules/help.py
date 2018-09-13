@@ -3,6 +3,7 @@
 import re
 import core.help
 from discord.ext.commands import command
+import discord
 from utils import is_private
 
 
@@ -40,31 +41,24 @@ class HelpModule:
 			return
 
 		# Display the default prefix if the user is in DMs and uses no prefix.
-		prefix = context.prefex or '='
+		prefix = context.prefix or '='
 		
-		was_private = True
-		
-		for index, page in enumerate(found_doc):
-			page = doubleformat(
-				page,
-				prefix=prefix,
-				mention=context.bot.user.mention,
-				add_link='https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016', # pylint: disable=line-too-long
-				server_link=SERVER_LINK
-			)
-			# TODO: Handle users who are unable to receive private messages.
-			await context.message.author.send(page)
-			# await self.send_message(msg, page)
-			# args = [msg.author, msg.channel, page]
-			# if not await self.send_private_fallback(*args, supress_warning=index > 0):
-			# 	was_private = False
-		
-		if was_private and not is_private(context.channel):
-			if topic:
-				reply = "Information on `{}` has been sent to you privately.".format(topic)
-			else:
-				reply = "Help has been sent to you privately."
-			await context.send(reply)
+		try:
+			for index, page in enumerate(found_doc):
+				page = doubleformat(
+					page,
+					prefix=prefix,
+					mention=context.bot.user.mention,
+					add_link='https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016', # pylint: disable=line-too-long
+					server_link=SERVER_LINK
+				)
+				await context.message.author.send(page)
+		except discord.Forbidden:
+			await context.send(embed=discord.Embed(
+				title='The bot was unable to slide into your DMs',
+				description=f'Please try modifying your privacy settings to allow DMs from server members. If you are still experiencing problems, contact the developer at the mathbot server: {SERVER_LINK}',
+				colour=discord.Colour.red()
+			))
 
 	async def _send_topic_list(self, context):
 		topics = core.help.listing()
