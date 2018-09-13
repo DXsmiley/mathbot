@@ -67,7 +67,6 @@ class HelpModule:
 			await context.send(reply)
 
 	async def _send_topic_list(self, context):
-		# TODO: Get this working again
 		topics = core.help.listing()
 		column_width = max(map(len, topics))
 		columns = 3
