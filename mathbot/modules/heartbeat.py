@@ -1,6 +1,5 @@
 ''' Module to update the status icon of the bot whever it's being restarted or something. '''
 
-import core.keystore
 import time
 import asyncio
 from discord.ext.commands import command
@@ -17,12 +16,12 @@ class Heartbeat:
 		while not self.bot.is_closed(): # TODO: Stop the task if the cog is unloaded
 			current_time = int(time.time())
 			for shard in self.bot.shard_ids:
-				await core.keystore.set('heartbeat', str(shard), current_time)
+				await self.bot.keystore.set('heartbeat', str(shard), current_time)
 			tick += 1
 			if tick % 5 == 0:
 				# Find the slowest shard
 				slowest = min([
-					(await core.keystore.get('heartbeat', str(shard)) or 1)
+					(await self.bot.keystore.get('heartbeat', str(shard)) or 1)
 					for shard in range(self.bot.shard_count)
 				])
 				await self.bot.change_presence(
@@ -32,14 +31,14 @@ class Heartbeat:
 			await asyncio.sleep(3)
 		# Specify that the current shard is no longer running. Helps the other shards update sooner.
 		for i in self.bot.shard_ids:
-			await core.keystore.set('heartbeat', str(i), 1)
+			await self.bot.keystore.set('heartbeat', str(i), 1)
 
 	@command()
 	async def heartbeat(self, context):
 		current_time = int(time.time())
 		lines = ['```']
 		for i in range(self.bot.shard_count):
-			last_time = await core.keystore.get('heartbeat', str(i)) or 1
+			last_time = await self.bot.keystore.get('heartbeat', str(i)) or 1
 			timediff = min(60 * 60 - 1, current_time - last_time)
 			lines.append('{} {:2d} - {:2d}m {:2d}s'.format(
 				'>' if i in self.bot.shard_ids else ' ',
