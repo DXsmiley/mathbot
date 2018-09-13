@@ -152,11 +152,14 @@ class Terminal:
                 details['result'] = result_items
                 worked = True
                 for result in result_items:
-                    f_res = await calculator.crucible.run(
-                        calculator.formatter.format,
-                        (result,),
-                        timeout = 2
-                    )
+                    if isinstance(result, tuple(sympy.core.all_classes)):
+                        f_res = await calculator.crucible.run(
+                            calculator.formatter.format,
+                            (result,),
+                            timeout = 2
+                        )
+                    else:
+                        f_res = calculator.formatter.format(result, limit=self.output_limit)
                     try:
                         exact = await calculator.crucible.run(result.evalf, (), timeout=2)
                         details['exact'] = exact
