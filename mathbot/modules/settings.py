@@ -5,8 +5,7 @@ import core.keystore
 import core.help
 import core.settings
 
-from core.util import invoker_requires_perms
-from discord.ext.commands import command, guild_only
+from discord.ext.commands import command, guild_only, has_permissions
 
 
 core.help.load_from_file('./help/settings.md')
@@ -71,7 +70,7 @@ class SettingsModule:
 
 	@command(name='set')
 	@guild_only()
-	@invoker_requires_perms('administrator')
+	@has_permissions(administrator=True)
 	async def _set(self, ctx, context: str, setting: str, value: str):
 		try:
 			async with ProblemReporter(ctx) as problem:
@@ -150,7 +149,7 @@ class SettingsModule:
 
 	@command()
 	@guild_only()
-	@invoker_requires_perms('administrator')
+	@has_permissions(administrator=True)
 	async def prefix(self, ctx, *, arg=''):
 		if arg:
 			prefix = arg.strip().replace('`', '')

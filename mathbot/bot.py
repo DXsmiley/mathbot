@@ -131,6 +131,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			await destination.send(f'Bad argument: {error}')
 		elif isinstance(error, NoPrivateMessage):
 			await destination.send(f'That command cannot be used in DMs.')
+		elif isinstance(error, MissingPermissions):
+			await destination.send(f'You are missing the following permissions required to run the command: {", ".join(error.missing_perms)}.')
 		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
 			await destination.send(embed=discord.Embed(
 				title='Command disabled',

@@ -2,10 +2,9 @@ import core.help
 import discord
 import asyncio
 from utils import is_private
-from core.util import invoker_requires_perms
 
 
-from discord.ext.commands import command, guild_only
+from discord.ext.commands import command, guild_only, has_permissions
 
 USER_PERM_ERROR = '''\
 You do not have the permissions required to perform that operation in this channel.
@@ -22,7 +21,7 @@ core.help.load_from_file('./help/purge.md')
 class PurgeModule:
 	@command()
 	@guild_only()
-	@invoker_requires_perms('manage_messages')
+	@has_permissions(manage_messages=True)
 	async def purge(self, ctx, number: int):
 		if number > 0:
 			number = min(200, number)
