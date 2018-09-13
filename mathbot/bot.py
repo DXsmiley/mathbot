@@ -144,8 +144,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				colour=discord.Colour.orange()
 			))
 		elif isinstance(error, CommandInvokeError):
-			# TODO: Get details of the command itself.
-			await self.report_error(destination, error.original, 'An error occurred while running a command')
+			await self.report_error(destination, error.original, human_details)
 		else:
 			await self.report_error(destination, error, human_details)
 
