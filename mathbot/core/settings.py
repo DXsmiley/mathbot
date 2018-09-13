@@ -94,7 +94,7 @@ class Settings:
 			context = context.guild
 		if not isinstance(context, discord.Guild):
 			raise TypeError(f'{context} is not a valid guild.')
-		return (await core.keystore.set(f's-prefix:{context.id}', prefix)) or '='
+		return (await self.keystore.set(f's-prefix:{context.id}', prefix)) or '='
 
 def _get_key(setting, context):
 	setting = redirect(setting)

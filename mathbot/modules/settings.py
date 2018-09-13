@@ -149,19 +149,20 @@ class SettingsModule:
 
 	@command()
 	@guild_only()
-	@has_permissions(administrator=True)
-	async def prefix(self, ctx, *, arg=''):
-		if arg:
-			prefix = arg.strip().replace('`', '')
-			await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
-			await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
+	async def prefix(self, ctx):
+		prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
+		if prefix in [None, '=']:
+			await ctx.send('The prefix for this server is `=`, which is the default.')
 		else:
-			prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
-			if prefix in [None, '=']:
-				await ctx.send('The prefix for this server is `=`, which is the default.')
-			else:
-				await ctx.send(f'The prefix for this server is `{prefix}`, which has been customised.')
+			await ctx.send(f'The prefix for this server is `{prefix}`, which has been customised.')
 
+	@command()
+	@guild_only()
+	@has_permissions(administrator=True)
+	async def setprefix(self, ctx, *, arg):
+		prefix = arg.strip().replace('`', '')
+		await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
+		await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
 
 def setup(bot):
 	bot.add_cog(SettingsModule())

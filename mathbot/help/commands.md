@@ -6,7 +6,8 @@ List of commands:
 - `{{prefix}}calc` - Basic calculator (aliased to `==`)
 - `{{prefix}}roll` - Roll dice
 - `{{prefix}}help` - Get help on various subjects
-- `{{prefix}}prefix` - Get or set the bot's prefix
+- `{{prefix}}prefix` - Get the bot's prefix
+- `{{prefix}}setprefix` - Set the bot's prefix
 - `{{prefix}}purge` - Delete messages sent by the bot
 - `{{prefix}}set` - Modify bot settings and permissions
 - `{{prefix}}stats` - Number of servers, uptime, etc.
