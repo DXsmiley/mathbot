@@ -224,8 +224,8 @@ class CalculatorModule():
 				if not message.content.startswith('=='):
 					await message.channel.send('Type `=help calc` for information on how to use this command.')
 			elif arg == 'help':
-				prefix = await self.bot.settings.get_channel_prefix(message.channel)
-				await message.channel.send(SHORTCUT_HELP_CLARIFICATION.format(prefix = prefix))
+				prefix = await self.bot.settings.get_server_prefix(message)
+				await message.channel.send(SHORTCUT_HELP_CLARIFICATION.format(prefix=prefix))
 			else:
 				safe.sprint('Doing calculation:', arg)
 				scope = await get_scope(message.channel.id)
