@@ -241,8 +241,8 @@ class CalculatorModule():
 					for special_char in ('\\', '*', '_', '~~', '`'):
 						result = result.replace(special_char, '\\' + special_char)
 				result = result.replace('@', '@\N{zero width non-joiner}')
-				if result == '' and self.bot.permissions_for(message.channel).add_reactions:
-					await self.client.add_reaction(message, '👍')
+				if result == '':
+					await message.add_reaction('👍')
 				else:
 					if result == '':
 						result = ':thumbsup:'
