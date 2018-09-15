@@ -731,6 +731,7 @@ TOKEN_SPEC = [
 
 
 def parse(string, source_name = '__unknown__'):
+	string = string.replace('\N{SINGLE LOW-9 QUOTATION MARK}', '')
 	tokens = tokenizer(string, TOKEN_SPEC, source_name = source_name)
 	nested = process_tokens(tokens)
 	package = TokenRoot(string, tokens, nested)

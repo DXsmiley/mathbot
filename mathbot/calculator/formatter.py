@@ -70,6 +70,15 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 	def _print_Pi(self, expre):
 		return 'π' if self._settings.get('unicode', True) else 'pi'
 
+	def _print_Integer(self, expr):
+		normal = super()._print_Integer(expr)[::-1]
+		out = []
+		for i, c in enumerate(normal):
+			if i % 4 == 3:
+				out.append('\N{SINGLE LOW-9 QUOTATION MARK}')
+			out.append(c)
+		return ''.join(out[::-1])
+
 
 class SimpleFormatter:
 

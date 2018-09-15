@@ -166,7 +166,7 @@ class Terminal:
                         f_ext = calculator.formatter.format(exact, limit=self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
                         f_ext = calculator.formatter.sympy_cleanup(f_ext)
-                        if f_ext in ['inf', '-inf', f_res]:
+                        if f_ext in ['inf', '-inf', f_res.replace('\N{SINGLE LOW-9 QUOTATION MARK}', '')]:
                             raise Exception
                         prt(f_res, '=', f_ext)
                     except asyncio.TimeoutError:
