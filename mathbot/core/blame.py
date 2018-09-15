@@ -15,7 +15,7 @@ async def set_blame(keystore, sent, blame):
 		i.e. specifies the user that the was responsible for causing the
 		bot the send a particular message.
 	'''
-	string = f'{blame.mention} ({blame.name}#{blame.discriminator}, {blame.nick or "*no nickname*"})'
+	string = f'{blame.mention} ({blame.name}#{blame.discriminator})'
 	await keystore.set('blame', sent.id, string, expire = 60 * 60 * 80)
 
 
