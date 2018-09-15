@@ -15,11 +15,12 @@ async def set_blame(keystore, sent, blame):
 		i.e. specifies the user that the was responsible for causing the
 		bot the send a particular message.
 	'''
-	await keystore.set('blame', sent.id, blame.mention, expire = 60 * 60 * 80)
+	string = f'{blame.mention} ({blame.name}#{blame.discriminator}, {blame.nick or "*no nickname*"})'
+	await keystore.set('blame', sent.id, string, expire = 60 * 60 * 80)
 
 
 async def _context_send(context, *args, **kwargs):
 	sent = await Messageable.send(context, *args, **kwargs)
-	LOG.info(f'Setting blame for {sent.id}: {context.message.author}')
+	# LOG.info(f'Setting blame for {sent.id}: {context.message.author}')
 	await set_blame(context.bot.keystore, sent, context.message.author)
 	return sent
