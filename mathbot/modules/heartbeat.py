@@ -2,6 +2,8 @@
 
 import time
 import asyncio
+import discord
+import traceback
 from discord.ext.commands import command
 
 class Heartbeat:
@@ -12,6 +14,7 @@ class Heartbeat:
 
 	async def pulse(self):
 		''' Repeatedly update the status of the bot '''
+		print('Heartbeat coroutine is running')
 		tick = 0
 		while not self.bot.is_closed(): # TODO: Stop the task if the cog is unloaded
 			current_time = int(time.time())
@@ -24,10 +27,14 @@ class Heartbeat:
 					(await self.bot.keystore.get('heartbeat', str(shard)) or 1)
 					for shard in range(self.bot.shard_count)
 				])
-				await self.bot.change_presence(
-					game=discord.Game(name='bit.ly/mathbot'),
-					status=discord.Status.idle if current_time - slowest >= 30 else discord.Status.online
-				)
+				try:
+					await self.bot.change_presence(
+						activity=discord.Game('with numbers'),
+						status=discord.Status.idle if current_time - slowest >= 30 else discord.Status.online
+					)
+				except:
+					print('Error while changing presence based on heartbeat')
+					traceback.print_exc()
 			await asyncio.sleep(3)
 		# Specify that the current shard is no longer running. Helps the other shards update sooner.
 		for i in self.bot.shard_ids:
