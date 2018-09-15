@@ -71,6 +71,7 @@ class LatexModule:
 		self.bot = bot
 
 	@command(aliases=['latex', 'rtex'])
+	@core.settings.command_allowed('c-tex')
 	async def tex(self, context, *, latex=''):
 		if latex == '':
 			await context.send('Type `=help tex` for information on how to use this command.')
