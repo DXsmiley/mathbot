@@ -104,8 +104,16 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 
 	async def on_command(self, ctx):
 		perms = ctx.message.channel.permissions_for(ctx.me)
-		if not all([perms.add_reactions, perms.attach_files, perms.embed_links, perms.read_message_history]):
-			await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
+		required = [
+			perms.add_reactions,
+			perms.attach_files,
+			perms.embed_links,
+			perms.read_message_history,
+			
+		]
+		if not all(required):
+			if perms.send_messages:
+				await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
 
 	async def on_error(self, event, *args, **kwargs):
 		_, error, _ = sys.exc_info()
@@ -190,6 +198,7 @@ def _get_extensions(parameters):
 	if parameters.get('release') == 'development':
 		yield 'modules.echo'
 		yield 'modules.throws'
+	yield 'patrons' # This is a little weird.
 	# if parameters.get('release') == 'production':
 	# 	yield 'modules.analytics'
 
