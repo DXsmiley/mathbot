@@ -16,19 +16,7 @@ class PatronageMixin:
 	def patron_tier(self, uid):
 		if not isinstance(uid, (str, int)):
 			raise TypeError('User ID looks invalid')
-		rank_string = self.parameters.get('patrons').get(str(uid))
-		if rank_string is None:
-			return TIER_NONE
-		elif rank_string.startswith('constant'):
-			return TIER_CONSTANT
-		elif rank_string.startswith('quadratic'):
-			return TIER_QUADRATIC
-		elif rank_string.startswith('exponential'):
-			return TIER_EXPONENTIAL
-		elif rank_string.startswith('special'):
-			return TIER_SPECIAL
-		raise InvalidPatronRankError
-		# return self.keystore.get('patron', str(uid)) or 0
+		return await bot.keystore.get('patron', str(uid)) or 0
 
 
 class PatronModule:
@@ -50,7 +38,7 @@ class PatronModule:
 				tier = max(role_name_to_tier(r.name) for r in member.roles)
 				if tier != 0:
 					print(member, 'is teir', get_tier_name(tier))
-					self.bot.keystore.set('patron', str(member.id), tier, expire = 60 * 60 * 24 * 3)
+					await self.bot.keystore.set('patron', str(member.id), tier, expire = 60 * 60 * 24 * 3)
 
 
 def get_tier_name(tier):
