@@ -1,6 +1,7 @@
 import json
 import re
 import enum
+from calculator.syntax_trees import *
 
 
 class DelimitedBinding(enum.Enum):
@@ -295,20 +296,25 @@ def eat_optionally_delimited(subrule, delimiters, binding, type, allow_nothing =
 	return internal
 
 
-def atom(tokens):
-	if tokens.peek(0, 'number', 'word', 'string', 'glyph'):
-		return tokens.eat_details()
-	raise UnableToFinishParsing(tokens)
+# def atom(tokens):
+# 	if tokens.peek(0, 'number', 'word', 'string', 'glyph'):
+# 		return tokens.eat_details()
+# 	raise UnableToFinishParsing(tokens)
 
 
-def percentage(tokens):
-	if tokens.peek_sequence(0, 'number', 'percent_op'):
-		return {
-			'#': 'percent_op',
-			'value': atom(tokens),
-			'token': tokens.eat_details()
-		}
-	return atom(tokens)
+# def percentage(tokens):
+# 	if tokens.peek_sequence(0, 'number', 'percent_op'):
+# 		return {
+# 			'#': 'percent_op',
+# 			'value': atom(tokens),
+# 			'token': tokens.eat_details()
+# 		}
+# 	return atom(tokens)
+
+atom = number | word | string | glyph | unable_to_finish_parsing
+percentage = (number + percent_op) | atom
+
+wrapped_expression = has_braces(BracketType.ROUND, expression) | has_braces(BracketType.SQUARE, list_literal) | percentage
 
 
 def word(tokens):
@@ -329,6 +335,9 @@ def wrapped_expression(tokens):
 	if tokens.peek(0, BracketType.SQUARE):
 		return ensure_completed(list_literal, tokens.eat_details())
 	return percentage(tokens)
+
+
+# function_call = percentage | (wrapped_expression + )...
 
 
 def function_call(tokens):
