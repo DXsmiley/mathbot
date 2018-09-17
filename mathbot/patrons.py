@@ -47,7 +47,7 @@ class PatronModule:
 			print('Could not get mathbot guild in order to find patrons')
 		else:
 			for member in guild.members:
-				tier = max(role_to_tier(r.name) for r in member.roles)
+				tier = max(role_name_to_tier(r.name) for r in member.roles)
 				if tier != 0:
 					print(member, 'is teir', get_tier_name(tier))
 					self.bot.keystore.set('patron', str(member.id), tier, expire = 60 * 60 * 24 * 3)

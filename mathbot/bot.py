@@ -109,7 +109,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			perms.attach_files,
 			perms.embed_links,
 			perms.read_message_history,
-			
+
 		]
 		if not all(required):
 			if perms.send_messages:
@@ -122,7 +122,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			await self.handle_contextual_error(args[0].channel, error, msg)
 		else:
 			termcolor.cprint(traceback.format_exc(), 'blue')
-			self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
+			await self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
 
 	async def on_command_error(self, context, error):
 		details = f'**Error while running command**\n```\n{context.message.clean_content}\n```'
