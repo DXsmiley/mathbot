@@ -11,7 +11,7 @@ MESSAGES = [
 class AdvertisingMixin:
 
     async def advertise_to(self, user, channel, destination):
-        if self.parameters.get('advertising enable') and self.patron_tier(user.id) == patrons.TIER_NONE:
+        if self.parameters.get('advertising enable') and (await self.patron_tier(user.id)) == patrons.TIER_NONE:
             chan_id = str(channel.id if is_private(channel) else channel.guild.id)
             counter = (await self.keystore.get('advert_counter', chan_id)) or 0
             interval = self.parameters.get('advertising interval')

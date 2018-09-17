@@ -13,10 +13,10 @@ class InvalidPatronRankError(Exception):
 
 class PatronageMixin:
 
-	def patron_tier(self, uid):
+	async def patron_tier(self, uid):
 		if not isinstance(uid, (str, int)):
 			raise TypeError('User ID looks invalid')
-		return await bot.keystore.get('patron', str(uid)) or 0
+		return await self.keystore.get('patron', str(uid)) or 0
 
 
 class PatronModule:
@@ -26,7 +26,7 @@ class PatronModule:
 
 	@command()
 	async def check_patronage(self, ctx):
-		tier = ctx.bot.patron_tier(ctx.author.id)
+		tier = await ctx.bot.patron_tier(ctx.author.id)
 		await ctx.send(f'Your patronage tier is {get_tier_name(tier)}')
 
 	async def on_ready(self):

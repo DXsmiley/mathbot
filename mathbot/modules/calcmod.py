@@ -100,7 +100,7 @@ class CalculatorModule():
 	@core.util.respond
 	async def handle_view_history(self, ctx):
 		''' Command to view the list of recently run expressions. '''
-		if not self.allow_calc_history(ctx.channel):
+		if not await self.allow_calc_history(ctx.channel):
 			return HISTORY_DISABLED_PRIVATE if utils.is_private(ctx.channel) else HISTORY_DISABLED
 		commands = await self.unpack_commands(ctx.channel)
 		if not commands:
@@ -258,7 +258,7 @@ class CalculatorModule():
 	async def ensure_loaded(self, channel, blame):
 		# If command were previously run in this channel, re-run them
 		# in order to re-load any functions that were defined
-		if self.allow_calc_history(channel):
+		if await self.allow_calc_history(channel):
 			# Ensure that only one coroutine is allowed to execute the code
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
@@ -353,7 +353,7 @@ class CalculatorModule():
 		return was_error, commands_to_keep
 
 	async def add_command_to_history(self, channel, new_command):
-		if self.allow_calc_history(channel):
+		if await self.allow_calc_history(channel):
 			history = await self.unpack_commands(channel)
 			history.append({
 				'time': int(time.time()),
@@ -362,13 +362,13 @@ class CalculatorModule():
 			to_store = json.dumps(history)
 			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
 
-	def allow_calc_history(self, channel):
+	async def allow_calc_history(self, channel):
 		if not self.bot.parameters.get('calculator.persistent'):
 			return False
 		if utils.is_private(channel):
-			return self.bot.patron_tier(self.bot.parameteres, channel.user.id) >= patrons.TIER_QUADRATIC
+			return (await self.bot.patron_tier(self.bot.parameteres, channel.user.id)) >= patrons.TIER_QUADRATIC
 		else:
-			return self.bot.patron_tier(self.bot.parameteres, channel.server.owner.id) >= patrons.TIER_QUADRATIC
+			return (await self.bot.patron_tier(self.bot.parameteres, channel.server.owner.id)) >= patrons.TIER_QUADRATIC
 
 
 def expression_has_side_effect(expr):
