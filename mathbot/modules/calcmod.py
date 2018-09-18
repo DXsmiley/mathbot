@@ -78,7 +78,7 @@ class ReplayState:
 
 
 ENABLE_LIBS = False
-ENABLE_HISTORY = False
+ENABLE_HISTORY = True
 
 
 class CalculatorModule():
@@ -97,17 +97,18 @@ class CalculatorModule():
 		await self.perform_calculation(arg.strip(), ctx.message)
 
 	@command(name='calc-history', enabled=ENABLE_HISTORY)
-	@core.util.respond
 	async def handle_view_history(self, ctx):
 		''' Command to view the list of recently run expressions. '''
 		if not await self.allow_calc_history(ctx.channel):
-			return HISTORY_DISABLED_PRIVATE if utils.is_private(ctx.channel) else HISTORY_DISABLED
-		commands = await self.unpack_commands(ctx.channel)
-		if not commands:
-			return 'No persistent commands have been run in this channel.'
-		commands_text = map(lambda x: x['expression'], commands)
-		for i in history_grouping(commands_text):
-			await ctx.send(i)
+			await ctx.send(HISTORY_DISABLED_PRIVATE if utils.is_private(ctx.channel) else HISTORY_DISABLED)
+		else:
+			commands = await self.unpack_commands(ctx.channel)
+			if not commands:
+				await ctx.send('No persistent commands have been run in this channel.')
+			else:
+				commands_text = map(lambda x: x['expression'], commands)
+				for i in history_grouping(commands_text):
+					await ctx.send(i)
 
 	@command(name='libs-list', enabled=ENABLE_LIBS)
 	@guild_only()
@@ -194,16 +195,16 @@ class CalculatorModule():
 			colour=discord.colour.blue()
 		)
 
-	# TODO: Permission guards
 	@command(name='calc-reload')
 	@core.settings.command_allowed('c-calc')
-	async def handle_calc_reload(self, message):
-		with (await LOCKS[message.channel.id]):
-			if message.channel.id in SCOPES:
-				del SCOPES[message.channel.id]
-			if message.channel.id in self.replay_state:
-				del self.replay_state[message.channel.id]
-		return 'Calculator state has been flushed from this channel.'
+	async def handle_calc_reload(self, ctx):
+		channel = ctx.channel.id
+		async with LOCKS[channel]:
+			if channel in SCOPES:
+				del SCOPES[channel]
+			if channel in self.replay_state:
+				del self.replay_state[channel]
+		await ctx.send('Calculator state has been flushed from this channel.')
 
 	async def on_message(self, message):
 		''' Trigger the calculator when the message is prefixed by "==" '''
@@ -215,7 +216,7 @@ class CalculatorModule():
 
 	# Perform a calculation and spits out a result!
 	async def perform_calculation(self, arg, message):
-		with (await LOCKS[message.channel.id]):
+		async with LOCKS[message.channel.id]:
 			await self.ensure_loaded(message.channel, message.author)
 			# Yeah this is kinda not great...
 			arg = arg.strip('` \n\t')
@@ -263,13 +264,13 @@ class CalculatorModule():
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
-					# Doesn't matter if this is at the start or end, because of the locks around it
+					if ENABLE_LIBS:
+						print('Loading libraries for channel', channel)
+						await self.run_libraries(channel, channel.server)
+					if ENABLE_HISTORY:
+						print('Replaying calculator commands for', channel)
+						await self.restore_history(channel, blame)
 					self.replay_state[channel.id].loaded = True
-					await self.send_typing(channel)
-					print('Loading libraries for channel', channel)
-					await self.run_libraries(channel, channel.server)
-					print('Replaying calculator commands for', channel)
-					await self.restore_history(channel, blame)
 
 	async def restore_history(self, channel, blame):
 		commands_unpacked = await self.unpack_commands(channel)
@@ -279,16 +280,16 @@ class CalculatorModule():
 			was_error, commands_to_keep = await self.rerun_commands(channel, commands_unpacked)
 			# Store the list of commands that worked back into storage for use next time
 			to_store = json.dumps(commands_to_keep)
-			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+			await self.bot.keystore.set('calculator', 'history', str(channel.id), to_store, expire = EXPIRE_TIME)
 			if was_error:
-				await self.send_message(channel, blame=blame, embed=discord.Embed(
+				await channel.send(embed=discord.Embed(
 					title='Some errors occurred during catchup.',
 					description='Calculator state has been partially restored. Run `=calc-history` for a list of commands that have been retained.',
 					colour=discord.Colour.yellow()
 				))
 
 	async def unpack_commands(self, channel):
-		commands = await self.bot.keystore.get('calculator', 'history', channel.id)
+		commands = await self.bot.keystore.get('calculator', 'history', str(channel.id))
 		if commands is None:
 			print('No commands to unpack')
 			return []
@@ -360,15 +361,19 @@ class CalculatorModule():
 				'expression': new_command
 			})
 			to_store = json.dumps(history)
-			await core.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+			await self.bot.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
 
 	async def allow_calc_history(self, channel):
-		if not self.bot.parameters.get('calculator.persistent'):
+		# if not self.bot.parameters.get('calculator.persistent'):
+		# 	return False
+		if self.bot.parameters.get('release') == 'development':
+			return True
+		if not ENABLE_HISTORY:
 			return False
 		if utils.is_private(channel):
-			return (await self.bot.patron_tier(self.bot.parameteres, channel.user.id)) >= patrons.TIER_QUADRATIC
+			return (await self.bot.patron_tier(channel.user.id)) >= patrons.TIER_CONSTANT
 		else:
-			return (await self.bot.patron_tier(self.bot.parameteres, channel.server.owner.id)) >= patrons.TIER_QUADRATIC
+			return (await self.bot.patron_tier(channel.guild.owner.id)) >= patrons.TIER_CONSTANT
 
 
 def expression_has_side_effect(expr):
