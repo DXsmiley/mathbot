@@ -13,7 +13,7 @@ class Heartbeat:
 		self.background_task = None
 
 	async def on_ready(self):
-		self.background_task = bot.loop.create_task(self.pulse())
+		self.background_task = self.bot.loop.create_task(self.pulse())
 
 	async def pulse(self):
 		''' Repeatedly update the status of the bot '''
