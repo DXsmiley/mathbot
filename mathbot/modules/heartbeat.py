@@ -10,6 +10,9 @@ class Heartbeat:
 
 	def __init__(self, bot):
 		self.bot = bot
+		self.background_task = None
+
+	async def on_ready(self):
 		self.background_task = bot.loop.create_task(self.pulse())
 
 	async def pulse(self):
