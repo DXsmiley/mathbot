@@ -45,44 +45,18 @@ class AnalyticsModule:
 				discord_bots_key = self.bot.parameters.get('analytics discord-bots')
 				if discord_bots_key:
 					url = DISCORD_BOTS_URL.format(bot_id = self.bot.user.id)
-					payload = {
-						'json': {
-							'server_count': num_servers,
-							'shard_count': num_shards,
-							'shard_id': shard_id
-						},
-						'headers': {
-							'Authorization': discord_bots_key,
-							'Content-Type': 'application/json'
-						}
-					}
-					async with session.post(url, **payload) as response:
-						print('Analytics: bots.pw:', response.status)
-						if response.status not in [200, 204]:
-							print(await response.text())
+					await self.send_stats(session, num_servers, num_shards, shard_id, url, discord_bots_key)
 				# Submit to discordbots.org
 				bots_org_key = self.bot.parameters.get('analytics bots-org')
 				if bots_org_key:
 					url = BOTS_ORG_URL.format(bot_id = self.bot.user.id)
-					payload = {
-						'json': {
-							'server_count': num_servers,
-							'shard_count': num_shards,
-							'shard_id': shard_id
-						},
-						'headers': {
-							'Authorization': bots_org_key,
-							'Content-Type': 'application/json'
-						}
-					}
-					async with session.post(url, **payload) as response:
-						print('Analytics: bots.org:', response.status)
-						if response.status not in [200, 204]:
-							print(await response.text())
-				num_servers = 0 # All servers get attached to the first shard, subsequent ones are zero
+					await self.send_stats(session, num_servers, num_shards, shard_id, url, bots_org_key)
+				# All servers get attached to the first shard, subsequent ones are zero
+				# bots.discord.pw bugs out when given zero servers though.
+				num_servers = 1
 
 	@staticmethod
-	async def send_stats(session, url, key):
+	async def send_stats(session, num_servers, num_shards, shard_id, url, key):
 		# Both the servers have a similar API so we can do this
 		payload = {
 			'json': {
@@ -96,7 +70,7 @@ class AnalyticsModule:
 			}
 		}
 		async with session.post(url, **payload) as response:
-			print(f'Analytics ({url}): {response.stats}')
+			print(f'Analytics ({url}): {response.status}')
 			if response.status not in [200, 204]:
 				print(await response.text())
 
