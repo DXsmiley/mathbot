@@ -10,6 +10,8 @@ parameters.json
 venv/
 .flake8
 # coverage.py
-.coverage
+.coverage*
 htmlcov
 .mypy_cache
+*.pyc
+.pytest_cache

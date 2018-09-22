@@ -3,8 +3,6 @@ import asyncio
 import traceback
 import discord
 
-import core.module
-import core.handles
 import core.keystore
 import core.parameters
 
@@ -20,56 +18,55 @@ QUEUE = typing.Deque[str]()
 QUEUE = collections.deque()
 
 
-class ReporterModule(core.module.Module):
+class ReporterModule:
 
-	@core.handles.background_task(requires_ready = True)
-	async def queue_reports(self):
-		try:
-			while self.running:
-				if len(QUEUE) > 0:
-					item = QUEUE.pop()
-					await core.keystore.lpush('error-report', item)
-				else:
-					await asyncio.sleep(5)
-		except asyncio.CancelledError:
-			raise
-		except Exception:
-			print('Exception in ReporterModule.queue_reports on shard {}. This is bad.'.format(self.client.shard_id))
+	def __init__(self, bot):
+		self.bot = bot
+		self.send_task = None
 
-	@core.handles.background_task(requires_ready = True)
+	async def on_ready(self):
+		self.send_task = self.bot.loop.create_task(self.send_reports())
+		self.sent_duty_note = False
+
 	async def send_reports(self):
 		try:
-			report_channel = await self.get_report_channel()
-			if report_channel:
-				print('Shard', self.client.shard_id, 'will report errors!')
-				print('Channel:', report_channel)
-				while self.running:
-					message = await core.keystore.rpop('error-report')
-					if message is not None:
-						# Errors should have already been trimmed before they reach this point,
-						# but this is just in case something slips past
-						if len(message) > 1900:
-							message = message[1900:] + ' **(emergency trim)**'
-						await self.client.send_message(report_channel, message)
-					else:
-						await asyncio.sleep(5)
+			print('Shard', self.bot.shard_ids, 'will report errors!')
+			# print('TextChannel:', report_channel)
+			while not self.bot.is_closed():
+				report_channel = await self.get_report_channel()
+				message = None
+				if report_channel:
+					message = await self.bot.keystore.rpop('error-report')
+				if message:
+					# Errors should have already been trimmed before they reach this point,
+					# but this is just in case something slips past
+					if len(message) > 1900:
+						message = message[1900:] + ' **(emergency trim)**'
+					await report_channel.send(message)
+				else:
+					await asyncio.sleep(10)
 		except asyncio.CancelledError:
 			raise
 		except Exception:
-			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.client.shard_id))
+			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.bot.shard_id))
 			traceback.print_exc()
 
-	async def get_report_channel(self) -> typing.Optional[discord.Channel]:
-		channel_id = core.parameters.get('error-reporting channel')
+	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
+		channel_id = self.bot.parameters.get('error-reporting channel')
 		if channel_id:
 			try:
-				channel = self.client.get_channel(channel_id)
+				channel = self.bot.get_channel(channel_id)
 				if channel:
-					await self.client.send_message(channel, 'Shard {} reporting for duty!'.format(self.shard_id))
+					if not self.sent_duty_note:
+						self.sent_duty_note = True
+						await channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
 					return channel
 			except Exception:
 				pass
 		return None
 
-def enque(string: str):
-	QUEUE.appendleft(string)
+async def report(bot, string: str):
+	await bot.keystore.lpush('error-report', string)
+
+def setup(bot):
+	bot.add_cog(ReporterModule(bot))

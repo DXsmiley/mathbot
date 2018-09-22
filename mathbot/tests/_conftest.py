@@ -1,5 +1,4 @@
 import dismock as automata
-import bot
 import pytest
 import asyncio
 import core.parameters
@@ -103,6 +102,7 @@ def __automata_fixture():
 
     try:
 
+        import bot
         if not bot.DONE_SETUP:
             bot.do_setup()
 

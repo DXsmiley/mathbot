@@ -1,12 +1,12 @@
 \documentclass{article}
 
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{mathrsfs}
 \usepackage{chemfig}
-\usepackage{tikz}
+\usepackage[siunitx, american]{circuitikz}
+\usepackage{mathtools}
 \usepackage{mhchem}
 \usepackage{tikz-cd}
 \usepackage{color}
@@ -15,21 +15,24 @@
 \usepackage[a5paper]{geometry}
 \usepackage{dsfont}
 
-\newfam\hebfam
-\font\tmp=rcjhbltx at10pt \textfont\hebfam=\tmp
-\font\tmp=rcjhbltx at7pt  \scriptfont\hebfam=\tmp
-\font\tmp=rcjhbltx at5pt  \scriptscriptfont\hebfam=\tmp
-\edef\declfam{\ifcase\hebfam 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
-\mathchardef\shin   = "0\declfam 98
-\mathchardef\aleph  = "0\declfam 27
-\mathchardef\beth   = "0\declfam 62
-\mathchardef\gimel  = "0\declfam 67
-\mathchardef\daleth = "0\declfam 64
-\mathchardef\ayin   = "0\declfam 60
-\mathchardef\tsadi  = "0\declfam 76
-\mathchardef\qof    = "0\declfam 72
-\mathchardef\lamed  = "0\declfam 6C
-\mathchardef\mim    = "0\declfam 6D
+% Hebrew characters (from https://tex.stackexchange.com/a/226850)
+\DeclareFontFamily{U}{rcjhbltx}{}
+\DeclareFontShape{U}{rcjhbltx}{m}{n}{<->rcjhbltx}{}
+\DeclareSymbolFont{hebrewletters}{U}{rcjhbltx}{m}{n}
+% remove the definitions from amssymb
+\let\aleph\relax\let\beth\relax
+\let\gimel\relax\let\daleth\relax
+\DeclareMathSymbol{\aleph}{\mathord}{hebrewletters}{39}
+\DeclareMathSymbol{\beth}{\mathord}{hebrewletters}{98}\let\bet\beth
+\DeclareMathSymbol{\gimel}{\mathord}{hebrewletters}{103}
+\DeclareMathSymbol{\daleth}{\mathord}{hebrewletters}{100}\let\dalet\daleth
+\DeclareMathSymbol{\lamed}{\mathord}{hebrewletters}{108}
+\DeclareMathSymbol{\mem}{\mathord}{hebrewletters}{109}\let\mim\mem
+\DeclareMathSymbol{\ayin}{\mathord}{hebrewletters}{96}
+\DeclareMathSymbol{\tsadi}{\mathord}{hebrewletters}{118}
+\DeclareMathSymbol{\qof}{\mathord}{hebrewletters}{113}
+\DeclareMathSymbol{\shin}{\mathord}{hebrewletters}{152}
+
 \newcommand{\bbR}{\mathbb{R}}
 \newcommand{\bbQ}{\mathbb{Q}}
 \newcommand{\bbC}{\mathbb{C}}

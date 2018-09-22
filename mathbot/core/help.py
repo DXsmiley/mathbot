@@ -13,7 +13,6 @@ class DuplicateTopicError(Exception):
 		return 'Multiple entries for help topic "{}"'.format(self.topic)
 
 
-# TODO: Add support for subtopics
 def add(topics, message, from_file = False):
 	if not from_file:
 		print('Still using core.help.add for topics', topics)
@@ -31,7 +30,7 @@ def add(topics, message, from_file = False):
 
 
 def get(topic):
-	return TOPICS.get(topic)
+	return TOPICS.get(topic.lower())
 
 
 def listing():
@@ -39,7 +38,7 @@ def listing():
 
 
 def get_similar(topic):
-	return sorted(difflib.get_close_matches(topic, PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
+	return sorted(difflib.get_close_matches(topic.lower(), PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
 
 
 def load_from_file(filename, topics = None):

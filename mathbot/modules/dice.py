@@ -4,10 +4,10 @@
 import re
 import random
 
-import core.module
-import core.handles
 import core.help
 import core.settings
+import core.util
+from discord.ext.commands import command
 import math
 
 core.help.load_from_file('./help/roll.md')
@@ -21,12 +21,14 @@ class DiceException(Exception): pass
 class ValuesTooBigException(DiceException): pass
 
 
-class DiceModule(core.module.Module):
+class DiceModule:
 
 	''' Module to allow the user to roll dice '''
 
-	@core.handles.command('roll', '*', perm_setting='c-roll')
-	async def command_roll(self, message, arg):
+	@command()
+	@core.settings.command_allowed('c-roll')
+	@core.util.respond
+	async def roll(self, ctx, arg):
 		''' Roll command. Argument should be of the format `2d6` or similar. '''
 		match = FORMAT_REGEX.match(arg.strip('`'))
 		if match is None or match.group(2) is None:
@@ -37,7 +39,7 @@ class DiceModule(core.module.Module):
 		if faces <= 0:
 			return '🎲 Dice must have a positive number of faces.'
 
-		limit = await self.get_limit(message)
+		limit = await self.get_limit(ctx)
 
 		# this is the minimal length of this query, it is used to determine
 		# whether it's possible for the result to be short enough to fit
@@ -62,9 +64,9 @@ class DiceModule(core.module.Module):
 			final_message = f'🎲 {rolls}'
 			return final_message if len(final_message) <= limit else f'🎲 total: {total}'
 
-	async def get_limit(self, message):
+	async def get_limit(self, ctx):
 		''' Get the character limit for messages. '''
-		unlimited = await core.settings.resolve_message('f-roll-unlimited', message)
+		unlimited = await ctx.bot.settings.resolve_message('f-roll-unlimited', ctx.message)
 		return 2000 if unlimited else 200
 
 	def formatted_roll(self, dice, faces):
@@ -92,8 +94,8 @@ class DiceModule(core.module.Module):
 			return self.gaussian_roll_single(dice, faces)
 		# passing this second test means we can do multiple rolls safely
 		elif math.log2(faces) < (PREC / 2):
-			dice_per = PREC - round(math.log2(faces))
-			times = round(dice / 2**(dice_per))
+			dice_per = 2**(PREC - round(math.log2(faces)))
+			times = round(dice / dice_per)
 			if times > limit:
 				raise ValuesTooBigException()
 			return sum([self.gaussian_roll_single(dice_per, faces) for _ in range(times)])
@@ -111,3 +113,6 @@ class DiceModule(core.module.Module):
 		mean = (faces + 1) * dice / 2
 		std = math.sqrt((dice * (faces * faces - 1)) / 12)
 		return int(random.gauss(mean, std))
+
+def setup(bot):
+	bot.add_cog(DiceModule())

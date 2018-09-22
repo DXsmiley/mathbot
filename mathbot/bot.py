@@ -1,228 +1,229 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import sys
 import os
+import sys
+import warnings
+import logging
 import asyncio
 import re
-import signal
-
-import discord
-import logging
-import core.parameters
 import json
-
 import typing
+import traceback
+
+import termcolor
+import discord
+import discord.ext.commands
+from discord.ext.commands.errors import *
+
+import core.blame
+import core.keystore
+import core.settings
+import utils
+
+from queuedict import QueueDict
+from modules.reporter import report
+
+from advertising import AdvertisingMixin
+from patrons import PatronageMixin
 
 
-# logging.basicConfig(level = logging.WARNING)
+warnings.simplefilter('default')
+logging.basicConfig(level = logging.INFO)
+sys.setrecursionlimit(2500)
+core.blame.monkey_patch()
 
 
-DONE_SETUP = False
-RELEASE = None
-TOKEN = None
-SHARDS_TOTAL = 0
-SHARDS_MINE = typing.List[int]
-BOT_RUNNING = True
+REQUIRED_PERMISSIONS_MESSAGE = '''\
+The bot does not have all the permissions it requires in order to run in this channel. The bot may behave unexpectedly without them.
+ - Add reactions
+ - Attach files
+ - Embed links
+ - Read message history
+'''
 
 
-class SecondSignal(Exception):
-	def __str__(self):
-		return 'A second signal was received.'
+class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
+
+	def __init__(self, parameters):
+		super().__init__(
+			command_prefix=_determine_prefix,
+			pm_help=True,
+			shard_count=parameters.get('shards total'),
+			shard_ids=parameters.get('shards mine'),
+			max_messages=100,
+			fetch_offline_members=False
+		)
+		self.parameters = parameters
+		self.release = parameters.get('release')
+		self.keystore = _create_keystore(parameters)
+		self.settings = core.settings.Settings(self.keystore)
+		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
+		assert self.release in ['development', 'beta', 'release']
+		self.remove_command('help')
+		for i in _get_extensions(parameters):
+			self.load_extension(i)
+
+	def run(self):
+		super().run(self.parameters.get('token'))
+
+	async def on_message(self, message):
+		if self.release != 'production' or not message.author.bot:
+			if utils.is_private(message.channel) or self._can_post_in_guild(message):
+				await self.process_commands(message)
+
+	def _can_post_in_guild(self, message):
+		perms = message.channel.permissions_for(message.guild.me)
+		return perms.read_messages and perms.send_messages
+
+	# Enabling this will cause output to be deleted with the coresponding
+	# commands are deleted.
+	# async def on_message_delete(self, message):
+	# 	to_delete = self.command_output_map.pop(message.id, [])
+	# 	await self._delete_messages(to_delete)
+
+	# Using this, it's possible to edit a tex message
+	# into some other command, so I might add some additional
+	# restrictions to this later.
+	async def on_message_edit(self, before, after):
+		to_delete = self.command_output_map.pop(before.id, [])
+		if to_delete:
+			await asyncio.gather(
+				self._delete_messages(to_delete),
+				self.on_message(after)
+			)
+
+	async def _delete_messages(self, messages):
+		for i in messages:
+			await i.delete()
+			await asyncio.sleep(2)
+
+	def message_link(self, invoker, sent):
+		lst = self.command_output_map.get(invoker.id, default=[])
+		self.command_output_map[invoker.id] = lst + [sent]
+
+	async def on_command(self, ctx):
+		perms = ctx.message.channel.permissions_for(ctx.me)
+		required = [
+			perms.add_reactions,
+			perms.attach_files,
+			perms.embed_links,
+			perms.read_message_history,
+
+		]
+		if not all(required):
+			if perms.send_messages:
+				await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
+
+	async def on_error(self, event, *args, **kwargs):
+		_, error, _ = sys.exc_info()
+		if event in ['message', 'on_message']:
+			msg = f'**Error while handling a message**'
+			await self.handle_contextual_error(args[0].channel, error, msg)
+		else:
+			termcolor.cprint(traceback.format_exc(), 'blue')
+			await self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
+
+	async def on_command_error(self, context, error):
+		details = f'**Error while running command**\n```\n{context.message.clean_content}\n```'
+		await self.handle_contextual_error(context, error, details)
+
+	async def handle_contextual_error(self, destination, error, human_details=''):
+		if isinstance(error, CommandNotFound):
+			pass # Ignore unfound commands
+		elif isinstance(error, MissingRequiredArgument):
+			await destination.send(f'Argument {error.param} required.')
+		elif isinstance(error, TooManyArguments):
+			await destination.send(f'Too many arguments given.')
+		elif isinstance(error, BadArgument):
+			await destination.send(f'Bad argument: {error}')
+		elif isinstance(error, NoPrivateMessage):
+			await destination.send(f'That command cannot be used in DMs.')
+		elif isinstance(error, MissingPermissions):
+			await destination.send(f'You are missing the following permissions required to run the command: {", ".join(error.missing_perms)}.')
+		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
+			await destination.send(embed=discord.Embed(
+				title='Command disabled',
+				description=f'The sever owner has disabled that command in this location.',
+				colour=discord.Colour.orange()
+			))
+		elif isinstance(error, DisabledCommand):
+			await destination.send(embed=discord.Embed(
+				title='Command globally disabled',
+				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
+				colour=discord.Colour.orange()
+			))
+		elif isinstance(error, CommandInvokeError):
+			await self.report_error(destination, error.original, human_details)
+		else:
+			await self.report_error(destination, error, human_details)
+
+	async def report_error(self, destination, error, human_details):
+		tb = ''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__))
+		termcolor.cprint(human_details, 'red')
+		termcolor.cprint(tb, 'blue')
+		try:
+			if destination is not None:
+				embed = discord.Embed(
+					title='An internal error occurred.',
+					colour=discord.Colour.red(),
+					description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
+				)
+				await destination.send(embed=embed)
+		finally:
+			await report(self, f'{self.shard_ids} {human_details}\n```\n{tb}\n```')
 
 
-def handle_sigterm(signum, frame):
-	global BOT_RUNNING
-	if not BOT_RUNNING:
-		raise SecondSignal
-	BOT_RUNNING = False
-	print('\nCaught SIGTERM\n')
+def run(parameters):
+	if sys.getrecursionlimit() < 2500:
+		sys.setrecursionlimit(2500)
+	MathBot(parameters).run()
 
 
-def handle_sigint(signum, frame):
-	global BOT_RUNNING
-	if not BOT_RUNNING:
-		raise SecondSignal
-	BOT_RUNNING = False
-	print('\nCaught SIGINT\n')
+@utils.listify
+def _get_extensions(parameters):
+	yield 'modules.about'
+	yield 'modules.blame'
+	yield 'modules.calcmod'
+	yield 'modules.dice'
+	# yield 'modules.greeter'
+	yield 'modules.heartbeat'
+	yield 'modules.help'
+	yield 'modules.latex'
+	yield 'modules.purge'
+	yield 'modules.reporter'
+	yield 'modules.settings'
+	yield 'modules.wolfram'
+	yield 'modules.reboot'
+	if parameters.get('release') == 'development':
+		yield 'modules.echo'
+		yield 'modules.throws'
+	yield 'patrons' # This is a little weird.
+	# if parameters.get('release') == 'production':
+	# 	yield 'modules.analytics'
 
 
-signal.signal(signal.SIGTERM, handle_sigterm)
-signal.signal(signal.SIGINT, handle_sigint)
-
-
-
-def do_setup():
-	global DONE_SETUP
-	global RELEASE
-	global TOKEN
-	global SHARDS_TOTAL
-	global SHARDS_MINE
-
-	import core.manager
-	import core.keystore
-
-	if DONE_SETUP:
-		raise Exception('Cannot run setup twice')
-
-	DONE_SETUP = True
-
-	# Setup the keystore
-
-	keystore_mode = core.parameters.get('keystore mode')
+def _create_keystore(parameters):
+	keystore_mode = parameters.get('keystore mode')
 	if keystore_mode == 'redis':
-		core.keystore.setup_redis(
-			core.parameters.get('keystore redis url'),
-			core.parameters.get('keystore redis number')
+		return core.keystore.create_redis(
+			parameters.get('keystore redis url'),
+			parameters.get('keystore redis number')
 		)
-	elif keystore_mode == 'disk':
-		core.keystore.setup_disk(core.parameters.get('keystore disk filename'))
+	if keystore_mode == 'disk':
+		return core.keystore.create_disk(parameters.get('keystore disk filename'))
+	raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
+
+
+async def _determine_prefix(bot, message):
+	if message.guild is None:
+		prefixes = ['= ', '=', '']
 	else:
-		raise Exception('"{}" is not a valid keystore mode'.format(keystore_mode))
-
-	# Determine the release mode and token
-
-	RELEASE = core.parameters.get('release').lower()
-	TOKEN = core.parameters.get('token')
-
-	if RELEASE not in ['development', 'beta', 'production']:
-		raise Exception('"{}" is not a valid release mode'.format(RELEASE))
-
-	if not TOKEN:
-		raise Exception('No token specified')
-
-	SHARDS_TOTAL = core.parameters.get('shards total')
-	SHARDS_MINE = core.parameters.get('shards mine')
-
-	if SHARDS_TOTAL is None:
-		print('Total number of shards is unknown. Cannot run.')
-
-	print('Total shards:', SHARDS_TOTAL)
-	print('My shards:', ' '.join(map(str, SHARDS_MINE)))
-
-
-# Used to ensure the beta bot only replies in the channel that it is supposed to
-def event_filter(channel):
-	return (RELEASE != 'beta') or ((not channel.is_private) and channel.id == '325908974648164352')
-
-
-def create_shard_manager(shard_id, shard_count):
-
-	# Imports happen in here because importing some of these modules
-	# causes state changes that could interfere with tests if they're
-	# executed too early.
-
-	import modules.wolfram
-	import modules.about
-	import modules.blame
-	import modules.calcmod
-	import modules.help
-	import modules.throws
-	import modules.settings
-	import modules.latex
-	import modules.purge
-	import modules.echo
-	import modules.analytics
-	import modules.reporter
-	import modules.greeter
-	import modules.dice
-	import modules.heartbeat
-
-	assert(0 <= shard_id < shard_count)
-
-	manager = core.manager.Manager(
-		TOKEN,
-		shard_id = shard_id,
-		shard_count = shard_count,
-		master_filter = event_filter
-	)
-
-	manager.add_modules(
-		modules.help.HelpModule(),
-		modules.wolfram.WolframModule(),
-		modules.settings.SettingsModule(),
-		modules.blame.BlameModule(),
-		modules.about.AboutModule(),
-		modules.latex.LatexModule(),
-		modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
-		modules.purge.PurgeModule(),
-		# Will only trigger stats if supplied with tokens
-		modules.analytics.AnalyticsModule(),
-		modules.reporter.ReporterModule(),
-		modules.dice.DiceModule(),
-		modules.heartbeat.Heartbeat()
-	)
-
-	if RELEASE == 'production':
-		manager.add_modules(
-			modules.greeter.GreeterModule()
-		)
-
-	if RELEASE == 'development':
-		manager.add_modules(
-			modules.throws.ThrowsModule(),
-			modules.echo.EchoModule()
-		)
-
-	return manager
-
-
-async def run_shard(shard_id, shard_count):
-	while BOT_RUNNING:
-		manager = create_shard_manager(shard_id, shard_count)
-		async def handle_shutdown():
-			while BOT_RUNNING:
-				await asyncio.sleep(2)
-			await manager.shutdown()
-		await asyncio.gather(
-			manager.run_async(),
-			handle_shutdown()
-		)
-
-
-async def finish_or_cancel(task):
-	try:
-		asyncio.wait_for(task, timeout=10)
-	except asyncio.TimeoutError:
-		task.cancel()
-
-
-def run_blocking():
-	''' Run the bot '''
-	future = run_async()
-	loop = asyncio.get_event_loop()
-	loop.run_until_complete(future)
-	pending = asyncio.Task.all_tasks()
-	loop.run_until_complete(asyncio.gather(*pending))
-	# for task in asyncio.Task.all_tasks():
-	# 	print('Completing task', task)
-	# 	loop.run_until_complete(finish_or_cancel(task))
-	loop.close()
-
-
-async def run_async():
-	''' Returns a future which will run the bot when awaited '''
-	if not DONE_SETUP:
-		do_setup()
-	coroutines = [run_shard(i, SHARDS_TOTAL) for i in SHARDS_MINE]
-	return await asyncio.gather(*coroutines)
+		custom = await bot.settings.get_server_prefix(message)
+		prefixes = [custom + ' ', custom]
+	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 
 
 if __name__ == '__main__':
-
-	# Load parameters from command line arguments
-
-	for i in sys.argv[1:]:
-		if re.fullmatch(r'\w+\.env', i):
-			value = os.environ.get(i[:-4])
-			jdata = json.loads(value)
-			core.parameters.add_source(jdata)
-		elif i.startswith('{') and i.endswith('}'):
-			jdata = json.loads(i)
-			core.parameters.add_source(jdata)
-		else:
-			core.parameters.add_source_filename(i)
-
-	# Run the bot
-
-	run_blocking()
+	print('bot.py found that it was the main module. You should be invoking the bot from entrypoint.py')
+	sys.exit(1)

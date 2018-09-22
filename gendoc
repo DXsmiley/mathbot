@@ -1,7 +1,0 @@
-#!/usr/bin/env sh
-# Generate the documentation from help files
-
-cd mathbot
-./generate_docs_page.py
-cd ..
-mv mathbot/docs.html docs.html

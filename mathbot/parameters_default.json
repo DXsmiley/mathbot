@@ -40,6 +40,7 @@
 		"mine": [0]
 	},
 	"calculator": {
-		"loadmodule": false
+		"persistent": false,
+		"libraries": false
 	}
 }
