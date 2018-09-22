@@ -199,8 +199,8 @@ def _get_extensions(parameters):
 		yield 'modules.echo'
 		yield 'modules.throws'
 	yield 'patrons' # This is a little weird.
-	# if parameters.get('release') == 'production':
-	# 	yield 'modules.analytics'
+	if parameters.get('release') == 'release':
+		yield 'modules.analytics'
 
 
 def _create_keystore(parameters):
