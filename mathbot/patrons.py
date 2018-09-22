@@ -13,18 +13,13 @@ class InvalidPatronRankError(Exception):
 
 class PatronageMixin:
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		print('!!!!!!!!!!!!!!!!!!!!!!!!!')
-		self._patrons = []
-
 	async def patron_tier(self, uid):
 		if not isinstance(uid, (str, int)):
 			raise TypeError('User ID looks invalid')
 		return await self.keystore.get('patron', str(uid)) or 0
 
-	def get_patron_listing(self):
-		return '\n'.join(f' - {i}' for i in sorted(self._patrons))
+	async def get_patron_listing(self):
+		return (await self.keystore.get('patron', 'listing')) or 'nobody?'
 
 
 class PatronModule:
@@ -39,6 +34,7 @@ class PatronModule:
 
 	async def on_ready(self):
 		guild = self.bot.get_guild(233826358369845251)
+		listing = []
 		if guild is None:
 			print('Could not get mathbot guild in order to find patrons')
 		else:
@@ -48,8 +44,10 @@ class PatronModule:
 					print(member, 'is teir', get_tier_name(tier))
 					if tier != TIER_SPECIAL:
 						# replacement to avoid anyone putting in a link or something
-						self.bot._patrons.append((member.nick or member.name).replace('.', '\N{zero width non-joiner}'))
+						listing.append((member.nick or member.name).replace('.', '\N{zero width non-joiner}'))
 					await self.bot.keystore.set('patron', str(member.id), tier, expire = 60 * 60 * 24 * 3)
+			if listing:
+				await self.bot.keystore.set('patron', 'listing', '\n'.join(f' - {i}' for i in sorted(listing)))
 
 
 def get_tier_name(tier):
