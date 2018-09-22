@@ -165,7 +165,6 @@ class TokenBlock:
 		if self.peek(index, *valids):
 			return self.eat_details()
 
-
 	def expect(self, index, *valids):
 		r = self.peek(index, *valids)
 		if r is None:
