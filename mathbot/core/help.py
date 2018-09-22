@@ -13,7 +13,6 @@ class DuplicateTopicError(Exception):
 		return 'Multiple entries for help topic "{}"'.format(self.topic)
 
 
-# TODO: Add support for subtopics
 def add(topics, message, from_file = False):
 	if not from_file:
 		print('Still using core.help.add for topics', topics)

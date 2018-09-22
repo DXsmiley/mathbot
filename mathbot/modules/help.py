@@ -50,7 +50,8 @@ class HelpModule:
 					prefix=prefix,
 					mention=context.bot.user.mention,
 					add_link='https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016', # pylint: disable=line-too-long
-					server_link=SERVER_LINK
+					server_link=SERVER_LINK,
+					patreon_listing=context.bot.get_patron_listing()
 				)
 				await context.message.author.send(page)
 		except discord.Forbidden:
