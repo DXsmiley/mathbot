@@ -70,7 +70,12 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				await self.process_commands(message)
+				print(message.content)
+				context = await self.get_context(message)
+				if context.valid:
+					await self.invoke(context)
+				else:
+					self.dispatch('message_discarded', message)
 
 	def _can_post_in_guild(self, message):
 		perms = message.channel.permissions_for(message.guild.me)
@@ -117,7 +122,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 
 	async def on_error(self, event, *args, **kwargs):
 		_, error, _ = sys.exc_info()
-		if event in ['message', 'on_message']:
+		if event in ['message', 'on_message', 'message_discarded', 'on_message_discarded']:
 			msg = f'**Error while handling a message**'
 			await self.handle_contextual_error(args[0].channel, error, msg)
 		else:
