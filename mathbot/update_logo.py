@@ -16,9 +16,7 @@ client = discord.Client(
 @client.event
 async def on_ready():
 	print('Logged in as', client.user.name)
-	await client.edit_profile(
-		avatar = open('logo.png', 'rb').read()
-	)
+	await client.edit(avatar = open('logo.png', 'rb').read())
 	print('Done updating profile picture')
 	client.close()
 
