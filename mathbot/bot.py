@@ -35,11 +35,14 @@ core.blame.monkey_patch()
 
 
 REQUIRED_PERMISSIONS_MESSAGE = '''\
-The bot does not have all the permissions it requires in order to run in this channel. The bot may behave unexpectedly without them.
+The bot does not have all the permissions it requires in order to run in this channel. It requires the following permissions:
  - Add reactions
  - Attach files
  - Embed links
  - Read message history
+
+Contact your server administrators to rectify this problem.
+You can seek additional support on the official mathbot server: https://discord.gg/JbJbRZS
 '''
 
 
@@ -70,7 +73,21 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				await self.process_commands(message)
+				perms = ctx.message.channel.permissions_for(ctx.me)
+				required = [
+					perms.add_reactions,
+					perms.attach_files,
+					perms.embed_links,
+					perms.read_message_history,
+				]
+				if not all(required):
+					await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
+				else:
+					context = await self.get_context(message)
+					if context.valid:
+						await self.invoke(context)
+					else:
+						self.dispatch('message_discarded', message)
 
 	def _can_post_in_guild(self, message):
 		perms = message.channel.permissions_for(message.guild.me)
@@ -102,22 +119,9 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		lst = self.command_output_map.get(invoker.id, default=[])
 		self.command_output_map[invoker.id] = lst + [sent]
 
-	async def on_command(self, ctx):
-		perms = ctx.message.channel.permissions_for(ctx.me)
-		required = [
-			perms.add_reactions,
-			perms.attach_files,
-			perms.embed_links,
-			perms.read_message_history,
-
-		]
-		if not all(required):
-			if perms.send_messages:
-				await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
-
 	async def on_error(self, event, *args, **kwargs):
 		_, error, _ = sys.exc_info()
-		if event in ['message', 'on_message']:
+		if event in ['message', 'on_message', 'message_discarded', 'on_message_discarded']:
 			msg = f'**Error while handling a message**'
 			await self.handle_contextual_error(args[0].channel, error, msg)
 		else:
@@ -199,8 +203,8 @@ def _get_extensions(parameters):
 		yield 'modules.echo'
 		yield 'modules.throws'
 	yield 'patrons' # This is a little weird.
-	# if parameters.get('release') == 'production':
-	# 	yield 'modules.analytics'
+	if parameters.get('release') == 'release':
+		yield 'modules.analytics'
 
 
 def _create_keystore(parameters):

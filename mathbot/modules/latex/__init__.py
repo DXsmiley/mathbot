@@ -30,16 +30,14 @@ LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
 # Load data from external files
 
-def load_templates():
+def load_template():
 	with open_relative('template.tex', encoding = 'utf-8') as f:
 		raw = f.read()
 	# Remove any comments from the template
 	cleaned = re.sub(r'%.*\n', '', raw)
-	template = cleaned.replace('#BLOCK', 'gather*')
-	t_inline = cleaned.replace('#BLOCK', 'flushleft')
-	return template, t_inline
+	return cleaned
 
-TEMPLATE, TEMPLATE_INLINE = load_templates()
+TEMPLATE = load_template()
 
 with open_relative('replacements.json', encoding = 'utf-8') as _f:
 	repl_json = _f.read()
@@ -76,25 +74,30 @@ class LatexModule:
 		if latex == '':
 			await context.send('Type `=help tex` for information on how to use this command.')
 		else:
-			await self.handle(context.message, latex, 'normal')
+			await self.handle(context.message, latex)
 
-	async def on_message(self, message):
-		# TODO: Filter out messages that start with the server prefix.
-		if message.content.count('$$') >= 2:
+	@command(aliases=['wtex'])
+	@core.settings.command_allowed('c-tex')
+	async def texw(self, context, *, latex=''):
+		if latex == '':
+			await context.send('Type `=help tex` for information on how to use this command.')
+		else:
+			await self.handle(context.message, latex, wide=True)
+
+	async def on_message_discarded(self, message):
+		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
 			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
-					await self.handle(message, latex, 'inline')
+					await self.handle(message, latex, centre=False)
 
-	async def on_message_edit(self, old, new):
-		await self.on_message(new)
-
-	async def handle(self, message, latex, template):
+	async def handle(self, message, latex, *, centre=True, wide=False):
 		print(f'LaTeX - {message.author} - {latex}')
 		colour_back, colour_text = await self.get_colours(message.author)
-		tpl = TEMPLATE if template == 'normal' else TEMPLATE_INLINE
-		latex = tpl.replace('#COLOUR',  colour_text) \
-		           .replace('#CONTENT', process_latex(latex))
+		latex = TEMPLATE.replace('#COLOUR',  colour_text) \
+		                .replace('#CONTENT', process_latex(latex)) \
+		                .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
+		                .replace('#BLOCK', 'gather*' if centre else 'flushleft')
 		await self.render_and_reply(message, latex, colour_back)
 
 	async def render_and_reply(self, message, latex, colour_back):

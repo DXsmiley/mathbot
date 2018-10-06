@@ -371,7 +371,7 @@ class CalculatorModule():
 		if not ENABLE_HISTORY:
 			return False
 		if utils.is_private(channel):
-			return (await self.bot.patron_tier(channel.user.id)) >= patrons.TIER_CONSTANT
+			return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
 		else:
 			return (await self.bot.patron_tier(channel.guild.owner.id)) >= patrons.TIER_CONSTANT
 

@@ -74,7 +74,7 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 		normal = super()._print_Integer(expr)[::-1]
 		out = []
 		for i, c in enumerate(normal):
-			if i % 4 == 3:
+			if i % 3 == 0 and i != 0:
 				out.append('\N{SINGLE LOW-9 QUOTATION MARK}')
 			out.append(c)
 		return ''.join(out[::-1])
