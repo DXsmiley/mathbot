@@ -84,7 +84,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				if not context.valid:
 					self.dispatch('message_discarded', message)
 				elif not all(required):
-					await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
+					await context.send(REQUIRED_PERMISSIONS_MESSAGE)
 				else:
 					await self.invoke(context)
 
