@@ -70,7 +70,6 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				print(message.content)
 				context = await self.get_context(message)
 				if context.valid:
 					await self.invoke(context)
