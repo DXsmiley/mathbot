@@ -11,7 +11,7 @@ The bot is currently developed for python `3.6.4`.
 
 ## Links
 
-- [Add the bot to your own server](https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016)
+- [Add the bot to your own server](https://dxsmiley.github.io/mathbot/add)
 - [Support me on Patreon](https://www.patreon.com/dxsmiley)
 - [Project Trello Board](https://trello.com/b/j6b7vpGA/mathbot)
 - [Official Discord Server](https://discord.gg/JbJbRZS)

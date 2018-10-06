@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>MathBot</title>
+		<script type="text/javascript">
+			window.location.replace("https://discordapp.com/oauth2/authorize?client_id=172236682245046272&scope=bot&permissions=117824");
+		</script>
+	</head>
+	<body>
+		<a href="https://discordapp.com/oauth2/authorize?client_id=172236682245046272&scope=bot&permissions=117824">Click here if you aren't redirected</a>
+	</body>
+</head>

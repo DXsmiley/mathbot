@@ -49,7 +49,7 @@ class HelpModule:
 					page,
 					prefix=prefix,
 					mention=context.bot.user.mention,
-					add_link='https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016', # pylint: disable=line-too-long
+					add_link='https://dxsmiley.github.io/mathbot/add',
 					server_link=SERVER_LINK,
 					patreon_listing=await context.bot.get_patron_listing()
 				)
