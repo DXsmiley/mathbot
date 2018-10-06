@@ -54,7 +54,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			pm_help=True,
 			shard_count=parameters.get('shards total'),
 			shard_ids=parameters.get('shards mine'),
-			max_messages=100,
+			max_messages=2000,
 			fetch_offline_members=False
 		)
 		self.parameters = parameters
