@@ -49,7 +49,7 @@ class HelpModule:
 					page,
 					prefix=prefix,
 					mention=context.bot.user.mention,
-					add_link='https://dxsmiley.github.io/mathbot/add',
+					add_link='https://dxsmiley.github.io/mathbot/add.html',
 					server_link=SERVER_LINK,
 					patreon_listing=await context.bot.get_patron_listing()
 				)
