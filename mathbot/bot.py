@@ -73,21 +73,20 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				perms = ctx.message.channel.permissions_for(ctx.me)
+				context = await self.get_context(message)
+				perms = context.message.channel.permissions_for(context.me)
 				required = [
 					perms.add_reactions,
 					perms.attach_files,
 					perms.embed_links,
 					perms.read_message_history,
 				]
-				if not all(required):
+				if not context.valid:
+					self.dispatch('message_discarded', message)
+				elif not all(required):
 					await ctx.send(REQUIRED_PERMISSIONS_MESSAGE)
 				else:
-					context = await self.get_context(message)
-					if context.valid:
-						await self.invoke(context)
-					else:
-						self.dispatch('message_discarded', message)
+					await self.invoke(context)
 
 	def _can_post_in_guild(self, message):
 		perms = message.channel.permissions_for(message.guild.me)
