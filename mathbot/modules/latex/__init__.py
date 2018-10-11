@@ -94,10 +94,11 @@ class LatexModule:
 	async def handle(self, message, latex, *, centre=True, wide=False):
 		print(f'LaTeX - {message.author} - {latex}')
 		colour_back, colour_text = await self.get_colours(message.author)
+		# Content replacement has to happen last in case it introduces a marker
 		latex = TEMPLATE.replace('#COLOUR',  colour_text) \
-		                .replace('#CONTENT', process_latex(latex)) \
 		                .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
-		                .replace('#BLOCK', 'gather*' if centre else 'flushleft')
+		                .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
+		                .replace('#CONTENT', process_latex(latex))
 		await self.render_and_reply(message, latex, colour_back)
 
 	async def render_and_reply(self, message, latex, colour_back):
@@ -176,7 +177,7 @@ def extract_inline_tex(content):
 def process_latex(latex):
 	latex = latex.replace('`', ' ').strip(' \n')
 	if latex.startswith('tex'):
-		latex = latex[3:]
+		latex = latex[3:].strip('\n')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
 			latex = latex.replace(key, value)
