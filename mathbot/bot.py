@@ -111,7 +111,10 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 
 	async def _delete_messages(self, messages):
 		for i in messages:
-			await i.delete()
+			try:
+				await i.delete()
+			except discord.errors.Forbidden:
+				pass
 			await asyncio.sleep(2)
 
 	def message_link(self, invoker, sent):
