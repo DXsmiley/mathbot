@@ -12,6 +12,7 @@ import async_timeout
 import json
 import traceback
 import re
+from time import time
 
 
 ERROR_TEMPLATE = '''\
@@ -136,6 +137,13 @@ class Terminal:
             fn = line.split()[1]
             code = open(fn).read()
             await self.execute_internal(code, **kwargs)
+        elif self.allow_special_commands and line.startswith(':time '):
+            # Timing functions so we can see which one is faster.
+            code = line[6:]
+            start = time()
+            await self.execute_internal(code, **kwargs)
+            end = time()
+            prt(f"It took {end - start} seconds.")
         else:
             try:
                 worked = False
