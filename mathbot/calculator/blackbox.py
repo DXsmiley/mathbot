@@ -49,6 +49,7 @@ class Terminal:
         self.retain_cache = retain_cache
         self.output_limit = output_limit
         self.trap_unknown_errors = False
+        self.timeout = True
 
     @staticmethod
     def new_blackbox_sync(**kwargs):
@@ -144,6 +145,8 @@ class Terminal:
             await self.execute_internal(code, **kwargs)
             end = time()
             prt(f"It took {end - start} seconds.")
+        elif self.allow_special_commands and line == ":timeout":
+            self.timeout = not self.timeout
         else:
             try:
                 worked = False
@@ -155,8 +158,13 @@ class Terminal:
                 code_segment = self.builder.build(ast)
                 # for index, byte in enumerate(bytes):
                 #   print('{:3d} - {}'.format(index, byte))
-                async with async_timeout.timeout(5):
+                
+                if self.timeout:
+                    async with async_timeout.timeout(5):
+                        result_items = await self.interpereter.run_async(segment=code_segment, get_entire_stack=True)
+                else:
                     result_items = await self.interpereter.run_async(segment=code_segment, get_entire_stack=True)
+
                 details['result'] = result_items
                 worked = True
                 for result in result_items:
@@ -164,12 +172,12 @@ class Terminal:
                         f_res = await calculator.crucible.run(
                             calculator.formatter.format,
                             (result,),
-                            timeout = 2
+                            timeout = 2 if self.timeout else 10 ** 10
                         )
                     else:
                         f_res = calculator.formatter.format(result, limit=self.output_limit)
                     try:
-                        exact = await calculator.crucible.run(result.evalf, (), timeout=2)
+                        exact = await calculator.crucible.run(result.evalf, (), timeout= 2 if self.timeout else 10 ** 10)
                         details['exact'] = exact
                         f_ext = calculator.formatter.format(exact, limit=self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
