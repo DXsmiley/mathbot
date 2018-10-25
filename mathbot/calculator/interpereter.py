@@ -41,7 +41,7 @@ class IndexedScope:
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		if index >= len(scope.slots) or scope.slots[index].value == None:
+		if index >= len(scope.slots) or scope.slots[index].value is None:
 			raise ScopeMissedError
 		return scope.slots[index].value
 
