@@ -25,37 +25,10 @@ rest(l) = \l
 car(l) = 'l
 cdr(l) = \l
 
-# This is messy but useful
 caar(l) = car(car(l))
 cadr(l) = car(cdr(l))
 cdar(l) = cdr(car(l))
 cddr(l) = cdr(cdr(l))
-
-caaar(l) = caar(car(l))
-caadr(l) = caar(cdr(l))
-cadar(l) = cadr(car(l))
-caddr(l) = cadr(cdr(l))
-cdaar(l) = cdar(car(l))
-cdadr(l) = cdar(cdr(l))
-cddar(l) = cddr(car(l))
-cdddr(l) = cddr(cdr(l))
-
-caaaar(l) = caaar(car(l))
-caaadr(l) = caaar(cdr(l))
-caadar(l) = caadr(car(l))
-caaddr(l) = caadr(cdr(l))
-cadaar(l) = cadar(car(l))
-cadadr(l) = cadar(cdr(l))
-caddar(l) = caddr(car(l))
-cadddr(l) = caddr(cdr(l))
-cdaaar(l) = cdaar(car(l))
-cdaadr(l) = cdaar(cdr(l))
-cdadar(l) = cdadr(car(l))
-cdaddr(l) = cdadr(cdr(l))
-cddaar(l) = cddar(car(l))
-cddadr(l) = cddar(cdr(l))
-cdddar(l) = cdddr(car(l))
-cddddr(l) = cdddr(cdr(l))
 
 # Useful comparitive things
 max (a b) = if(a < b b a)
@@ -71,6 +44,8 @@ repeat(item times) = _repeat(item times [])
 
 _reverse(i o) = if(!i o _reverse(\i 'i:o))
 reverse(l) = _reverse(l [])
+# doesn't preserve order
+join_iter = _reverse
 
 _map(f l r) = if(!l r _map(f \l f('l):r))
 map(f l) = reverse(_map(f l []))
@@ -112,26 +87,66 @@ _merge(a b) = ifelse(
 _sort(x h) = _merge(sort(take(x h)) sort(drop(x h)))
 sort(x) = if (length(x) <= 1 x _sort(x int(length(x) / 2)))
 
-interleave(x ls) = if((length(ls) <= 1), (ls), ('ls:x:interleave(x \ls)))
+_interleave(x ls new_ls) = if(length(ls) <= 1, new_ls, _interleave(x, \ls, 'ls:x:new_ls))
+interleave(x ls) = reverse(_interleave(x ls []))
 
 flatten(x) = if(is_sequence(x), foldr(join, [], map(flatten, x)), [x])
 
-# working with assoc-lists
+_remove_f(ls f new_ls) = ifelse(
+	!ls, new_ls,
+	f('ls), join_iter(\ls, new_ls),
+	_remove_f(\ls, f, 'ls : new_ls)
+)
+
+remove_f(ls f) = reverse(_remove_f(ls f []))
+
+remove(ls elem) = remove_f(ls, (e) -> e == elem)
+
+in(s elem) = ifelse(
+	!s, false, 
+	's == elem, true,
+	in(\s elem)
+)
+
+# assoc-lists
 apair(key value) = [key, value]
 akey(pair) = 'pair
 avalue(pair) = cadr(pair)
 
-assoc(ass key value) = ifelse(
-	!ass, [apair(key value)],
-	akey('ass) == key, apair(key value) : \ass,
-	'ass : assoc(\ass key value))
+_assoc(ass key value new_ass) = ifelse(
+	!ass, apair(key value) : new_ass,
+	akey('ass) == key, join_iter((apair(key value) : \ass), new_ass),
+	_assoc(\ass, key, value, 'ass : new_ass)
+)
+
+assoc(ass key value) = _assoc(ass key value [])
 
 get(ass key) = ifelse(
 	!ass, [],
 	akey('ass) == key, avalue('ass), 
-	get(\ass key))
+	get(\ass key)
+)
+
+aremove(ass key) = remove_f(ass, (e) -> 'e == key)
+aremove_value(ass value) = filter((e) -> cadr(e) != value, ass)
 
 update(ass key f) = assoc(ass key f(get(ass key)))
+
+values(ass) = map(cadr ass)
+keys(ass) = map(car ass)
+
+# sets
+_set_insert(s elem new_s) = ifelse(
+	!s, elem : new_s,
+	's == elem, join_iter(s, new_s),
+	_set_insert(\s, elem, 's : new_s)
+)
+
+set_insert(s elem) = _set_insert(s elem [])
+
+set_remove = remove
+
+to_set(ls) = foldr((a b) -> set_insert(b a), [], ls)
 
 # Trig functions for degrees
 sind(d) = sin(rad(d))
