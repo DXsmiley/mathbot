@@ -19,6 +19,44 @@ mod (a b) = a ~mod b
 and (a b) = a && b
 or (a b) = a || b
 
+# Functions that wrap around the list operators
+head(l) = 'l
+rest(l) = \l
+car(l) = 'l
+cdr(l) = \l
+
+# This is messy but useful
+caar(l) = car(car(l))
+cadr(l) = car(cdr(l))
+cdar(l) = cdr(car(l))
+cddr(l) = cdr(cdr(l))
+
+caaar(l) = caar(car(l))
+caadr(l) = caar(cdr(l))
+cadar(l) = cadr(car(l))
+caddr(l) = cadr(cdr(l))
+cdaar(l) = cdar(car(l))
+cdadr(l) = cdar(cdr(l))
+cddar(l) = cddr(car(l))
+cdddr(l) = cddr(cdr(l))
+
+caaaar(l) = caaar(car(l))
+caaadr(l) = caaar(cdr(l))
+caadar(l) = caadr(car(l))
+caaddr(l) = caadr(cdr(l))
+cadaar(l) = cadar(car(l))
+cadadr(l) = cadar(cdr(l))
+caddar(l) = caddr(car(l))
+cadddr(l) = caddr(cdr(l))
+cdaaar(l) = cdaar(car(l))
+cdaadr(l) = cdaar(cdr(l))
+cdadar(l) = cdadr(car(l))
+cdaddr(l) = cdadr(cdr(l))
+cddaar(l) = cddar(car(l))
+cddadr(l) = cddar(cdr(l))
+cdddar(l) = cdddr(car(l))
+cddddr(l) = cdddr(cdr(l))
+
 # Useful comparitive things
 max (a b) = if(a < b b a)
 min (a b) = if(a < b a b)
@@ -73,6 +111,27 @@ _merge(a b) = ifelse(
 )
 _sort(x h) = _merge(sort(take(x h)) sort(drop(x h)))
 sort(x) = if (length(x) <= 1 x _sort(x int(length(x) / 2)))
+
+interleave(x ls) = if((length(ls) <= 1), (ls), ('ls:x:interleave(x \ls)))
+
+flatten(x) = if(is_sequence(x), foldr(join, [], map(flatten, x)), [x])
+
+# working with assoc-lists
+apair(key value) = [key, value]
+akey(pair) = 'pair
+avalue(pair) = cadr(pair)
+
+assoc(ass key value) = ifelse(
+	!ass, [apair(key value)],
+	akey('ass) == key, apair(key value) : \ass,
+	'ass : assoc(\ass key value))
+
+get(ass key) = ifelse(
+	!ass, [],
+	akey('ass) == key, avalue('ass), 
+	get(\ass key))
+
+update(ass key f) = assoc(ass key f(get(ass key)))
 
 # Trig functions for degrees
 sind(d) = sin(rad(d))
