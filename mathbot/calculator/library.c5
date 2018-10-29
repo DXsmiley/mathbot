@@ -7,7 +7,6 @@ if = (c t f) ~> if(c() t() f())
 
 # Kind of needed but might be dissapearing soon in favour
 # of lists
-array (a.) = a
 
 # Functions that wrap around the standard operators
 sum (a b) = a + b
@@ -38,22 +37,19 @@ _map(f l r) = if(!l r _map(f \l f('l):r))
 map(f l) = reverse(_map(f l []))
 
 _filter(f l r) = ifelse(
-	!l    r
-	f('l) _filter(f \l 'l:r)
+    !l    r
+    f('l) _filter(f \l 'l:r)
            _filter(f \l r)
 )
 filter(f l) = reverse(_filter(f l []))
 
 foldl(f x l) = if (!l x
-	foldl(f f(x 'l) \l)
+    foldl(f f(x 'l) \l)
 )
 
 foldr(f x l) = if (!l x
-	f('l foldr(f x \l))
+    f('l foldr(f x \l))
 )
-
-_list(a i r) = if (i < 0 r _list(a i - 1 a(i):r))
-list(x.) = _list(x length(x) - 1 [])
 
 _range(a b r) = if (a == b r _range(a, b - 1, (b - 1):r))
 range(a b) = _range(a b [])
@@ -66,10 +62,10 @@ tolist(a) = reverse(_tolist(a []))
 join(a b) = if (!a b 'a:join(\a b))
 
 _merge(a b) = ifelse(
-	!a, b,
-	!b, a,
-	'b < 'a, 'b:_merge(a \b)
-	'a:_merge(\a b)
+    !a, b,
+    !b, a,
+    'b < 'a, 'b:_merge(a \b)
+    'a:_merge(\a b)
 )
 _sort(x h) = _merge(sort(take(x h)) sort(drop(x h)))
 sort(x) = if (length(x) <= 1 x _sort(x int(length(x) / 2)))
@@ -95,13 +91,20 @@ drop(x n) = if (n <= 0 x  drop(\x n - 1))
 take(x n) = if (n <= 0 [] 'x:take(\x n - 1))
 
 _split(x z) = ifelse (
-	!x,              [""],
-	startswith(x z), "":split(drop(x length(z)) z),
-	(k -> ('x:'k):\k)(_split(\x z))
+    !x,              [""],
+    startswith(x z), "":split(drop(x length(z)) z),
+    (k -> ('x:'k):\k)(_split(\x z))
 )
 split(x z) = filter(i -> i, _split(x z))
 
-display(x.) = \join(expand(map(i -> ; :str(i), x)))
+
+# split(x z) = let _split(x z) =| !x              -> [""]
+#                               | startswith(x z) -> "":split(drop(x length(z)) z)
+#                               | otherwise       -> let k = (_split(\x z))
+#                                                     in ('x:'k):\k
+#            in filter(i -> i, _split(x z))
+
+display(x) = join(map(i -> ; :str(i), x))
 
 chrs(s) = map(chr s)
 ords(s) = map(ord s)
