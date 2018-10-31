@@ -94,7 +94,7 @@ class CalculatorModule():
 	@core.settings.command_allowed('c-calc')
 	async def calc(self, ctx, *, arg):
 		''' Handle the standard =calc command '''
-		await self.perform_calculation(arg.strip(), ctx.message)
+		await self.perform_calculation(arg.strip(), ctx.message, ctx.send)
 
 	@command(name='calc-history', enabled=ENABLE_HISTORY)
 	async def handle_view_history(self, ctx):
@@ -206,16 +206,20 @@ class CalculatorModule():
 				del self.replay_state[channel]
 		await ctx.send('Calculator state has been flushed from this channel.')
 
-	async def on_message(self, message):
+	async def on_message_discarded(self, message):
 		''' Trigger the calculator when the message is prefixed by "==" '''
+		async def send(*args, **kwargs):
+			msg = await message.channel.send(*args, **kwargs)
+			await core.blame.set_blame(self.bot.keystore, msg, message.author)
+			return msg
 		arg = message.content
 		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&' and await self.bot.settings.resolve_message('f-calc-shortcut', message):
 			if not await self.bot.settings.resolve_message('c-calc', message):
 				raise core.settings.DisabledCommandByServerOwner
-			await self.perform_calculation(arg.strip()[2:], message)
+			await self.perform_calculation(arg.strip()[2:], message, send)
 
 	# Perform a calculation and spits out a result!
-	async def perform_calculation(self, arg, message):
+	async def perform_calculation(self, arg, message, send):
 		async with LOCKS[message.channel.id]:
 			await self.ensure_loaded(message.channel, message.author)
 			# Yeah this is kinda not great...
@@ -223,10 +227,10 @@ class CalculatorModule():
 			if arg == '':
 				# If no equation was given, spit out the help.
 				if not message.content.startswith('=='):
-					await message.channel.send('Type `=help calc` for information on how to use this command.')
+					await send('Type `=help calc` for information on how to use this command.')
 			elif arg == 'help':
 				prefix = await self.bot.settings.get_server_prefix(message)
-				await message.channel.send(SHORTCUT_HELP_CLARIFICATION.format(prefix=prefix))
+				await send(SHORTCUT_HELP_CLARIFICATION.format(prefix=prefix))
 			else:
 				safe.sprint('Doing calculation:', arg)
 				scope = await get_scope(message.channel.id)
@@ -249,7 +253,7 @@ class CalculatorModule():
 						result = ':thumbsup:'
 					elif len(result) > 2000:
 						result = 'Result was too large to display.'
-					await message.channel.send(result)
+					await send(result)
 				if worked:
 					await self.bot.advertise_to(message.author, message.channel, message.channel)
 					if expression_has_side_effect(arg):
