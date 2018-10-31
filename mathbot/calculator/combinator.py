@@ -43,7 +43,7 @@
 import abc
 import functools
 
-import tokenizer
+from calculator.tokenizer import Token as TToken
 
 
 def bailwrapper(function):
@@ -257,9 +257,20 @@ class Token(Combinator):
         self.group = group
 
     def parse(self, tokens):
-        if isinstance(tokens.head, tokenizer.Token) and tokens.head.group == self.group:
+        if isinstance(tokens.head, TToken) and tokens.head.group == self.group:
             return GoodResult(tokens.head, tokens.rest)
         return BadResult(f'Expected {self.group}, found {tokens.head} instead', tokens)
+
+
+class TokenMatchString(Combinator):
+
+    def __init__(self, string):
+        self.string = string
+
+    def parse(self, tokens):
+        if isinstance(tokens.head, TToken) and tokens.head.string == self.string:
+            return GoodResult(tokens.head, tokens.rest)
+        return BadResult(f'Expected "{self.string}", found "{tokens.head}" instead', tokens)
 
 
 @singleton
@@ -512,7 +523,7 @@ def postprocess(result):
         return tuple([postprocess(i) for i in result])
     if isinstance(result, SuccessProcessor.YetToProcess):
         return result.process()
-    if result is None or isinstance(result, (str, tokenizer.Token)):
+    if result is None or isinstance(result, (str, TToken)):
         return result
     raise TypeError(f'Did not expect a {type(result)} object in postprocess')
 

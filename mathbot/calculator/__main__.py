@@ -1,80 +1,37 @@
-import argparse
+import calculator.tokenizer as tokenizer
+import calculator.parser_new as parser_new
+import calculator.combinator as combinator
+import calculator.syntax_trees as syntax_trees
+from calculator.errors import TokenizationFailed, make_source_marker_at_location
 
-import json
-import asyncio
-import traceback
-import sys
 
-from calculator.interpereter import Interpereter
-import calculator.parser as parser
-import calculator.bytecode as bytecode
-import calculator.runtime as runtime
-import calculator.errors as errors
-from calculator.runtime import prepare_runtime
-from calculator.blackbox import Terminal, format_error_place
-
-sys.setrecursionlimit(10000)
-
-def main():
-	if len(sys.argv) == 1:
-		interactive_terminal()
-		return
-	# Some options, gotta run file
+def runline(program, line):
 	try:
-		args = parse_arguments()
-		filename = proc_filename(args.filename)
-		code = open(filename).read()
-		tokens, ast = parser.parse(code, source_name = filename)
-		btc = prepare_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
-		if args.compile:
-			print(btc.dump())
-			return
-		interpereter = Interpereter(btc, trace = args.trace)
-		result = interpereter.run()
-		print(result)
-	except parser.ParseFailed as e:
-		print(format_error_place(code, e.position))
+		tokens = tokenizer.tokenize(line)
+	except TokenizationFailed as e:
+		print(e)
+		# print(make_source_marker_at_location(e.source, e.location))
+		return
+	parsed = parser_new.program.run(tokens)
+	if not parsed:
+		t = parsed.tokens.first_token
+		print(f'Problem during parsing: {parsed.value}')
+		print(make_source_marker_at_location(t.source, t.location))
+		return
+	ast = combinator.postprocess(parsed.value)
+	prog.merge_definitions(ast.bindings)
+	output = program.eval_expressions(ast.expressions)
+	for i in output:
+		print(i)
 
 
-def parse_arguments():
-	parser = argparse.ArgumentParser()
-	parser.add_argument('filename', help = 'The filename of the program to run')
-	action = parser.add_mutually_exclusive_group()
-	action.add_argument('-t', '--trace', action = 'store_true', help = 'Display details of the program as it is running')
-	action.add_argument('-c', '--compile', action = 'store_true', help = 'Dumps the bytecode of the program rather than running it')
-	return parser.parse_args()
-
-
-def proc_filename(filename):
-    if filename[0] == '+':
-        return './calculator/scripts/' + filename[1:] + '.c5'
-    return filename
-
-
-def print_token_parse_caret(to):
-	print(' '.join(to.tokens))
-	print((sum(map(len, to.tokens[:to.rightmost])) + to.rightmost) * ' ' + '^')
-
-
-def interactive_terminal():
-	terminal = Terminal.new_blackbox_sync(
-		allow_special_commands=True,
-		yield_rate=1,
-		trap_unknown_errors=True
-	)
+if __name__ == '__main__':
+	prog = syntax_trees.MergeableProgram()
 	while True:
-		try:
-			line = input('> ')
-		except (EOFError, KeyboardInterrupt):
-			break
-		if line in [':q', ':x', ':quit', ':exit']:
-			break
+		line = input('> ')
 		if line == '':
 			continue
-		try:
-			output, worked, details = terminal.execute(line)
-			print(output)
-		except KeyboardInterrupt:
-			print('Operation halted by keyboard interupt')
+		if line in [':x', ':exit', ':q', ':quit']:
+			break
+		runline(prog, line)
 
-main()

@@ -66,11 +66,46 @@ class CompilationError(Exception):
 class EvaluationError(FormattedError):
 	''' Things that go wrong at runtime '''
 
+
 class SystemError(FormattedError):
 	''' Problem due to a bug in the system, not the user's code '''
+
 
 class AccessFailedError(EvaluationError):
 	''' Failed to access a variable '''
 	def __init__(self, name):
 		super().__init__('Failed to access variable {}', name)
 		self.name = name
+
+
+class TokenizationFailed(Exception):
+
+	def __init__(self, source, location, reason):
+		self.source = source
+		self.location = location
+		self.reason = reason
+
+	def __str__(self):
+		return f'Problem during tokenization: {self.reason}\n\n' + make_source_marker_at_location(self.source, self.location)
+
+
+class ParserFailed(Exception):
+
+	def __int__(self, source, location, reason):
+		self.source = source
+		self.location = location
+		self.reason = reason
+
+	def __str__(self):
+		return f'Problem during parsing: {self.reason}\n\n' + make_source_marker_at_location(self.source, self.location)
+
+
+def make_source_marker_at_location(source, location, lines_around=3):
+	lines = source.split('\n')
+	cur = source.count('\n', 0, location)
+	lines = [
+		*lines[cur - lines_around : cur + 1],
+		' ' * (location - cur - sum(map(len, lines[:cur]))) + '^',
+		*lines[cur + 1 : cur + lines_around]
+	]
+	return '\n'.join(lines)

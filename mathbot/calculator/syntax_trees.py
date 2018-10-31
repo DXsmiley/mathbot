@@ -1,6 +1,8 @@
 import abc
-import tokenizer
-from util import foldr
+from calculator.tokenizer import Token as TToken
+from calculator.util import foldr
+import sympy
+
 
 class TreeNode(abc.ABC):
 	def __getitem__(self, key):
@@ -15,8 +17,8 @@ class TreeNode(abc.ABC):
 
 	def fulleval(self, environment):
 		value = self.eval(environment)
-		while isinstance(value, TreeNode):
-			value = value.eval(environment)
+		while isinstance(value, (TreeNode, Thunk)):
+			value = value.fulleval(environment)
 		return value
 
 	# Funky syntax used to ascribe error tokens.
@@ -26,16 +28,25 @@ class TreeNode(abc.ABC):
 		return self
 
 
+def convert_number(x):
+	x = x.lower()
+	if x.endswith('i'):
+		return sympy.I * convert_number(x[:-1])
+	if '.' in x and 'e' not in x:
+		i, p = x.split('.')
+		k = len(p)
+		if k < 30: # Maybe increase this limit
+			return sympy.Rational(int(i or '0') * 10 ** k + int(p or '0'), 10 ** k)
+	return sympy.Number(x.lstrip('0') or '0')
+
+
 class Number(TreeNode):
 
 	def __init__(self, token):
 		self.token = token
 
 	def eval(self, environment):
-		try:
-			return int(self.token.string)
-		except:
-			return float(self.token.string)
+		return convert_number(str(self.token))
 
 	def __str__(self):
 		return self.token.string
@@ -60,12 +71,26 @@ class Environment:
 		self.mapping = mapping
 
 	def get(self, name):
+		name = name.lower()
 		if name in self.mapping:
 			return self.mapping[name]
+		if self.super is None:
+			raise KeyError(name)
 		return self.super.get(name)
 
 	def add(self, name, value):
-		return Environment(this, {name: value})
+		return Environment(self, {name.lower(): value})
+
+	def __str__(self):
+		return f'{self.super}-{self.mapping}'
+
+	@staticmethod
+	def new_self_refferential_over_thunks(binds, super=None):
+		mapping = {}
+		env = Environment(super, mapping)
+		for b in binds:
+			mapping[str(b.label)] = Thunk(env, b.value)
+		return env
 
 
 class Program(TreeNode):
@@ -74,20 +99,37 @@ class Program(TreeNode):
 		# self.bindings = bindings
 		self.expressions = expressions
 		self.bindings = bindings
-		self.bind_mapping = {
-			i.label: i.value
-			for i in bindings
-		}
 
 	def eval(self, environment):
-		new_env = Environment(environment, self.bind_mapping)
-		return [
-			self.eval(new_env, expr)
-			for expr in self.expressions
-		]
+		new_env = Environment(environment, {
+			str(i.label): i.value for i in self.bindings
+		})
+		return [expr.fulleval(new_env) for expr in self.expressions]
 
 	def __str__(self):
 		return ',\n'.join(map(str, self.bindings + self.expressions))
+
+
+class MergeableProgram:
+
+	''' A 'program' that can take additional bindings to it. '''
+
+	def __init__(self):
+		self.bind_mapping = {}
+		self.protection_levels = {}
+
+	def merge_definitions(self, bindings, protection_level=0):
+		for i in bindings:
+			label = str(i.label)
+			if protection_level < self.protection_levels.get(label, 0):
+				raise Exception(f'Cannot override {label}')
+			self.bind_mapping[label] = i.value
+			self.protection_levels[label] = protection_level
+
+	def eval_expressions(self, expressions):
+		binds = [Assignment(k, v) for k, v in self.bind_mapping.items()]
+		env = Environment.new_self_refferential_over_thunks(binds)
+		return [expr.fulleval(env) for expr in expressions]
 
 
 class Constant(TreeNode):
@@ -107,7 +149,12 @@ class BinaryOperator(TreeNode):
 		self.left = left
 		self.right = right
 		self.token = token
-		assert isinstance(token, tokenizer.Token)
+		assert isinstance(token, TToken)
+
+	@staticmethod
+	@abc.abstractmethod
+	def function(a, b):
+		pass
 
 	def eval(self, environment):
 		return self.function(
@@ -119,37 +166,58 @@ class BinaryOperator(TreeNode):
 		return f'({self.left} {self.token.string} {self.right})'
 
 class AdditionOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() + b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() + b.fulleval()
 
 class SubtractionOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() - b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() - b.fulleval()
 
 class ProductOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() * b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() * b.fulleval()
 
 class DivisionOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() / b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() / b.fulleval()
 
 class ModulusOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() % b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() % b.fulleval()
+
+class PowerOperator(BinaryOperator):
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() ** b.fulleval()
 
 class LogicalAndOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() and b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() and b.fulleval()
 
 class LogicalOrOperator(BinaryOperator):
-	function = lambda a, b: a.fulleval() or b.fulleval()
+	@staticmethod
+	def function(a, b):
+		return a.fulleval() or b.fulleval()
 
 class PrependOperator(BinaryOperator):
-	function = lambda a, b: List(a, b)
+	@staticmethod
+	def function(a, b):
+		return List(a, b)
 
 
 class UnaryOperator(TreeNode):
 	def __init__(self, op, value):
-		assert isinstance(op, tokenizer.Token)
+		assert isinstance(op, TToken)
 		self.op = op
 		self.value = value
 
-	def eval(selv, environment):
+	def eval(self, environment):
 		return self.function(
 			Thunk(environment, self.value)
 		)
@@ -170,29 +238,56 @@ class UnaryOperatorAfter:
 		return f'({self.value}{self.op})'
 
 class FactorialOperator(UnaryOperatorAfter, UnaryOperator):
-	function = lambda x: math.factorial(x.fulleval())
+	@staticmethod
+	def function(x):
+		return sympy.factorial(x.fulleval())
 
 class MinusOperator(UnaryOperator):
-	function = lambda x: -x.fulleval()
+	@staticmethod
+	def function(x):
+		return -x.fulleval()
 
 class LogicalNotOperator(UnaryOperator):
-	function = lambda x: not x.fulleval()
+	@staticmethod
+	def function(x):
+		return not x.fulleval()
 
 class HeadOperator(UnaryOperator):
-	function = lambda x: x.fulleval().head
+	@staticmethod
+	def function(x):
+		return x.fulleval().head
 
 class TailOperator(UnaryOperator):
-	function = lambda x: x.fulleval().tail
+	@staticmethod
+	def function(x):
+		return x.fulleval().tail
 
 
 class ComparisonChain(TreeNode):
+
+	compaison_ops = {
+		'<':  lambda a, b: a < b,
+		'>':  lambda a, b: a > b,
+		'<=': lambda a, b: a <= b,
+		'>=': lambda a, b: a >= b,
+		'==': lambda a, b: True if a is b else a == b,
+		'!=': lambda a, b: False if a is b else a != b
+	}
+
 	def __init__(self, items):
 		self.first = items[0]
 		self.operators = items[1::2]
 		self.values = items[2::2]
 
 	def eval(self, environment):
-		thunks = [Thunk(environment, i) for i in [self.first] + self.values]
+		prev = self.first.fulleval(environment)
+		vs = [i.fulleval(environment) for i in self.values]
+		for op, v in zip(self.operators, vs):
+			if not self.compaison_ops[str(op)](prev, vs):
+				return False
+			prev = v
+		return True
+		
 
 	def __str__(self):
 		return f'({self.first}' + ''.join(f' {o} {v}' for o, v in zip(self.operators, self.values)) + ')'
@@ -217,7 +312,7 @@ class FunctionDefinition(TreeNode):
 		self.expression = expression
 
 	def eval(self, environment):
-		return Function(environment, self.parameter_list, self.expression)
+		return Function(environment, self.parameter_list.names(), self.expression)
 
 	def __str__(self):
 		return f'({self.parameter_list} -> {self.expression})'
@@ -242,6 +337,11 @@ class FunctionCall(TreeNode):
 		self.function = function
 		self.arguments = arguments
 
+	def eval(self, environment):
+		function = self.function.fulleval(environment)
+		thunks = [Thunk(environment, i) for i in self.arguments]
+		return function(thunks)
+
 	def __str__(self):
 		return f'{self.function}({", ".join(map(str, self.arguments))})'
 
@@ -250,11 +350,11 @@ class ListLiteral(TreeNode):
 	def __init__(self, elements):
 		self.elements = elements
 
-	def eval(environment):
+	def eval(self, environment):
 		if len(self.elements) == 0:
-			return Nil
+			return Nil()
 		thunks = [Thunk(environment, i) for i in self.elements]
-		return foldr(List, thunks, Constant(Nil))
+		return foldr(List, thunks, Nil())
 
 	def __str__(self):
 		return '[' + ', '.join(map(str, self.elements)) + ']'
@@ -262,34 +362,50 @@ class ListLiteral(TreeNode):
 
 class Function:
 	
-	def __init__(self, argument_names, environment, expression):
+	def __init__(self, environment, argument_names, expression):
 		self.argument_names = argument_names
 		self.environment = environment
 		self.expression = expression
 
-	def __call__(self, argument):
-		return PartiallyAppliedFunction.create(self, len(self.argument_names) - 1, arugment)
-
-	def run_call(self, environment, arguments):
-		mapping = {
-			self.argument_names[i]: arguments[i]
-			for i in range(len(arguments))
-		}
-		environment = Environment(self.environment, mapping)
-		return self.expression.eval(environment)
+	def __call__(self, arguments):
+		# Add new variables to environment
+		env = self.environment
+		for name, value in zip(self.argument_names, arguments):
+			env = env.add(name, value)
+		if len(arguments) == len(self.argument_names):
+			return self.expression.fulleval(env)
+		return Function(env, self.argument_names[len(arguments):], self.expression)
 
 
 class BuiltinFunction:
 
-	def __init__(self, num_arguments, function):
+	def __init__(self, name, num_arguments, function, already_given=[]):
+		self.name = name
+		self.already_given = already_given
 		self.num_arguments = num_arguments
 		self.function = function
 
-	def __call__(self, argument):
+	def __call__(self, arguments):
+		count = len(self.already_given) + len(arguments)
+		if count == self.num_arguments:
+			return self.function(*(self.already_given + arguments))
+		if count > self.num_arguments:
+			raise Exception(f'Too many arguments for builtin function {self.name}')
 		return PartiallyAppliedFunction(self, self.num_arguments - 1)
 
 	def run_call(self, environment, arguments):
 		values = [i.fulleval(environment) for i in arguments]
+
+
+class NonPartialBuiltinFunction:
+
+	''' A builtin function that cannot be called partially '''
+
+	def __init__(self, function):
+		self.function = function
+
+	def __call__(self, arguments):
+		return self.function(*map(Thunk.resolve_maybe, arguments))
 
 
 class PartiallyAppliedFunction:
@@ -323,7 +439,12 @@ class ParameterList:
 		raise NotImplementedError
 
 	def __str__(self):
-		return '(' + ', '.join(map(str, self.parameters)) + ')'
+		if len(self.parameters) == 1:
+			return str(self.parameters[0])
+		return '(' + ' '.join(map(str, self.parameters)) + ')'
+
+	def names(self):
+		return list(map(str, self.parameters))
 
 
 # class ListPrepend(TreeNode):
@@ -357,19 +478,25 @@ class Thunk(TreeNode):
 		# IDEA: Check for recusion here
 		if self.value is None:
 			self.value = self.expression.eval(self.environment)
-		while isinstance(self.value, Thunk):
-			self.value = self.value.fulleval()
+		while isinstance(self.value, (Thunk, TreeNode)):
+			self.value = self.value.fulleval(self.environment)
 			# del self.expression # Can we throw this away??
 		return self.value
 
+	@staticmethod
+	def resolve_maybe(value):
+		if isinstance(value, Thunk):
+			return value.fulleval()
+		return value
 
-class Constant(TreeNode):
 
-	def __init__(self, value):
-		self.value = value
+# class Constant(TreeNode):
 
-	def eval(self):
-		return self.value
+# 	def __init__(self, value):
+# 		self.value = value
+
+# 	def eval(self):
+# 		return self.value
 
 
 class If(TreeNode):
@@ -388,7 +515,7 @@ class If(TreeNode):
 
 class Percentage(TreeNode):
 
-	def __init__(self, environment, operator, value):
+	def __init__(self, operator, value):
 		self.operator = operator
 		self.value = value
 
@@ -405,6 +532,12 @@ class Nil:
 	@property
 	def length(self):
 		return 0
+
+	def fulleval(self):
+		return self
+
+	def __str__(self):
+		return '[]'
 
 
 class List:
@@ -423,6 +556,19 @@ class List:
 	@property
 	def length(self):
 		return self._tail.fulleval().length + 1
+
+	def fulleval(self):
+		return self
+
+	def __str__(self):
+		r = ['[']
+		c = self
+		while not isinstance(c, Nil):
+			r.append(str(Thunk.resolve_maybe(c.head)))
+			r.append(', ')
+			c = Thunk.resolve_maybe(c.tail)
+		r[-1] = ']'
+		return ''.join(r)
 
 
 class Undefined:

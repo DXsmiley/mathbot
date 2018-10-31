@@ -10,12 +10,14 @@ import types
 import collections
 import functools
 
-from calculator.bytecode import *
+# from calculator.bytecode import *
 from calculator.functions import *
 from calculator.errors import EvaluationError
-import calculator.parser as parser
-import calculator.formatter as formatter
+# import calculator.parser as parser
+# import calculator.formatter as formatter
 import calculator.crucible as crucible
+import calculator.syntax_trees as syntax_trees
+import calculator
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
@@ -25,7 +27,7 @@ def protect_sympy_function(func):
 	def replacement(*args):
 		for i in args:
 			if not isinstance(i, ALL_SYMPY_CLASSES):
-				raise TypeError
+				raise TypeError(i)
 		return func(*args)
 	replacement.__name__ = func.__name__
 	return replacement
@@ -150,34 +152,19 @@ BUILTIN_COROUTINES = {}
 FIXED_VALUES = {
 	'π': sympy.pi,
 	'τ': sympy.pi * 2,
+	'pi': math.pi,
 	'tau': sympy.pi * 2,
 	'true': True,
 	'false': False
 }
 
 
-FIXED_VALUES_EXPORTABLE = {
-	'π': math.pi,
-	'τ': math.pi * 2,
-	'pi': math.pi,
-	'tau': math.pi * 2,
-	'true': True,
-	'false': False
-}
-
-
 def _extract_from_sympy():
-	def _wrap_with_crucible(function, condition=lambda x: True):
-		async def _replacement(*args):
-			if condition(*args):
-				return await crucible.run(function, args, timeout=2)
-			return function(*args)
-		return protect_sympy_function(_replacement)
 	names = '''
 		re im sign Abs arg conjugate 
 		sin cos tan cot sec csc sinc asin acos atan acot asec acsc atan2 sinh cosh
 		tanh coth sech csch asinh acosh atanh acoth asech acsch ceiling floor frac
-		exp root sqrt pi E I gcd lcm
+		exp root sqrt pi E I gcd lcm factorial gamma
 		oo:infinity:∞ zoo:complex_infinity nan:not_a_number
 	'''
 	for i in names.split():
@@ -189,9 +176,7 @@ def _extract_from_sympy():
 			if isinstance(value, (sympy.FunctionClass, types.FunctionType)):
 				BUILTIN_FUNCTIONS[name] = protect_sympy_function(value)
 			else:
-				FIXED_VALUES[name] = value
-	BUILTIN_COROUTINES['factorial'] = _wrap_with_crucible(sympy.factorial, lambda x: x > 100)
-	BUILTIN_COROUTINES['gamma'] = _wrap_with_crucible(sympy.gamma, lambda x: x > 100)
+				FIXED_VALUES[name] = syntax_trees.Constant(value)
 _extract_from_sympy()
 
 
@@ -200,39 +185,40 @@ with open(os.path.join(os.path.dirname(__file__), 'library.c5')) as f:
 	LIBRARY_CODE = f.read()
 
 
-def _assignment_code(name, value, add_terminal_byte=False):
-	return {
-		'#': 'assignment',
-		'variable': {
-			'string': name,
-		},
-		'value': {
-			'#': '_exact_item_hack',
-			'value': value
-		}
-	}
+def _builtin_function(name, func):
+	return syntax_trees.Assignment(
+		name, # Maybe this should be a TToken
+		syntax_trees.Constant(
+			syntax_trees.NonPartialBuiltinFunction(
+				func
+			)
+		)
+	)
 
 
-def _prepare_runtime(exportable=False):
-	if exportable:
-		for name, value in FIXED_VALUES_EXPORTABLE.items():
-			yield _assignment_code(name, value)
-	else:
-		for name, value in FIXED_VALUES.items():
-			yield _assignment_code(name, value)
-		for name, func in BUILTIN_FUNCTIONS.items():
-			yield _assignment_code(name, BuiltinFunction(func, name))
-		for name, func in BUILTIN_COROUTINES.items():
-			yield _assignment_code(name, BuiltinFunction(func, name, is_coroutine=True))
-	_, ast = parser.parse(LIBRARY_CODE, source_name='_system_library')
-	yield ast
+def _builtin_constant(name, value):
+	return syntax_trees.Assignment(
+		name,
+		syntax_trees.Constant(value)
+	)
 
 
-@functools.lru_cache(4)
-def prepare_runtime(builder, **kwargs):
-	return  builder.build(*list(_prepare_runtime(**kwargs)), unsafe=True)
+def prepare_runtime(exportable=False):
+	ast = calculator.source_to_ast(LIBRARY_CODE)
+	for name, value in FIXED_VALUES.items():
+		ast.bindings.append(_builtin_constant(name, value))
+	for name, func in BUILTIN_FUNCTIONS.items():
+		ast.bindings.append(_builtin_function(name, func))
+		# for name, func in BUILTIN_COROUTINES.items():
+		# 	yield _assignment_code(name, BuiltinFunction(func, name, is_coroutine=True))
+	return ast
 
 
-def wrap_simple(ast):
-	builder = CodeBuilder()
-	return wrap_with_runtime(builder, ast)
+# @functools.lru_cache(4)
+# def prepare_runtime(builder, **kwargs):
+# 	return  builder.build(*list(_prepare_runtime(**kwargs)), unsafe=True)
+
+
+# def wrap_simple(ast):
+# 	builder = CodeBuilder()
+# 	return wrap_with_runtime(builder, ast)

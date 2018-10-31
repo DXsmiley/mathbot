@@ -78,12 +78,6 @@ class Tokens:
         return f'T[{", ".join(map(repr, self.tokens))}]'
 
 
-class TokenizationFailed(Exception):
-
-	def __init__(self, location):
-		self.location = location
-
-
 BRACKET_PAIRS = [
 	('(', ')'),
 	('[', ']'),
