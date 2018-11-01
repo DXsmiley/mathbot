@@ -91,7 +91,7 @@ class LatexModule:
 
 	async def handle(self, message, source, *, centre=True, wide=False, noblock=False):
 		if source == '':
-			await context.send('Type `=help tex` for information on how to use this command.')
+			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
 			print(f'LaTeX - {message.author} - {source}')
 			colour_back, colour_text = await self.get_colours(message.author)
@@ -101,7 +101,6 @@ class LatexModule:
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
 			             .replace('#CONTENT', process_latex(source))
-			print(latex)
 			await self.render_and_reply(message, latex, colour_back)
 
 	async def render_and_reply(self, message, latex, colour_back):
