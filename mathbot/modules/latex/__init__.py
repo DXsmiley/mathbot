@@ -40,8 +40,7 @@ def load_template():
 TEMPLATE = load_template()
 
 with open_relative('replacements.json', encoding = 'utf-8') as _f:
-	repl_json = _f.read()
-TEX_REPLACEMENTS = json.loads(repl_json)
+	TEX_REPLACEMENTS = json.load(_f)
 
 
 # Error messages
@@ -71,18 +70,17 @@ class LatexModule:
 	@command(aliases=['latex', 'rtex'])
 	@core.settings.command_allowed('c-tex')
 	async def tex(self, context, *, latex=''):
-		if latex == '':
-			await context.send('Type `=help tex` for information on how to use this command.')
-		else:
-			await self.handle(context.message, latex)
+		await self.handle(context.message, latex)
 
 	@command(aliases=['wtex'])
 	@core.settings.command_allowed('c-tex')
 	async def texw(self, context, *, latex=''):
-		if latex == '':
-			await context.send('Type `=help tex` for information on how to use this command.')
-		else:
-			await self.handle(context.message, latex, wide=True)
+		await self.handle(context.message, latex, wide=True)
+
+	@command(aliases=['ptex'])
+	@core.settings.command_allowed('c-tex')
+	async def texp(self, context, *, latex=''):
+		await self.handle(context.message, latex, noblock=True)
 
 	async def on_message_discarded(self, message):
 		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
@@ -91,15 +89,20 @@ class LatexModule:
 				if latex != '':
 					await self.handle(message, latex, centre=False)
 
-	async def handle(self, message, latex, *, centre=True, wide=False):
-		print(f'LaTeX - {message.author} - {latex}')
-		colour_back, colour_text = await self.get_colours(message.author)
-		# Content replacement has to happen last in case it introduces a marker
-		latex = TEMPLATE.replace('#COLOUR',  colour_text) \
-		                .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
-		                .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
-		                .replace('#CONTENT', process_latex(latex))
-		await self.render_and_reply(message, latex, colour_back)
+	async def handle(self, message, source, *, centre=True, wide=False, noblock=False):
+		if source == '':
+			await context.send('Type `=help tex` for information on how to use this command.')
+		else:
+			print(f'LaTeX - {message.author} - {source}')
+			colour_back, colour_text = await self.get_colours(message.author)
+			# Content replacement has to happen last in case it introduces a marker
+			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE
+			latex = latex.replace('#COLOUR',  colour_text) \
+			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
+			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
+			             .replace('#CONTENT', process_latex(source))
+			print(latex)
+			await self.render_and_reply(message, latex, colour_back)
 
 	async def render_and_reply(self, message, latex, colour_back):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
