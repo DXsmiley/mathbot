@@ -74,6 +74,8 @@ def load_from_file(filename, topics = None):
 		pages = ['\n'.join(lines) for lines in pages]
 		for i in pages:
 			if len(i) >= 1800:
-				print('Help page is too long:')
+				print('Help page is too long, add a `:::page-break` to start a new page')
+				print('-------------------------------------------------')
 				print(i)
+				print('-------------------------------------------------')
 	add(topics, pages, from_file = True)

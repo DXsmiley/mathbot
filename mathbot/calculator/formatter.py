@@ -71,13 +71,14 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 		return 'π' if self._settings.get('unicode', True) else 'pi'
 
 	def _print_Integer(self, expr):
+		SEP = '\N{SINGLE LOW-9 QUOTATION MARK}'
 		normal = super()._print_Integer(expr)[::-1]
 		out = []
 		for i, c in enumerate(normal):
 			if i % 3 == 0 and i != 0:
-				out.append('\N{SINGLE LOW-9 QUOTATION MARK}')
+				out.append(SEP)
 			out.append(c)
-		return ''.join(out[::-1])
+		return ''.join(out[::-1]).replace('-' + SEP, '-')
 
 
 class SimpleFormatter:
