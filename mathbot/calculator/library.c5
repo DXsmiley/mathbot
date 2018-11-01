@@ -9,6 +9,11 @@ if = (c t f) ~> if(c() t() f())
 # of lists
 array (a.) = a
 
+# A more robust equals function that wont crash cause you 
+# compare a glyph to a non-glyph and whatnot.
+
+equals(a,b) = repr(a) == repr(b)
+
 # Functions that wrap around the standard operators
 sum (a b) = a + b
 mul (a b) = a * b
@@ -87,8 +92,8 @@ _merge(a b) = ifelse(
 _sort(x h) = _merge(sort(take(x h)) sort(drop(x h)))
 sort(x) = if (length(x) <= 1 x _sort(x int(length(x) / 2)))
 
-_interleave(x ls new_ls) = if(length(ls) <= 1, new_ls, _interleave(x, \ls, 'ls:x:new_ls))
-interleave(x ls) = reverse(_interleave(x ls []))
+_interleave(x ls new_ls) = if(ls == [], new_ls, _interleave(x, \ls, 'ls:x:new_ls))
+interleave(x ls) = if(ls == [], [], reverse(_interleave(x \ls ['ls])))
 
 flatten(x) = if(is_sequence(x), foldr(join, [], map(flatten, x)), [x])
 
@@ -104,7 +109,7 @@ remove(ls elem) = remove_f(ls, (e) -> e == elem)
 
 in(s elem) = ifelse(
 	!s, false, 
-	's == elem, true,
+	equals('s, elem), true,
 	in(\s elem)
 )
 
@@ -115,7 +120,7 @@ avalue(pair) = cadr(pair)
 
 _assoc(ass key value new_ass) = ifelse(
 	!ass, apair(key value) : new_ass,
-	akey('ass) == key, join_iter((apair(key value) : \ass), new_ass),
+	equals(akey('ass), key), join_iter((apair(key value) : \ass), new_ass),
 	_assoc(\ass, key, value, 'ass : new_ass)
 )
 
@@ -123,12 +128,12 @@ assoc(ass key value) = _assoc(ass key value [])
 
 get(ass key) = ifelse(
 	!ass, [],
-	akey('ass) == key, avalue('ass), 
+	equals(akey('ass), key), avalue('ass), 
 	get(\ass key)
 )
 
-aremove(ass key) = remove_f(ass, (e) -> 'e == key)
-aremove_value(ass value) = filter((e) -> cadr(e) != value, ass)
+aremove(ass key) = remove_f(ass, (e) -> equals('e, key))
+aremove_value(ass value) = filter((e) -> !equals(cadr(e), value), ass)
 
 update(ass key f) = assoc(ass key f(get(ass key)))
 
@@ -138,7 +143,7 @@ keys(ass) = map(car ass)
 # sets
 _set_insert(s elem new_s) = ifelse(
 	!s, elem : new_s,
-	's == elem, join_iter(s, new_s),
+	equals('s, elem), join_iter(s, new_s),
 	_set_insert(\s, elem, 's : new_s)
 )
 

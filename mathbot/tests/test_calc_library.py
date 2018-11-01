@@ -1,5 +1,7 @@
 import operator
 import pytest
+import collections
+from random import randint
 
 from test_calc_helpers import *
 
@@ -58,3 +60,70 @@ def test_repeat_length(n):
 @pytest.mark.randomize(n=int, v=int, min_num=0, max_num=20)
 def test_repeat_correct_values(n, v):
     asrt(f'foldl(and true map((x) -> x == {v}, repeat({v} {n})))')
+
+def joinit(iterable, delimiter):
+    '''
+    Interleave an element into an iterable.
+    https://stackoverflow.com/a/5656097
+    '''
+    it = iter(iterable)
+    yield next(it)
+    for x in it:
+        yield delimiter
+        yield x
+
+@pytest.mark.randomize(v=int, l=list_of(int))
+def test_interleave_correct(v, l):
+    asrt(f'interleave({v}, {l}) == {list(joinit(l, v))}')
+
+def gen_random_deep_list(i=5):
+    l = [0]
+
+    for _ in range(i):
+        l.append(gen_random_deep_list(randint(0,i - 1)))
+    
+    return l
+
+def flatten(x):
+    '''
+    Flattens an irregularly nested list of lists.
+    https://stackoverflow.com/a/2158522
+    '''
+    if isinstance(x, collections.Iterable):
+        return [a for i in x for a in flatten(i)]
+    else:
+        return [x]
+
+def test_flatten_list():
+    l = gen_random_deep_list()
+    
+    asrt(f'flatten({l}) == {list(flatten(l))}')
+
+@pytest.mark.randomize(l=list_of(int))
+def test_in_for_list(l):
+    if len(l) == 0:
+        return
+    
+    x = l[randint(0, len(l) - 1)]
+    asrt(f'in({l}, {x})')
+    asrt(f'!in({l}, ;h)')
+
+@pytest.mark.randomize(l=list_of(int), max_items=20)
+def test_assoc_create_get(l):
+    expr = "ass = []"
+
+    for i in l:
+        expr += f', ass = assoc(ass, {repr(i)}, {i})'
+    
+    for i in l:
+        asrt(f'{expr}, get(ass, {repr(i)}) == {i}')
+
+@pytest.mark.randomize(l=list_of(int), max_items=20)
+def test_assoc_remove(l):
+    expr = "ass = []"
+
+    for i in l:
+        expr += f', ass = assoc(ass, {repr(i)}, {i})'
+    
+    for i in l:
+        asrt(f'{expr}, get(ass, {repr(i)}) == {i} && get(aremove(ass, {repr(i)}), {repr(i)}) == []')
