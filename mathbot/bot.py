@@ -113,7 +113,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		for i in messages:
 			try:
 				await i.delete()
-			except discord.errors.Forbidden:
+			except (discord.errors.Forbidden, discord.errors.NotFound):
 				pass
 			await asyncio.sleep(2)
 
