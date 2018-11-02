@@ -289,7 +289,7 @@ class CalculatorModule():
 				await channel.send(embed=discord.Embed(
 					title='Some errors occurred during catchup.',
 					description='Calculator state has been partially restored. Run `=calc-history` for a list of commands that have been retained.',
-					colour=discord.Colour.yellow()
+					colour=discord.Colour.red()
 				))
 
 	async def unpack_commands(self, channel):
