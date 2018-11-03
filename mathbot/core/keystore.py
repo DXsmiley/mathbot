@@ -68,7 +68,8 @@ class Redis(Driver):
 				)
 				print('Connected to redis server!')
 
-	def decipher(self, value):
+	@staticmethod
+	def decipher(value):
 		if value is None:
 			return None
 		string = value.decode('utf-8')
@@ -148,11 +149,19 @@ class Disk(Driver):
 				return True
 		return False
 
+	@staticmethod
+	def decipher(value):
+		try:
+			return int(value)
+		except ValueError:
+			pass
+		return value
+
 	async def get(self, key):
 		# if the key is expires, there is no value
 		if self.is_expired(key):
 			self.data[key]['value'] = None
-		return self.data[key]['value']
+		return self.decipher(self.data[key]['value'])
 
 	async def set(self, key, value):
 		# If the key is expired, the new key has no expiery
@@ -183,7 +192,7 @@ class Disk(Driver):
 			await self.set(key, collections.deque())
 		if len(self.data[key]['value']) == 0:
 			return None
-		return self.data[key]['value'].pop()
+		return self.decipher(self.data[key]['value'].pop())
 
 
 class Interface:
