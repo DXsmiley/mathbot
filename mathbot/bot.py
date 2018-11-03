@@ -225,7 +225,7 @@ async def _determine_prefix(bot, message):
 	if message.guild is None:
 		prefixes = ['= ', '=', '']
 	else:
-		custom = await bot.settings.get_server_prefix(message)
+		custom = str(await bot.settings.get_server_prefix(message))
 		prefixes = [custom + ' ', custom]
 	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 
