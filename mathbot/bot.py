@@ -103,11 +103,10 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	# restrictions to this later.
 	async def on_message_edit(self, before, after):
 		to_delete = self.command_output_map.pop(before.id, [])
-		if to_delete:
-			await asyncio.gather(
-				self._delete_messages(to_delete),
-				self.on_message(after)
-			)
+		await asyncio.gather(
+			self._delete_messages(to_delete),
+			self.on_message(after)
+		)
 
 	async def _delete_messages(self, messages):
 		for i in messages:

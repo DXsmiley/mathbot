@@ -153,7 +153,7 @@ class Disk(Driver):
 	def decipher(value):
 		try:
 			return int(value)
-		except ValueError:
+		except (ValueError, TypeError):
 			pass
 		return value
 
