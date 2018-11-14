@@ -88,7 +88,6 @@ BRACKETS_LEFT = [a for a, b in BRACKET_PAIRS]
 BRACKETS_RIGHT = [b for a, b in BRACKET_PAIRS]
 BRACKET_TO_MATCHING = dict(BRACKET_PAIRS + [(b, a) for a, b in BRACKET_PAIRS])
 
-
 TOKEN_SPEC = [
 	('__remove__', r'#.*'),
 	('kw_symbol', r'symbol\?'),

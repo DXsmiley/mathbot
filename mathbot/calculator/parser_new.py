@@ -115,26 +115,25 @@ _power  = lambda x: x[0] if x[1] is None else PowerOperator(x[0], x[1][0], x[1][
 power   = (superscript & Optional(Token('pow_op') & uminus)) >> _power
 uminus *= ((TokenMatchString('-') & uminus) >> spread(MinusOperator)) | power
 
+
 def opmap(mapping):
     def internal(a, op, b):
         return mapping[op.string](a, op, b)
     return internal
 
-_delim = lambda c, s: Delimited(c, s, pull_single=True)
-modulus     = _delim(uminus,   Token('mod_op'))  >> left_associative(ModulusOperator)
-product     = _delim(modulus,  Token('mul_op'))  >> left_associative(opmap({
-                                                        '*': ProductOperator,
-                                                        '/': DivisionOperator
-                                                    }))
-addition    = _delim(product,  Token('add_op'))  >> left_associative(opmap({
-                                                        '+': AdditionOperator,
-                                                        '-': SubtractionOperator
-                                                    }))
-comparisons = _delim(addition, Token('comp_op')) >> ComparisonChain
 
-logical_and = _delim(comparisons, Token('land_op'))    >> left_associative(LogicalAndOperator)
-logical_or  = _delim(logical_and, Token('lor_op'))     >> left_associative(LogicalOrOperator)
-prepend_op  = _delim(logical_or,  Token('prepend_op')) >> right_associative(PrependOperator)
+_delim = lambda c, s: Delimited(c, s, pull_single=True)
+_product_op  = opmap({'*': ProductOperator, '/': DivisionOperator})
+_addition_op = opmap({'+': AdditionOperator, '-': SubtractionOperator})
+
+modulus      = _delim(uminus,   Token('mod_op'))  >> left_associative(ModulusOperator)
+product      = _delim(modulus,  Token('mul_op'))  >> left_associative(_product_op)
+addition     = _delim(product,  Token('add_op'))  >> left_associative(_addition_op)
+comparisons  = _delim(addition, Token('comp_op')) >> ComparisonChain
+logical_and  = _delim(comparisons, Token('land_op'))    >> left_associative(LogicalAndOperator)
+logical_or   = _delim(logical_and, Token('lor_op'))     >> left_associative(LogicalOrOperator)
+prepend_op   = _delim(logical_or,  Token('prepend_op')) >> right_associative(PrependOperator)
+
 
 def _funcdef(marker):
     params = (word >> (lambda x: ParameterList([x]))) | parameter_list
