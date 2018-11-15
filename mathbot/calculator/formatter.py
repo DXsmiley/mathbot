@@ -6,7 +6,7 @@
 '''
 
 import sympy
-import calculator.functions
+import calculator.functions_old
 import calculator.errors
 import re
 
@@ -98,11 +98,11 @@ class SimpleFormatter:
 				self.fmt_py_string(i)
 			elif isinstance(i, list):
 				self.fmt_py_list(i)
-			elif isinstance(i, calculator.functions.Array):
+			elif isinstance(i, calculator.functions_old.Array):
 				self.fmt_array(i)
-			elif isinstance(i, calculator.functions.ListBase):
+			elif isinstance(i, calculator.functions_old.ListBase):
 				self.fmt_list(i)
-			elif isinstance(i, calculator.functions.Glyph):
+			elif isinstance(i, calculator.functions_old.Glyph):
 				self.fmt_glyph(i)
 			elif isinstance(i, ALL_SYMPY_CLASSES):
 				self.fmt_sympy_object(i)
@@ -135,7 +135,7 @@ class SimpleFormatter:
 		''' Format a list '''
 		is_string = True
 		for i in lst:
-			if not isinstance(i, calculator.functions.Glyph):
+			if not isinstance(i, calculator.functions_old.Glyph):
 				is_string = False
 		if len(lst) == 0:
 			self.fmt('[]')

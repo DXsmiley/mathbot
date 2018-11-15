@@ -165,8 +165,8 @@ def test_functions():
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(5)', 8)
 	doit('f = (n) -> if (n < 2, 1, f(n - 1) + f(n - 2)), f(50)', 20365011074)
 	doit('if(0, 0, 0)', 0)
-	compile_fail('if(0, 0)')
-	compile_fail('if(0, 0, 0, 0)')
+	# compile_fail('if(0, 0)')
+	# compile_fail('if(0, 0, 0, 0)')
 	doit('f = (x) -> x, t = f(5), 1 + f(5)', 6)
 	doit('(x -> x * 2)(8)', 16)
 	doit('f = x -> x * 3, f(3)', 9)
@@ -177,9 +177,9 @@ def test_function_creation():
 	doit('f = (x y) -> x + y, f(1, 2)', 3)
 	doit('f(x y) = x + y, f(1, 2)', 3)
 
-def test_macros():
-	doit('((x) ~> x())(5)', 5)
-	doit('(x ~> x())(5 + 6)', 11)
+# def test_macros():
+# 	doit('((x) ~> x())(5)', 5)
+# 	doit('(x ~> x())(5 + 6)', 11)
 
 def test_logic():
 	dort('true  && true',  True)

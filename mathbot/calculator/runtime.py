@@ -11,13 +11,15 @@ import collections
 import functools
 
 # from calculator.bytecode import *
-from calculator.functions import *
+# from calculator.functions import *
 from calculator.errors import EvaluationError
 # import calculator.parser as parser
 # import calculator.formatter as formatter
 import calculator.crucible as crucible
 import calculator.syntax_trees as syntax_trees
 import calculator
+from .function import BaseFunction
+from .list import ListBase
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
@@ -34,11 +36,12 @@ def protect_sympy_function(func):
 
 
 def is_function(val):
-	return int(isinstance(val, (Function, BuiltinFunction)))
+	print(val)
+	return int(isinstance(val, BaseFunction))
 
 
 def is_sequence(val):
-	return int(isinstance(val, (Array, ListBase)))
+	return int(isinstance(val, ListBase))
 
 
 def format_normal(val):

@@ -3,6 +3,10 @@ import pytest
 import math
 import cmath
 import sympy
+import sys
+from calculator.list import ListBase
+
+sys.setrecursionlimit(6000)
 
 TIMEOUT = 30000
 
@@ -11,7 +15,7 @@ class Ignore: pass
 def check_string(list, expected):
 	if not isinstance(expected, str):
 		return False
-	assert isinstance(list, calculator.functions.ListBase)
+	assert isinstance(list, ListBase)
 	assert len(list) == len(expected)
 	for g, c in zip(list, expected):
 		assert g.value == c
@@ -23,8 +27,8 @@ def doit(equation, expected, use_runtime=False):
 		pass
 	elif expected is None:
 		assert result is None
-	elif isinstance(result, calculator.functions.Glyph):
-		assert result.value == expected
+	# elif isinstance(result, calculator.functions.Glyph):
+	# 	assert result.value == expected
 	elif isinstance(result, sympy.boolalg.BooleanAtom):
 		assert bool(result) == expected
 	elif isinstance(result, tuple(sympy.core.all_classes | {int, float})):

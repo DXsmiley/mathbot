@@ -32,6 +32,26 @@ def format_value(x):
 	return '"{}"'.format(str(x))
 
 
+class EvaluationEscapeHandler:
+
+	__slots__ = ['token']
+
+	def __init__(self, token):
+		self.token = token
+
+	def __enter__(self):
+		pass
+
+	def __exit__(self, typ, value, traceback):
+		if typ is not None:
+			if isinstance(value, EvaluationError):
+				raise value.at(self.token)
+			elif isinstance(value, RecursionError):
+				raise EvaluationError('Python stack overflow').at(self.token)
+			else:
+				raise EvaluationError('Could not perform operation').at(self.token)
+
+
 class TooMuchOutputError(Exception):
     pass
 
@@ -63,8 +83,27 @@ class CompilationError(Exception):
 		return self.description
 
 
-class EvaluationError(FormattedError):
-	''' Things that go wrong at runtime '''
+class EvaluationError(Exception):
+
+	def __init__(self, description):
+		self.description = description
+
+	def __str__(self):
+		return f'Error: {self.description}\n'
+
+	def at(self, token):
+		return EvaluationErrorLocationContext(token, self)
+
+
+class EvaluationErrorLocationContext(EvaluationError):
+	def __init__(self, token, child):
+		self.token = token
+		self.child = child
+
+	# This looks O(N^2)
+	def __str__(self):
+		return f'Error at [location here]\n{make_source_marker_at_token(self.token, 1)}\n{self.child}'
+
 
 
 class SystemError(FormattedError):
@@ -76,6 +115,12 @@ class AccessFailedError(EvaluationError):
 	def __init__(self, name):
 		super().__init__('Failed to access variable {}', name)
 		self.name = name
+
+
+class SelfDependentThunkError(EvaluationError):
+	''' A thunk attempted to evaluate itself while it was already evaluating,
+		this is a symptom of an infinite loop.
+	'''
 
 
 class TokenizationFailed(Exception):
@@ -109,3 +154,7 @@ def make_source_marker_at_location(source, location, lines_around=3):
 		*lines[cur + 1 : cur + lines_around]
 	]
 	return '\n'.join(lines)
+
+
+def make_source_marker_at_token(token, lines_around=3):
+	return make_source_marker_at_location(token.source, token.location, lines_around)

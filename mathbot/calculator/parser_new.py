@@ -23,19 +23,21 @@ PrecheckBracketed = _PrecheckParenthesised('[')
 
 class _Parenthesised(Combinator):
 
-    def __init__(self, parser, kind):
+    def __init__(self, parser, kind, assign_bracket_tokens=False):
         self._parser = EnsureComplete(parser)
         self._kind = kind
+        self._assign_bracket_tokens = assign_bracket_tokens
 
     @bailwrapper
     def parse(self, tokens):
         if not isinstance(tokens.head, tokenizer.Bracketed) or tokens.head.start.string != self._kind:
             return BadResult('Expected parenthesised block', tokens)
         value, _ = self._parser.parse(tokens.head.contents).failbail()
-        return GoodResult(value, tokens.rest)
+        return GoodResult((value, tokens.head), tokens.rest)
 
-Parenthesised = lambda x: _Parenthesised(x, '(')
-Bracketed = lambda x: _Parenthesised(x, '[')
+Parenthesised = lambda x: (_Parenthesised(x, '(') >> first)
+ParenthesisedWithTokens = lambda x: _Parenthesised(x, '(')
+Bracketed = lambda x: (_Parenthesised(x, '[') >> first)
 
 
 class Not(Combinator):
@@ -82,12 +84,17 @@ wrapped_expression = bracketed_expression \
                    | atom
 
 function_arguments = (PrecheckParenthesised & Not(Token('function_definition'))) \
-                   /  Parenthesised(expression_list)
+                   /  ParenthesisedWithTokens(expression_list)
 
-_reduce_function_call = lambda x: functools.reduce(FunctionCall, x[1], x[0])
+def _reduce_function_call(func, args_stack):
+    return functools.reduce(
+        lambda c, x: FunctionCall(c, x[0], x[1].start),
+        args_stack,
+        func
+    )
 function_call = percentage \
               | number \
-              | ((wrapped_expression & Many(function_arguments)) >> _reduce_function_call)
+              | ((wrapped_expression & Many(function_arguments)) >> spread(_reduce_function_call))
 
 operator_list_extract  = Predef()
 operator_list_extract *= ((Token('head_op') & operator_list_extract) >> spread(HeadOperator)) \

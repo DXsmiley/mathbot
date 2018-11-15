@@ -1,10 +1,18 @@
 import abc
-from calculator.tokenizer import Token as TToken
-from calculator.util import foldr
 import sympy
 
+from .tokenizer import Token as TToken
+from .evaluable import Evaluable
+from .thunk import Thunk
+from .environment import Environment
+from .list import *
+from .function import *
+from .util import foldr
+from .errors import EvaluationError, EvaluationEscapeHandler
+from .peek import peek
 
-class TreeNode(abc.ABC):
+
+class TreeNode(Evaluable):
 	def __getitem__(self, key):
 		self._error_token = None
 		if key == '#':
@@ -17,7 +25,7 @@ class TreeNode(abc.ABC):
 
 	def fulleval(self, environment):
 		value = self.eval(environment)
-		while isinstance(value, (TreeNode, Thunk)):
+		while isinstance(value, Evaluable):
 			value = value.fulleval(environment)
 		return value
 
@@ -42,6 +50,8 @@ def convert_number(x):
 
 class Number(TreeNode):
 
+	__slots__ = ['token']
+
 	def __init__(self, token):
 		self.token = token
 
@@ -54,43 +64,22 @@ class Number(TreeNode):
 
 class Word(TreeNode):
 
+	simple = True
+
 	def __init__(self, token):
 		self.token = token
 
 	def eval(self, environment):
-		return environment.get(self.token.string)
+		try:
+			r = environment.get(self.token.string)
+			if isinstance(r, Thunk):
+				r.add_error_context(self.token)
+			return r
+		except KeyError:
+			raise EvaluationError(f'Variable "{self.token.string}" is not defined').at(self.token)
 
 	def __str__(self):
 		return self.token.string
-
-
-class Environment:
-
-	def __init__(self, super, mapping):
-		self.super = super
-		self.mapping = mapping
-
-	def get(self, name):
-		name = name.lower()
-		if name in self.mapping:
-			return self.mapping[name]
-		if self.super is None:
-			raise KeyError(name)
-		return self.super.get(name)
-
-	def add(self, name, value):
-		return Environment(self, {name.lower(): value})
-
-	def __str__(self):
-		return f'{self.super}-{self.mapping}'
-
-	@staticmethod
-	def new_self_refferential_over_thunks(binds, super=None):
-		mapping = {}
-		env = Environment(super, mapping)
-		for b in binds:
-			mapping[str(b.label)] = Thunk(env, b.value)
-		return env
 
 
 class Program(TreeNode):
@@ -110,28 +99,6 @@ class Program(TreeNode):
 		return ',\n'.join(map(str, self.bindings + self.expressions))
 
 
-class MergeableProgram:
-
-	''' A 'program' that can take additional bindings to it. '''
-
-	def __init__(self):
-		self.bind_mapping = {}
-		self.protection_levels = {}
-
-	def merge_definitions(self, bindings, protection_level=0):
-		for i in bindings:
-			label = str(i.label)
-			if protection_level < self.protection_levels.get(label, 0):
-				raise Exception(f'Cannot override {label}')
-			self.bind_mapping[label] = i.value
-			self.protection_levels[label] = protection_level
-
-	def eval_expressions(self, expressions):
-		binds = [Assignment(k, v) for k, v in self.bind_mapping.items()]
-		env = Environment.new_self_refferential_over_thunks(binds)
-		return [expr.fulleval(env) for expr in expressions]
-
-
 class Constant(TreeNode):
 
 	def __init__(self, value):
@@ -145,6 +112,7 @@ class Constant(TreeNode):
 
 
 class BinaryOperator(TreeNode):
+
 	def __init__(self, left, token, right):
 		self.left = left
 		self.right = right
@@ -157,10 +125,10 @@ class BinaryOperator(TreeNode):
 		pass
 
 	def eval(self, environment):
-		return self.function(
-			Thunk(environment, self.left),
-			Thunk(environment, self.right)
-		)
+		with EvaluationEscapeHandler(self.token):
+			lt = Thunk(environment, self.left)
+			rt = Thunk(environment, self.right)
+			return self.function(lt, rt)
 
 	def __str__(self):
 		return f'({self.left} {self.token.string} {self.right})'
@@ -218,9 +186,14 @@ class UnaryOperator(TreeNode):
 		self.value = value
 
 	def eval(self, environment):
-		return self.function(
-			Thunk(environment, self.value)
-		)
+		with EvaluationEscapeHandler(self.op):
+			return self.function(
+				Thunk(environment, self.value)
+			)
+		# except EvaluationError as e:
+		# 	raise e.at(self.op)
+		# except Exception:
+		# 	raise EvaluationError(f'Cannot perform operation {self.op.string} on {peek(self.value)}').at(self.op)
 
 	@staticmethod
 	@abc.abstractmethod
@@ -250,7 +223,7 @@ class MinusOperator(UnaryOperator):
 class LogicalNotOperator(UnaryOperator):
 	@staticmethod
 	def function(x):
-		return not x.fulleval()
+		return sympy.Number(int(not x.fulleval()))
 
 class HeadOperator(UnaryOperator):
 	@staticmethod
@@ -280,14 +253,19 @@ class ComparisonChain(TreeNode):
 		self.values = items[2::2]
 
 	def eval(self, environment):
-		prev = self.first.fulleval(environment)
-		vs = [i.fulleval(environment) for i in self.values]
-		for op, v in zip(self.operators, vs):
-			if not self.compaison_ops[str(op)](prev, vs):
-				return False
-			prev = v
-		return True
-		
+			prev = self.first.fulleval(environment)
+			vs = [i.fulleval(environment) for i in self.values]
+			for op, v in zip(self.operators, vs):
+				try:
+					if not self.compaison_ops[str(op)](prev, v):
+						return False
+					prev = v
+				except EvaluationError as e:
+					print(op)
+					raise e.at(op)
+				except Exception:
+					raise EvaluationError(f'Cannot perform operation {op.string} on ' + peek(prev) + ' and ' + peek(v)).at(op)
+			return True
 
 	def __str__(self):
 		return f'({self.first}' + ''.join(f' {o} {v}' for o, v in zip(self.operators, self.values)) + ')'
@@ -324,7 +302,7 @@ class Assignment(TreeNode):
 		self.value = value
 
 	def eval(self, environment):
-		raise NotImplementedError
+		return environment.add_recursive_thunk(self.label, self.value)
 
 	def __str__(self):
 		if isinstance(self.value, FunctionDefinition):
@@ -333,20 +311,24 @@ class Assignment(TreeNode):
 
 
 class FunctionCall(TreeNode):
-	def __init__(self, function, arguments):
+
+	def __init__(self, function, arguments, token=None):
 		self.function = function
 		self.arguments = arguments
+		self.token = token
 
 	def eval(self, environment):
-		function = self.function.fulleval(environment)
+		func = self.function.fulleval(environment)
 		thunks = [Thunk(environment, i) for i in self.arguments]
-		return function(thunks)
+		with EvaluationEscapeHandler(self.token):
+			return func(thunks)
 
 	def __str__(self):
 		return f'{self.function}({", ".join(map(str, self.arguments))})'
 
 
 class ListLiteral(TreeNode):
+
 	def __init__(self, elements):
 		self.elements = elements
 
@@ -358,76 +340,6 @@ class ListLiteral(TreeNode):
 
 	def __str__(self):
 		return '[' + ', '.join(map(str, self.elements)) + ']'
-
-
-class Function:
-	
-	def __init__(self, environment, argument_names, expression):
-		self.argument_names = argument_names
-		self.environment = environment
-		self.expression = expression
-
-	def __call__(self, arguments):
-		# Add new variables to environment
-		env = self.environment
-		for name, value in zip(self.argument_names, arguments):
-			env = env.add(name, value)
-		if len(arguments) == len(self.argument_names):
-			return self.expression.fulleval(env)
-		return Function(env, self.argument_names[len(arguments):], self.expression)
-
-
-class BuiltinFunction:
-
-	def __init__(self, name, num_arguments, function, already_given=[]):
-		self.name = name
-		self.already_given = already_given
-		self.num_arguments = num_arguments
-		self.function = function
-
-	def __call__(self, arguments):
-		count = len(self.already_given) + len(arguments)
-		if count == self.num_arguments:
-			return self.function(*(self.already_given + arguments))
-		if count > self.num_arguments:
-			raise Exception(f'Too many arguments for builtin function {self.name}')
-		return PartiallyAppliedFunction(self, self.num_arguments - 1)
-
-	def run_call(self, environment, arguments):
-		values = [i.fulleval(environment) for i in arguments]
-
-
-class NonPartialBuiltinFunction:
-
-	''' A builtin function that cannot be called partially '''
-
-	def __init__(self, function):
-		self.function = function
-
-	def __call__(self, arguments):
-		return self.function(*map(Thunk.resolve_maybe, arguments))
-
-
-class PartiallyAppliedFunction:
-
-	@staticmethod
-	def create(function, num_arguments, value):
-		if num_arguments == 0:
-			arguments = [value]
-			while isinstance(function, PartiallyAppliedFunction):
-				arguments.append(function.value)
-				function = function.function
-			return function.call_in(arguments[::-1])
-		else:
-			return PartiallyAppliedFunction(function, num_arguments, value)
-
-	def __init__(self, function, num_arguments, value):
-		self.function = function
-		self.num_arguments = num_arguments
-		self.value = None
-
-	def __call__(self, argument):
-		return PartiallyAppliedFunction.create(self, self.num_arguments - 1, value)
 
 
 class ParameterList:
@@ -447,59 +359,9 @@ class ParameterList:
 		return list(map(str, self.parameters))
 
 
-# class ListPrepend(TreeNode):
-	
-# 	def __init__(self, head, tail):
-# 		self.head = head
-# 		self.tail = tail
-	
-# 	def eval(self, environment):
-# 		return List(
-# 			Thunk(environment, self.head),
-# 			Thunk(environment, self.tail)
-# 		)
-
-# 	def __str__(self):
-# 		return f'({self.head}):({self.tail})'
-
-
-class Thunk(TreeNode):
-	''' Used in evaluation only, and is not really an AST node. '''
-
-	def __init__(self, environment, expression):
-		self.environment = environment
-		self.expression = expression
-		self.value = None
-
-	def eval(self, _=None):
-		return self.fulleval()
-
-	def fulleval(self, _=None):
-		# IDEA: Check for recusion here
-		if self.value is None:
-			self.value = self.expression.eval(self.environment)
-		while isinstance(self.value, (Thunk, TreeNode)):
-			self.value = self.value.fulleval(self.environment)
-			# del self.expression # Can we throw this away??
-		return self.value
-
-	@staticmethod
-	def resolve_maybe(value):
-		if isinstance(value, Thunk):
-			return value.fulleval()
-		return value
-
-
-# class Constant(TreeNode):
-
-# 	def __init__(self, value):
-# 		self.value = value
-
-# 	def eval(self):
-# 		return self.value
-
-
 class If(TreeNode):
+
+	__slots__ = ['condition', 'then', 'otherwise']
 
 	def __init__(self, condition, then, otherwise):
 		self.condition = condition
@@ -527,48 +389,36 @@ class Percentage(TreeNode):
 		return f'%({self.value})'
 
 
-class Nil:
+def _builtin_if(c, a, b):
+	if Thunk.resolve_maybe(c):
+		return a
+	return b
 
-	@property
-	def length(self):
-		return 0
-
-	def fulleval(self):
-		return self
-
-	def __str__(self):
-		return '[]'
+builtin_if = Constant(BuiltinFunction('if', 3, _builtin_if))
 
 
-class List:
-	def __init__(self, head, tail):
-		self._head = head
-		self._tail = tail
+class MergeableProgram:
 
-	@property
-	def head(self):
-		return self._head
+	''' A 'program' that can take additional bindings to it. '''
 
-	@property
-	def tail(self):
-		return self._tail
+	def __init__(self):
+		self.bind_mapping = {
+			'if': builtin_if
+		}
+		self.protection_levels = {}
 
-	@property
-	def length(self):
-		return self._tail.fulleval().length + 1
+	def merge_definitions(self, bindings, protection_level=0):
+		for i in bindings:
+			label = str(i.label)
+			if protection_level < self.protection_levels.get(label, 0):
+				raise Exception(f'Cannot override {label}')
+			self.bind_mapping[label] = i.value
+			self.protection_levels[label] = protection_level
 
-	def fulleval(self):
-		return self
-
-	def __str__(self):
-		r = ['[']
-		c = self
-		while not isinstance(c, Nil):
-			r.append(str(Thunk.resolve_maybe(c.head)))
-			r.append(', ')
-			c = Thunk.resolve_maybe(c.tail)
-		r[-1] = ']'
-		return ''.join(r)
+	def eval_expressions(self, expressions):
+		binds = [Assignment(k, v) for k, v in self.bind_mapping.items()]
+		env = Environment.new_self_refferential_over_thunks(binds)
+		return [expr.fulleval(env) for expr in expressions]
 
 
 class Undefined:

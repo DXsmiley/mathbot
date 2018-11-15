@@ -525,6 +525,7 @@ def postprocess(result):
         return result.process()
     if result is None or isinstance(result, (str, TToken)):
         return result
+    return result
     raise TypeError(f'Did not expect a {type(result)} object in postprocess')
 
 
