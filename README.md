@@ -30,7 +30,7 @@ Then open parameters.json and change `tokens` to the token of the bot used for d
 
 It is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Setup for development
 
@@ -44,7 +44,7 @@ pipenv install --dev --skip-lock
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Contributing guide
 
