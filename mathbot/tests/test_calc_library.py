@@ -1,6 +1,5 @@
 import operator
 import pytest
-import collections
 from random import randint
 
 from test_calc_helpers import *
@@ -79,23 +78,44 @@ def test_in_for_list(l):
     asrt(f'in({l}, {x})')
     asrt(f'!in({l}, ;h)')
 
-@pytest.mark.randomize(l=list_of(int), max_items=20)
-def test_assoc_create_get(l):
-    expr = "ass = []"
+def test_assoc_create_get():
+    asrt('''
+    ass = foldr((a,b) -> assoc(b, a, a), [], range(1,10)),
+    ass_bool = map(a -> get(ass, a) == a, range(1,10)),
+    foldr((a,b) -> a && b, true, ass_bool)
+    ''')
 
-    for i in l:
-        expr += f', ass = assoc(ass, {repr(i)}, {i})'
-    
-    for i in l:
-        asrt(f'{expr}, get(ass, {repr(i)}) == {i}')
+def test_assoc_remove():
+    asrt('''
+    ass = foldr((a,b) -> assoc(b, a, a), [], range(1,10)),
+    ass_removed = foldr((a,b) -> aremove(b, a), ass, range(1,10)),
+    ass_removed == [] && sort(ass) == zip(range(1,10), range(1,10))
+    ''')
 
-@pytest.mark.randomize(l=list_of(int), max_items=20)
-def test_assoc_remove(l):
-    expr = "ass = []"
+def test_assoc_values_keys():
+    asrt('''
+    ass = foldr((a,b) -> assoc(b, a, a), [], range(1,10)),
+    sort(values(ass)) == range(1,10),
+    sort(keys(ass)) == range(1,10)
+    ''')
 
-    for i in l:
-        expr += f', ass = assoc(ass, {repr(i)}, {i})'
-    
-    for i in l:
-        asrt(f'{expr}, get(ass, {repr(i)}) == {i} && get(aremove(ass, {repr(i)}), {repr(i)}) == []')
+def test_assoc_update():
+    asrt('''
+    ass = foldr((a,b) -> assoc(b, a, a), [], range(1,10)),
+    ass_squared = values(update(ass, 5, x -> x * x)),
+    sort(ass_squared) == [1,2,3,4,6,7,8,9,25]
+    ''')
 
+def test_set_equals():
+    asrt('''
+    f = () -> 2,
+    set_equals([5,1,"hi",;b,0,true,f],[;b,f,"hi",1,true,5,0]) && 
+    !set_equals([5,1,"hi",;b,0,true,f],[;c,f,"hi",1,true,5,0])
+    ''')
+
+def test_set_create():
+    asrt('''
+    lst1 = [2,1,3,7,1,2,1,5,2,3],
+    lst2 = [1,2,3,5,7,1,2,3,5,7],
+    sort(to_set(lst1)) == sort(to_set(lst2))
+    ''')

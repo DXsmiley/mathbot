@@ -12,7 +12,7 @@ array (a.) = a
 # A more robust equals function that wont crash cause you 
 # compare a glyph to a non-glyph and whatnot.
 
-equals(a,b) = repr(a) == repr(b)
+equals(a,b) = try(a == b, false)
 
 # Functions that wrap around the standard operators
 sum (a b) = a + b
@@ -152,6 +152,12 @@ set_insert(s elem) = _set_insert(s elem [])
 set_remove = remove
 
 to_set(ls) = foldr((a b) -> set_insert(b a), [], ls)
+
+_slow_set_equals(a b) = length(a) == length(b) && foldr((x,y) -> x && y, true, map(x -> in(b x), a))
+# initially i had this but it hit weird edge cases with
+# set_equals([5,1,"hi",;b,0,true,f],[;b,f,"hi",1,true,5,0])
+# set_equals(a b) = try(sort(a) == sort(b), _slow_set_equals(a b))
+set_equals = _slow_set_equals
 
 # Trig functions for degrees
 sind(d) = sin(rad(d))
