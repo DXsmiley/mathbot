@@ -219,7 +219,7 @@ class Interface:
 
 
 	async def get_json(self, *keys):
-		data = await get(*keys)
+		data = await self.get(*keys)
 		return None if data is None else json.loads(data)
 
 
