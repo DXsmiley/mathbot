@@ -255,17 +255,11 @@ class Interface:
 
 
 def create_redis(url, number = 0):
-	global INTERFACE
-	INTERFACE = Redis(url, number)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Redis(url, number))
 
 
 def create_disk(filename):
-	global INTERFACE
-	INTERFACE = Disk(filename)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Disk(filename))
 
 
 def reduce_key(keys):
