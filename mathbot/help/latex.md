@@ -1,4 +1,4 @@
-:::topics latex tex rtex
+:::topics latex tex rtex texw texp
 
 # LaTeX
 
