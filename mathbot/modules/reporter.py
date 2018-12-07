@@ -29,10 +29,9 @@ class ReporterModule:
 		self.sent_duty_note = False
 
 	async def send_reports(self):
-		try:
-			print('Shard', self.bot.shard_ids, 'will report errors!')
-			# print('TextChannel:', report_channel)
-			while not self.bot.is_closed():
+		print('Shard', self.bot.shard_ids, 'will report errors!')
+		while not self.bot.is_closed():
+			try:
 				report_channel = await self.get_report_channel()
 				message = None
 				if report_channel:
@@ -40,16 +39,19 @@ class ReporterModule:
 				if message:
 					# Errors should have already been trimmed before they reach this point,
 					# but this is just in case something slips past
+					print('Sending error report')
+					print(message)
+					print('--------------------')
 					if len(message) > 1900:
 						message = message[1900:] + ' **(emergency trim)**'
 					await report_channel.send(message)
 				else:
 					await asyncio.sleep(10)
-		except asyncio.CancelledError:
-			raise
-		except Exception:
-			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.bot.shard_id))
-			traceback.print_exc()
+			except asyncio.CancelledError:
+				raise
+			except Exception:
+				print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.bot.shard_id))
+				traceback.print_exc()
 
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = self.bot.parameters.get('error-reporting channel')
