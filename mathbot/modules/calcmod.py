@@ -129,13 +129,21 @@ class CalculatorModule():
 	@has_permissions(administrator=True)
 	@core.util.respond
 	async def handle_libs_add(self, ctx, *, url):
+		print('Adding a library')
 		''' Command to add a new library to the server '''
+		if not await self.allow_calc_history(ctx.channel):
+			return discord.Embed(
+				title='This feature is Patron-only',
+				description='This feature is currently only avaiable to bot patrons. Go to bit.ly/mathbot to become a patron.',
+				colour=discord.Colour.red()
+
+			)
 		# Filter out non-libraries
 		if not url.startswith('https://gist.github.com/'):
 			return discord.Embed(
 				title='Library load error',
 				description='Parameter was not a gist url',
-				colour = discord.Colour.red()
+				colour=discord.Colour.red()
 			)
 		# Download 
 		async with aiohttp.ClientSession() as session:
@@ -157,10 +165,10 @@ class CalculatorModule():
 				colour=discord.Colour.red()
 			)
 		# Limit the number of libraries allow on a single server
-		if len(libs) >= 5:
+		if len(libs) >= 10:
 			return discord.Embed(
 				title='Library add error',
-				description='Servers cannot have more than five libraries installed at once.',
+				description='Servers cannot have more than ten libraries installed at once. If you want to complain about this poke @DXsmiley over here: https://discord.gg/JbJbRZS',
 				colour=discord.Colour.red()
 			)
 		# Add the new library to the list and store it again
