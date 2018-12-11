@@ -61,7 +61,7 @@ class Redis(Driver):
 				user, password, host, port = re.split(r':|@', self.url[8:])
 				if password == '':
 					password = None
-				self.connection = await aioredis.create_reconnecting_redis(
+				self.connection = await aioredis.create_redis_pool(
 					(host, int(port)),
 					password = password,
 					db = self.db_number
