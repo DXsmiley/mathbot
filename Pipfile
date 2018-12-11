@@ -7,7 +7,7 @@ name = "pypi"
 cffi = "*"
 aiohttp = "==3.3.2"
 sympy = "*"
-aioredis = "==0.3.0"
+aioredis = "==1.2.0"
 coverage = "*"
 expiringdict = {git = "https://github.com/mailgun/expiringdict.git", ref = "2fa0e533c2737e89ccaf66e72b497f5a654d2607"}
 "discord.py" = {git = "https://github.com/Rapptz/discord.py", ref = "607771c4f49a12d984d782883a580e7332359a10"}
