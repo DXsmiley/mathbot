@@ -2,6 +2,9 @@ if __name__ != '__main__':
     
     print('Not main process. Probably crucible?')
 
+    import logging
+    logging.basicConfig(level = logging.INFO)
+
 else:
     
     print('Main process starting up')
