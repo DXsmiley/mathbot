@@ -92,19 +92,17 @@ class Pool:
 					if result == secret:
 						log.info(f'Process successfully started {id(proc)}')
 					else:
-						log.warn('Crucible failed to start subprocess')
+						log.warning('Crucible failed to start subprocess')
 						raise StartupFailure
 				result = await self._roundtrip(proc, function, arguments, timeout)
-			except (asyncio.TimeoutError, StartupFailure):
-				log.warn(f'Process timed out: {id(proc)}')
+			except Exception:
+				log.error(f'Process has failed: {id(proc)}')
 				try:
 					proc.terminate()
 				except Exception:
-					pass
-				raise
-			except Exception:
-				log.error('Crucible internal error')
-				log.error(traceback.format_exc())
+					print('Termination caused an exception')
+				else:
+					print('Termination succeeded')
 				raise
 			else:
 				self._idle.append(proc)
