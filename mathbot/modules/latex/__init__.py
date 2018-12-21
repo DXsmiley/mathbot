@@ -1,5 +1,4 @@
 import random
-import requests
 import os
 import safe
 import PIL
@@ -18,8 +17,10 @@ import core.help
 import advertising
 import discord
 import json
+from queuedict import QueueDict
 from open_relative import *
-
+from discord.ext.commands import command
+from utils import is_private, MessageEditGuard
 
 core.help.load_from_file('./help/latex.md')
 
@@ -29,18 +30,17 @@ LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 
 # Load data from external files
 
-def load_templates():
-	raw = open_relative('template.tex', encoding = 'utf-8').read()
+def load_template():
+	with open_relative('template.tex', encoding = 'utf-8') as f:
+		raw = f.read()
 	# Remove any comments from the template
 	cleaned = re.sub(r'%.*\n', '', raw)
-	template = cleaned.replace('#BLOCK', 'gather*')
-	t_inline = cleaned.replace('#BLOCK', 'flushleft')
-	return template, t_inline
+	return cleaned
 
-TEMPLATE, TEMPLATE_INLINE = load_templates()
+TEMPLATE = load_template()
 
-repl_json = open_relative('replacements.json', encoding = 'utf-8').read()
-TEX_REPLACEMENTS = json.loads(repl_json)
+with open_relative('replacements.json', encoding = 'utf-8') as _f:
+	TEX_REPLACEMENTS = json.load(_f)
 
 
 # Error messages
@@ -62,158 +62,99 @@ class RenderingError(Exception):
 	pass
 
 
-class LatexModule(core.module.Module):
+class LatexModule:
 
-	def __init__(self):
-		# Keep track of recently fulfilled requests
-		# Holds dictionaries of
-		# {
-		# 	'template': (either 'normal' or 'inline', depending on what was used),
-		# 	'message': the ID of the _output_ message
-		# }
-		self.connections = {}
+	def __init__(self, bot):
+		self.bot = bot
 
-	@core.handles.command('tex latex rtex', '*', perm_setting = 'c-tex')
-	async def command_latex(self, message, latex):
-		if latex == '':
-			await self.send_message(message.channel, 'Type `=help tex` for information on how to use this command.', blame = message.author)
-		elif not has_required_perms(message.channel):
-			await self.send_message(message.channel, PERMS_FAILURE, blame = message.author)
-		else:
-			# print('Handling command:', latex)
-			await self.handle(message, latex, 'normal')
-			if await core.settings.get_setting(message, 'f-delete-tex'):
-				await asyncio.sleep(10)
-				try:
-					await self.client.delete_message(message)
-				except discord.errors.NotFound:
-					pass
-				except discord.errors.Forbidden:
-					await self.send_message(message.channel, DELETE_PERMS_FAILURE, blame = message.author)
+	@command(aliases=['latex', 'rtex'])
+	@core.settings.command_allowed('c-tex')
+	async def tex(self, context, *, latex=''):
+		await self.handle(context.message, latex)
 
-	@command_latex.edit(require_before = False, require_after = True)
-	async def handle_edit(self, before, after, latex):
-		if latex != '' and before.content != after.content:
-			blob = self.connections.get(before.id, {'template': 'normal'})
-			try:
-				await self.client.delete_message(blob['message'])
-			except Exception:
-				pass
-			# print('Handling edit:', latex)
-			await self.handle(after, latex, blob.get('template'))
+	@command(aliases=['wtex'])
+	@core.settings.command_allowed('c-tex')
+	async def texw(self, context, *, latex=''):
+		await self.handle(context.message, latex, wide=True)
 
-	@core.handles.on_message()
-	async def inline_latex(self, message):
-		# The testing bot should not be ignored
-		ignore = message.author.bot and message.author.id != '309967930269892608'
-		if not ignore and not message.content.startswith('=') and message.content.count('$$') >= 2:
-			if message.channel.is_private or (await core.settings.get_setting(message, 'c-tex') and await core.settings.get_setting(message, 'f-inline-tex')):
+	@command(aliases=['ptex'])
+	@core.settings.command_allowed('c-tex')
+	async def texp(self, context, *, latex=''):
+		await self.handle(context.message, latex, noblock=True)
+
+	async def on_message_discarded(self, message):
+		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
+			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
-					await self.handle(message, latex, 'inline')
+					await self.handle(message, latex, centre=False)
 
-	@core.handles.on_edit()
-	async def inline_edit(self, before, after):
-		if not after.content.startswith('=') and after.content.count('$$') >= 2 and before.content != after.content:
-			if after.channel.is_private or (await core.settings.get_setting(after, 'c-tex') and await core.settings.get_setting(after, 'f-inline-tex')):
-				blob = self.connections.get(before.id, {'template': 'inline'})
-				try:
-					await self.client.delete_message(blob['message'])
-				except Exception:
-					pass
-				latex = extract_inline_tex(after.clean_content)
-				if latex != '':
-					await self.handle(after, latex, blob.get('template'))
-
-	async def handle(self, message, latex, template):
-		safe.sprint('Latex ({}, {}) : {}'.format(message.author.name, template, latex))
-		await self.client.send_typing(message.channel)
-
-		colour_back, colour_text = await get_colours(message)
-
-		tpl = ({'normal': TEMPLATE, 'inline': TEMPLATE_INLINE})[template]
-
-		latex = tpl.replace(
-			'#COLOUR', colour_text
-		).replace(
-			'#CONTENT', process_latex(latex)
-		)
-
-		sent_message = await self.render_and_reply(message, latex, colour_back, colour_text)
-		if sent_message != None:
-			self.connections[message.id] = {
-				'message': sent_message,
-				'template': template
-			}
-
-	async def render_and_reply(self, message, latex, colour_back, colour_text):
-		get_timestamp = lambda : message.edited_timestamp or message.timestamp
-		original_timestamp = get_timestamp()
-		try:
-			render_result = await generate_image_online(latex, colour_back = colour_back, colour_text = colour_text)
-		except asyncio.TimeoutError:
-			return await self.send_message(message.channel, LATEX_TIMEOUT_MESSAGE, blame = message.author)
-		except RenderingError:
-			print('Rendering Error')
-			if get_timestamp() == original_timestamp:
-				return await self.send_message(message.channel,
-					'Rendering failed. Check your code. You can edit your existing message if needed.',
-					blame = message.author
-				)
+	async def handle(self, message, source, *, centre=True, wide=False, noblock=False):
+		if source == '':
+			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
-			print('Success!')
-			content = None
-			if await advertising.should_advertise_to(message.author, message.channel):
-				content = 'Support the bot on Patreon: <https://www.patreon.com/dxsmiley>'
-			# If the query message has been updated in this time, don't post the (now out of date) result
-			if get_timestamp() == original_timestamp:
-				return await self.send_image(message.channel, render_result, fname = 'latex.png', blame = message.author, content = content)
+			print(f'LaTeX - {message.author} - {source}')
+			colour_back, colour_text = await self.get_colours(message.author)
+			# Content replacement has to happen last in case it introduces a marker
+			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE
+			latex = latex.replace('#COLOUR',  colour_text) \
+			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
+			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
+			             .replace('#CONTENT', process_latex(source))
+			await self.render_and_reply(message, latex, colour_back)
+
+	async def render_and_reply(self, message, latex, colour_back):
+		with MessageEditGuard(message, message.channel, self.bot) as guard:
+			async with message.channel.typing():
+				try:
+					render_result = await generate_image_online(latex, colour_back)
+				except asyncio.TimeoutError:
+					await guard.send(LATEX_TIMEOUT_MESSAGE)
+				except RenderingError:
+					await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
+				else:
+					await guard.send(file=discord.File(render_result, 'latex.png'))
+					await self.bot.advertise_to(message.author, message.channel, guard)
+
+	async def get_colours(self, user):
+		colour_setting = await self.bot.keystore.get('p-tex-colour', str(user.id)) or 'dark'
+		if colour_setting == 'light':
+			return 'ffffff', '202020'
+		elif colour_setting == 'dark':
+			return '36393E', 'f0f0f0'
+		# Fallback in case of other weird things
+		return '36393E', 'f0f0f0'
 
 
-async def generate_image_online(latex, colour_back = None, colour_text = '000000'):
+async def generate_image_online(latex, colour_back):
 	payload = {
 		'format': 'png',
 		'code': latex.strip(),
 	}
 	async with aiohttp.ClientSession() as session:
 		try:
-			async with session.post(LATEX_SERVER_URL, json = payload, timeout = 8) as loc_req:
+			async with session.post(LATEX_SERVER_URL, json=payload, timeout=8) as loc_req:
 				loc_req.raise_for_status()
 				jdata = await loc_req.json()
-				# print('LOG:\n', jdata.get('log'))
-				# print(jdata.get('status'))
-				# print(jdata.get('description'))
 				if jdata['status'] == 'error':
-					# print(json.dumps(jdata))
 					raise RenderingError
 				filename = jdata['filename']
 			# Now actually get the image
-			async with session.get(LATEX_SERVER_URL + '/' + filename, timeout = 3) as img_req:
+			async with session.get(LATEX_SERVER_URL + '/' + filename, timeout=3) as img_req:
 				img_req.raise_for_status()
 				fo = io.BytesIO(await img_req.read())
 				image = PIL.Image.open(fo).convert('RGBA')
 		except aiohttp.client_exceptions.ClientResponseError:
 			raise RenderingError
-	if colour_back is not None:
-		colour_back = imageutil.hex_to_tuple(colour_back)
-		back = imageutil.new_monocolour(image.size, colour_back)
-		back.paste(image, (0, 0), image)
-		image = imageutil.add_border(back, 4, colour_back)
-	return image
-
-
-async def get_colours(message):
-	colour_setting = await core.settings.get_setting(message, 'p-tex-colour')
-	if colour_setting == 'transparent':
-		colour_text = '737f8d'
-		colour_back = None
-	elif colour_setting == 'light':
-		colour_text = '202020'
-		colour_back = 'ffffff'
-	elif colour_setting == 'dark':
-		colour_text = 'f0f0f0'
-		colour_back = '36393E'
-	return colour_back, colour_text
+	border_size = 4
+	colour_back = imageutil.hex_to_tuple(colour_back)
+	width, height = image.size
+	backing = imageutil.new_monocolour((width + border_size * 2, height + border_size * 2), colour_back)
+	backing.paste(image, (border_size, border_size), image)
+	fobj = io.BytesIO()
+	backing.save(fobj, format='PNG')
+	fobj = io.BytesIO(fobj.getvalue())
+	return fobj
 
 
 def extract_inline_tex(content):
@@ -223,31 +164,27 @@ def extract_inline_tex(content):
 		while True:
 			word = next(parts)
 			if word != '':
-				latex += '{} '.format(
-					word.replace('#', '\#')
-						.replace('$', '\$')
-						.replace('%', '\%')
-				)
+				latex += word.replace('#', '\\#') \
+						     .replace('$', '\\$') \
+						     .replace('%', '\\%')
+				latex += ' '
 			word = next(parts)
 			if word != '':
-				latex += '$\displaystyle {}$ '.format(word.strip('`'))
+				latex += '$\\displaystyle {}$ '.format(word.strip('`'))
 	except StopIteration:
 		pass
 	return latex.rstrip()
 
 
 def process_latex(latex):
-	latex = latex.strip(' `\n')
+	latex = latex.replace('`', ' ').strip(' \n')
 	if latex.startswith('tex'):
-		latex = latex[3:]
+		latex = latex[3:].strip('\n')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
 			latex = latex.replace(key, value)
 	return latex
 
 
-def has_required_perms(channel):
-	if channel.is_private:
-		return True
-	perms = channel.permissions_for(channel.server.me)
-	return perms.attach_files
+def setup(bot):
+	bot.add_cog(LatexModule(bot))

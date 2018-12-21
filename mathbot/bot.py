@@ -1,112 +1,234 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import sys
 import os
-import asyncio
-
-import discord
-
+import sys
+import warnings
 import logging
+import asyncio
+import re
+import json
+import typing
+import traceback
 
-import modules.wolfram
-import modules.about
-import modules.blame
-import modules.calcmod
-import modules.help
-import modules.throws
-import modules.settings
-import modules.latex
-import modules.purge
-import modules.echo
-import modules.analytics
-import modules.reporter
-import modules.greeter
+import termcolor
+import discord
+import discord.ext.commands
+from discord.ext.commands.errors import *
 
-import core.manager
+import core.blame
 import core.keystore
-import core.parameters
+import core.settings
+import utils
 
-keystore_mode = core.parameters.get('keystore mode')
-if keystore_mode == 'redis':
-	core.keystore.setup_redis(
-		core.parameters.get('keystore redis url'),
-		core.parameters.get('keystore redis number')
-	)
-elif keystore_mode == 'disk':
-	core.keystore.setup_disk(core.parameters.get('keystore disk filename'))
-else:
-	raise Exception('"{}" is not a valid keystore mode'.format(keystore_mode))
+from queuedict import QueueDict
+from modules.reporter import report
+
+from advertising import AdvertisingMixin
+from patrons import PatronageMixin
 
 
-RELEASE = core.parameters.get('release').lower()
-TOKEN = core.parameters.get('token')
-
-if RELEASE not in ['development', 'beta', 'production']:
-	raise Exception('"{}" is not a valid release mode'.format(RELEASE))
-
-if not TOKEN:
-	raise Exception('No token specified')
-
-logging.basicConfig(level = logging.WARNING)
+warnings.simplefilter('default')
+logging.basicConfig(level = logging.INFO)
+sys.setrecursionlimit(2500)
+core.blame.monkey_patch()
 
 
-# Used to ensure the beta bot only replies in the channel that it is supposed to
-def event_filter(channel):
-	return (RELEASE != 'beta') or ((not channel.is_private) and channel.id == '325908974648164352')
+REQUIRED_PERMISSIONS_MESSAGE = '''\
+The bot does not have all the permissions it requires in order to run in this channel. It requires the following permissions:
+ - Add reactions
+ - Attach files
+ - Embed links
+ - Read message history
 
-async def run_shard(shard_id, shard_count):
+Contact your server administrators to rectify this problem.
+You can seek additional support on the official mathbot server: https://discord.gg/JbJbRZS
+'''
 
-	assert(0 <= shard_id < shard_count)
 
-	while True:
+class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
-		manager = core.manager.Manager(
-			TOKEN,
-			shard_id = shard_id,
-			shard_count = shard_count,
-			master_filter = event_filter
+	def __init__(self, parameters):
+		super().__init__(
+			command_prefix=_determine_prefix,
+			pm_help=True,
+			shard_count=parameters.get('shards total'),
+			shard_ids=parameters.get('shards mine'),
+			max_messages=2000,
+			fetch_offline_members=False
+		)
+		self.parameters = parameters
+		self.release = parameters.get('release')
+		self.keystore = _create_keystore(parameters)
+		self.settings = core.settings.Settings(self.keystore)
+		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
+		assert self.release in ['development', 'beta', 'release']
+		self.remove_command('help')
+		for i in _get_extensions(parameters):
+			self.load_extension(i)
+
+	def run(self):
+		super().run(self.parameters.get('token'))
+
+	async def on_message(self, message):
+		if self.release != 'production' or not message.author.bot:
+			if utils.is_private(message.channel) or self._can_post_in_guild(message):
+				context = await self.get_context(message)
+				perms = context.message.channel.permissions_for(context.me)
+				required = [
+					perms.add_reactions,
+					perms.attach_files,
+					perms.embed_links,
+					perms.read_message_history,
+				]
+				if not context.valid:
+					self.dispatch('message_discarded', message)
+				elif not all(required):
+					await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
+				else:
+					await self.invoke(context)
+
+	def _can_post_in_guild(self, message):
+		perms = message.channel.permissions_for(message.guild.me)
+		return perms.read_messages and perms.send_messages
+
+	# Enabling this will cause output to be deleted with the coresponding
+	# commands are deleted.
+	# async def on_message_delete(self, message):
+	# 	to_delete = self.command_output_map.pop(message.id, [])
+	# 	await self._delete_messages(to_delete)
+
+	# Using this, it's possible to edit a tex message
+	# into some other command, so I might add some additional
+	# restrictions to this later.
+	async def on_message_edit(self, before, after):
+		to_delete = self.command_output_map.pop(before.id, [])
+		await asyncio.gather(
+			self._delete_messages(to_delete),
+			self.on_message(after)
 		)
 
-		manager.add_modules(
-			modules.help.HelpModule(),
-			modules.wolfram.WolframModule(),
-			modules.settings.SettingsModule(),
-			modules.blame.BlameModule(),
-			modules.about.AboutModule(),
-			modules.latex.LatexModule(),
-			modules.calcmod.CalculatorModule(RELEASE in ['development', 'beta']),
-			modules.purge.PurgeModule(),
-			# Will only trigger stats if supplied with tokens
-			modules.analytics.AnalyticsModule(),
-			modules.reporter.ReporterModule(),
+	async def _delete_messages(self, messages):
+		for i in messages:
+			try:
+				await i.delete()
+			except (discord.errors.Forbidden, discord.errors.NotFound):
+				pass
+			await asyncio.sleep(2)
+
+	def message_link(self, invoker, sent):
+		lst = self.command_output_map.get(invoker.id, default=[])
+		self.command_output_map[invoker.id] = lst + [sent]
+
+	async def on_error(self, event, *args, **kwargs):
+		_, error, _ = sys.exc_info()
+		if event in ['message', 'on_message', 'message_discarded', 'on_message_discarded']:
+			msg = f'**Error while handling a message**'
+			await self.handle_contextual_error(args[0].channel, error, msg)
+		else:
+			termcolor.cprint(traceback.format_exc(), 'blue')
+			await self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
+
+	async def on_command_error(self, context, error):
+		details = f'**Error while running command**\n```\n{context.message.clean_content}\n```'
+		await self.handle_contextual_error(context, error, details)
+
+	async def handle_contextual_error(self, destination, error, human_details=''):
+		if isinstance(error, CommandNotFound):
+			pass # Ignore unfound commands
+		elif isinstance(error, MissingRequiredArgument):
+			await destination.send(f'Argument {error.param} required.')
+		elif isinstance(error, TooManyArguments):
+			await destination.send(f'Too many arguments given.')
+		elif isinstance(error, BadArgument):
+			await destination.send(f'Bad argument: {error}')
+		elif isinstance(error, NoPrivateMessage):
+			await destination.send(f'That command cannot be used in DMs.')
+		elif isinstance(error, MissingPermissions):
+			await destination.send(f'You are missing the following permissions required to run the command: {", ".join(error.missing_perms)}.')
+		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
+			await destination.send(embed=discord.Embed(
+				title='Command disabled',
+				description=f'The sever owner has disabled that command in this location.',
+				colour=discord.Colour.orange()
+			))
+		elif isinstance(error, DisabledCommand):
+			await destination.send(embed=discord.Embed(
+				title='Command globally disabled',
+				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
+				colour=discord.Colour.orange()
+			))
+		elif isinstance(error, CommandInvokeError):
+			await self.report_error(destination, error.original, human_details)
+		else:
+			await self.report_error(destination, error, human_details)
+
+	async def report_error(self, destination, error, human_details):
+		tb = ''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__))
+		termcolor.cprint(human_details, 'red')
+		termcolor.cprint(tb, 'blue')
+		try:
+			if destination is not None:
+				embed = discord.Embed(
+					title='An internal error occurred.',
+					colour=discord.Colour.red(),
+					description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
+				)
+				await destination.send(embed=embed)
+		finally:
+			await report(self, f'{self.shard_ids} {human_details}\n```\n{tb}\n```')
+
+
+def run(parameters):
+	if sys.getrecursionlimit() < 2500:
+		sys.setrecursionlimit(2500)
+	MathBot(parameters).run()
+
+
+@utils.listify
+def _get_extensions(parameters):
+	yield 'modules.about'
+	yield 'modules.blame'
+	yield 'modules.calcmod'
+	yield 'modules.dice'
+	# yield 'modules.greeter'
+	yield 'modules.heartbeat'
+	yield 'modules.help'
+	yield 'modules.latex'
+	yield 'modules.purge'
+	yield 'modules.reporter'
+	yield 'modules.settings'
+	yield 'modules.wolfram'
+	yield 'modules.reboot'
+	if parameters.get('release') == 'development':
+		yield 'modules.echo'
+		yield 'modules.throws'
+	yield 'patrons' # This is a little weird.
+	if parameters.get('release') == 'release':
+		yield 'modules.analytics'
+
+
+def _create_keystore(parameters):
+	keystore_mode = parameters.get('keystore mode')
+	if keystore_mode == 'redis':
+		return core.keystore.create_redis(
+			parameters.get('keystore redis url'),
+			parameters.get('keystore redis number')
 		)
-
-		if RELEASE == 'production':
-			manager.add_modules(
-				modules.greeter.GreeterModule()
-			)
-
-		if RELEASE == 'development':
-			manager.add_modules(
-				modules.throws.ThrowsModule(),
-				modules.echo.EchoModule()
-			)
-
-		await manager.run_async()
+	if keystore_mode == 'disk':
+		return core.keystore.create_disk(parameters.get('keystore disk filename'))
+	raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
 
 
-total_shards = core.parameters.get('shards total')
-my_shards = core.parameters.get('shards mine')
+async def _determine_prefix(bot, message):
+	if message.guild is None:
+		prefixes = ['= ', '=', '']
+	else:
+		custom = str(await bot.settings.get_server_prefix(message))
+		prefixes = [custom + ' ', custom]
+	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 
-if total_shards is None:
-	print('Total number of shards is unknown. Cannot run.')
 
-print('Total shards:', total_shards)
-print('My shards:', ' '.join(map(str, my_shards)))
-
-coroutines = [run_shard(i, total_shards) for i in my_shards]
-
-future = asyncio.gather(*coroutines)
-loop = asyncio.get_event_loop()
-loop.run_until_complete(future)
+if __name__ == '__main__':
+	print('bot.py found that it was the main module. You should be invoking the bot from entrypoint.py')
+	sys.exit(1)

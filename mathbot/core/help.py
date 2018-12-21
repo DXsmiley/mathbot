@@ -1,4 +1,5 @@
 import codecs
+import difflib
 
 
 TOPICS = {}
@@ -12,7 +13,6 @@ class DuplicateTopicError(Exception):
 		return 'Multiple entries for help topic "{}"'.format(self.topic)
 
 
-# TODO: Add support for subtopics
 def add(topics, message, from_file = False):
 	if not from_file:
 		print('Still using core.help.add for topics', topics)
@@ -30,16 +30,15 @@ def add(topics, message, from_file = False):
 
 
 def get(topic):
-	return TOPICS.get(topic)
+	return TOPICS.get(topic.lower())
 
 
 def listing():
 	return sorted(PRIMARY_TOPICS)
 
 
-# TODO: Function to suggest similar topic if the user spelt something wrong.
 def get_similar(topic):
-	assert(False)
+	return sorted(difflib.get_close_matches(topic.lower(), PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
 
 
 def load_from_file(filename, topics = None):
@@ -75,6 +74,8 @@ def load_from_file(filename, topics = None):
 		pages = ['\n'.join(lines) for lines in pages]
 		for i in pages:
 			if len(i) >= 1800:
-				print('Help page is too long:')
+				print('Help page is too long, add a `:::page-break` to start a new page')
+				print('-------------------------------------------------')
 				print(i)
+				print('-------------------------------------------------')
 	add(topics, pages, from_file = True)

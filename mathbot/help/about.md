@@ -12,13 +12,7 @@ Source code: https://github.com/DXsmiley/mathbot
 MathBot is written in Python using discord.py (<https://github.com/Rapptz/discord.py>).
 
 Thankyou to the following patrons for supporting the bot:
- - De0
- - Dip
- - Sayaks
- - Paradoxica
- - Joshua "GodsAperture" Champion
- - Raghav "Raggy" Mishra
- - June Summers
+{{patreon_listing}}
 :::endblock
 :::webpage
 Add MathBot to your [server using this link]({{add_link}}).

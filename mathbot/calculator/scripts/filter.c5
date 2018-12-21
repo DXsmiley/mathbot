@@ -1,0 +1,4 @@
+is_even = (x) -> (x % 2 == 0),
+values = range(0, 100),
+f = filter(is_even, values),
+length(f)

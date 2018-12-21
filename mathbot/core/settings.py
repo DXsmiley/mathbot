@@ -1,127 +1,229 @@
-# A lot of the stuff in here is specific to MathBot,
-# and is not generic.
-
 import core.keystore
-import itertools
 import expiringdict
+import warnings
+import discord
+import discord.ext.commands
 
-
-PMAP_COMMAND_ALLOW = {
-	'enable': True,
-	'disable': False,
-	'original': None
-}
-
-
-CL_SELF = ['self']
-CL_CHANNEL = ['channel', 'server']
-
-SN_STANDARD = {
-	'values': PMAP_COMMAND_ALLOW,
-	'contexts': CL_CHANNEL,
-	'default': True
-}
-
-SN_STANDARD_FALSE = {
-	'values': PMAP_COMMAND_ALLOW,
-	'contexts': CL_CHANNEL,
-	'default': False
-}
+class None2:
+	pass
 
 
 SETTINGS = {
-	'c-tex': SN_STANDARD,
-	'c-calc': SN_STANDARD,
-	'c-wolf': SN_STANDARD,
-	'f-calc-shortcut': SN_STANDARD,
-	'f-wolf-filter': SN_STANDARD,
-	'f-wolf-mention': SN_STANDARD,
-	'f-inline-tex': SN_STANDARD_FALSE,
-	'f-delete-tex': SN_STANDARD_FALSE,
-	'p-tex-colour': { # This is now being used as a general 'theme' setting.
-		'values': {
-			'light': 'light',
-			'dark': 'dark',
-			'transparent': 'transparent',
-			'original': None
-		},
-		'contexts': CL_SELF,
-		'access': 'everyone',
-		'default': 'light'
-	},
-	'p-tex-color': {
-		'redirect': 'p-tex-colour'
-	}
+	'c-tex': {'default': True},
+	'c-calc': {'default': True},
+	'c-wolf': {'default': True},
+	'c-roll': {'default': True},
+	'f-calc-shortcut': {'default': True},
+	'f-wolf-filter': {'default': True},
+	'f-wolf-mention': {'default': True},
+	'f-inline-tex': {'default': False},
+	'f-delete-tex': {'default': False},
+	'f-tex-inline': {'redirect': 'f-inline-tex', 'cannon-name': True},
+	'f-tex-delete': {'redirect': 'f-delete-tex', 'cannon-name': True},
+	'f-roll-unlimited': {'default': False},
+	'm-disabled-cmd': {'default': True},
 }
 
 
-def first_non_none(*args):
-	for i in args:
-		if i is not None:
-			return i
+class Settings:
+
+	def __init__(self, keystore):
+		self.keystore = keystore
+
+	def _get_key(self, setting, context):
+		setting = redirect(setting)
+		if not isinstance(setting, str):
+			raise TypeError(f'{setting} is not a valid setting')
+		if isinstance(context, discord.TextChannel):
+			return f'{setting}:{context.id}' + ('c' if context.guild.id == context.id else '')
+		# if isinstance(context, discord.DMChannel):
+		# 	return f'{setting}:{context.id}'
+		if isinstance(context, discord.Guild):
+			return f'{setting}:{context.id}'
+		raise TypeError('Type {context.__class__} if not a valid settings context')
+
+	async def get_single(self, setting, context):
+		return await self.keystore.get(self._get_key(setting, context))
+
+	async def resolve(self, setting, *contexts, default=None2):
+		setting = redirect(setting)
+		for i in contexts:
+			result = await self.get_single(setting, i)
+			if result is not None:
+				return result
+		if default is not None2:
+			return default
+		return SETTINGS[setting]['default']
+
+	async def resolve_message(self, setting, message):
+		setting = redirect(setting)
+		if isinstance(message.channel, discord.DMChannel):
+			so = SETTINGS[setting]
+			return so.get('private', so['default'])
+		if isinstance(message.channel, discord.TextChannel):
+			return await self.resolve(setting, message.channel, message.channel.guild)
+		raise ValueError(f'{message} cannot be resolved for settings')
+
+	async def set(self, setting, context, value):
+		setting = redirect(setting)
+		key = self._get_key(setting, context)
+		print(key, '==>', value)
+		if value is None:
+			await self.keystore.delete(key)
+		elif value not in [0, 1]:
+			raise ValueError(f'{value} is not a valid setting value')
+		else:
+			await self.keystore.set(key, value)
+
+	async def get_server_prefix(self, context):
+		if isinstance(context, discord.Message):
+			context = context.channel
+		if isinstance(context, discord.DMChannel):
+			return '='
+		if isinstance(context, discord.TextChannel):
+			context = context.guild
+		if not isinstance(context, discord.Guild):
+			raise TypeError(f'{context} is not a valid context for the server prefix')
+		stored = await self.keystore.get(f's-prefix:{context.id}')
+		return '=' if stored is None else stored
+
+	async def set_server_prefix(self, context, prefix):
+		if isinstance(context, discord.Message):
+			context = context.channel
+		if isinstance(context, discord.TextChannel):
+			context = context.guild
+		if not isinstance(context, discord.Guild):
+			raise TypeError(f'{context} is not a valid guild.')
+		return (await self.keystore.set(f's-prefix:{context.id}', prefix)) or '='
+
+def _get_key(setting, context):
+	setting = redirect(setting)
+	if not isinstance(setting, str):
+		raise TypeError('{} is not a valid setting'.format(setting))
+	if isinstance(context, discord.TextChannel):
+		if not context.is_private and context.id == context.server.id:
+			return f'{setting}:{context.id}c'
+		else:
+			return f'{setting}:{context.id}'
+	if isinstance(context, discord.Server):
+		return f'{setting}:{context.id}'
+	raise TypeError('Type {} is not a valid settings context'.format(context.__class__))
 
 
-async def channel_get_setting(message, parameter, default_override = None):
-	return first_non_none(
-		await get_setting_context(message, parameter, 'channel'),
-		await get_setting_context(message, parameter, 'server'),
-		default_override,
-		SETTINGS[parameter].get('default')
-	)
+async def get_single(setting, context):
+	raise Exception('setting is deprecated and cannot be used')
+	setting = redirect(setting)
+	return await core.keystore.get(_get_key(setting, context))
 
 
-async def get_setting(message, parameter, default_override = None):
-	details = SETTINGS.get(parameter)
-	items = []
-	for i in details['contexts']:
-		items.append(await get_setting_context(message, parameter, i))
-	return first_non_none(*items, default_override, details.get('default'))
+async def resolve(setting, *contexts, default = None2):
+	raise Exception('setting is deprecated and cannot be used')
+	if not isinstance(setting, str):
+		raise TypeError('First argument of core.settings.resolve(setting, *contexts) should be a string.')
+	setting = redirect(setting)
+	for i in contexts:
+		result = await get_single(setting, i)
+		if result is not None:
+			return result
+	if default is not None2:
+		return default
+	return SETTINGS[setting]['default']
 
 
-def get_key(message, parameter, context):
-	end = None
-	if context == 'self':
-		end = message.author.id
-	elif context == 'channel':
-		end = message.channel.id
-		if message.channel.id == message.server.id:
-			end += 'c'
-	elif context == 'server':
-		end = message.server.id
-	return parameter + ':' + end
+async def resolve_message(setting, message):
+	raise Exception('resolve_message is deprecated and cannot be used')
+	setting = redirect(setting)
+	if message.channel.is_private:
+		so = SETTINGS[setting]
+		if 'private' in so:
+			return so['private']
+		return so['default']
+	return await resolve(setting, message.channel, message.server)
 
 
-async def get_setting_context(message, parameter, context):
-	if context in {'channel', 'server'} and message.channel.is_private:
-		return None
-	return await core.keystore.get(get_key(message, parameter, context))
+async def get_setting(message, setting):
+	raise Exception('message is deprecated and cannot be used')
+	warnings.warn('core.settings.get_setting is deprecated', stacklevel = 2)
+	return await resolve_message(setting, message)
 
 
-def redirect(name):
-	details = SETTINGS.get(name)
-	if details:
-		name = details.get('redirect', name)
-	return name, SETTINGS.get(name)
+async def set(setting, context, value):
+	raise Exception('set is deprecated and cannot be used')
+	setting = redirect(setting)
+	key = _get_key(setting, context)
+	print(key, '--->', value)
+	if value is None:
+		await core.keystore.delete(key)
+	elif value not in [0, 1]:
+		raise ValueError('{} is not a valid setting value'.format(value))
+	else:
+		await core.keystore.set(key, value)
 
 
-PREFIX_CACHE = expiringdict.ExpiringDict(max_len = 10000, max_age_seconds = 120)
+async def get_server_prefix(context):
+	raise Exception('get_server_prefix is deprecated and cannot be used')
+	if isinstance(context, discord.message.Message):
+		context = context.channel
+	if isinstance(context, discord.abc.PrivateChannel):
+		return '='
+	if isinstance(context, discord.channel.TextChannel):
+		if context.is_private:
+			return '='
+		context = context.server
+	if not isinstance(context, discord.Server):
+		raise TypeError('{} is not a valid server'.format(context))
+	stored = await core.keystore.get('s-prefix:' + context.id)
+	return '=' if stored is None else str(stored)
 
 
-async def get_server_prefix(server_id):
-	try:
-		value = PREFIX_CACHE[server_id]
-	except KeyError:
-		value = await core.keystore.get('s-prefix:' + server_id) or '='
-	PREFIX_CACHE[server_id] = value
-	return value
+async def set_server_prefix(context, prefix):
+	raise Exception('set_server_prefix is deprecated and cannot be used')
+	if isinstance(context, discord.Message):
+		context = context.channel
+	if isinstance(context, discord.TextChannel):
+		if context.is_private:
+			return '='
+		context = context.server
+	if not isinstance(context, discord.Server):
+		raise TypeError('{} is not a valid server'.format(context))
+	return (await core.keystore.set('s-prefix:' + context.id, prefix)) or '='
 
 
 async def get_channel_prefix(channel):
+	raise Exception('get_channel_prefix is deprecated and cannot be used')
 	if channel.is_private:
 		return '='
-	return await get_server_prefix(channel.server.id)
+	return await get_server_prefix(channel.server)
 
 
-async def set_server_prefix(server_id, prefix):
-	PREFIX_CACHE[server_id] = prefix
-	await core.keystore.set('s-prefix:' + server_id, prefix)
+def redirect(setting):
+	if setting not in SETTINGS:
+		return None
+	next = SETTINGS[setting].get('redirect')
+	if next:
+		return redirect(next)
+	return setting
+
+
+def details(setting):
+	return SETTINGS.get(redirect(setting))
+
+def get_cannon_name(setting):
+	if setting not in SETTINGS:
+		raise KeyError(f'{setting} is not a valid setting')
+	for name, details in SETTINGS.items():
+		if details.get('redirect', name) == setting and details.get('cannon-name'):
+			return name
+	return setting
+
+
+class DisabledCommandByServerOwner(discord.ext.commands.CheckFailure): pass
+
+
+# Maybe move this to some other file??
+def command_allowed(setting):
+	async def predicate(context):
+		if not await context.bot.settings.resolve_message(setting, context.message):
+			raise DisabledCommandByServerOwner
+		return True
+	return discord.ext.commands.check(predicate)

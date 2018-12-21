@@ -11,6 +11,7 @@ The following user commands are available:
 	`{{prefix}}tex latex` - Renders *LaTeX* equations. See `{{prefix}}help latex` for details.
 	`{{prefix}}wolf query` - Query wolfram alpha. Can be slow. See `{{prefix}}help wolf` for details.
 	`{{prefix}}calc equation` - Does calculations. See `{{prefix}}help calc` for full list of features.
+	`{{prefix}}roll 1d6` - Rolls dice. See `{{prefix}}help roll` for details.
 	`{{prefix}}theme theme` - Change the colour of the `{{prefix}}tex` and `{{prefix}}wolf` results. See `{{prefix}}help theme` for details.
 
 More help is also available:
@@ -18,9 +19,8 @@ More help is also available:
 	`{{prefix}}help commands` - Get the full list of commands.
 	`{{prefix}}help topic` - Get help about a particular topic or command.
 	`{{prefix}}help management` - Get information about commands for server owners and moderators.
+	`{{prefix}}help settings` - Get information about settings.
 	`{{prefix}}about` - General information about the bot.
-
-Help is also available as a web page: <https://dxsmiley.github.io/mathbot/docs.html>
 
 All commands can be invoked by mentioning the bot. For example, the command \`{{mention}} prefix\` will always tell you the bot's prefix on the current server even if you don't know what it is.
 

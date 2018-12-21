@@ -5,6 +5,7 @@ import asyncio
 import PIL
 import PIL.Image
 import io
+import typing
 
 
 italify = '*{}*'.format
@@ -17,12 +18,95 @@ ASSUMPTION_EMOJI = '🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴
 UNKNOWN_EMOJI = '❔'
 
 
-class RequestFailed(Exception):
-	pass
+class WolframError(Exception):
+
+	def __init__(self, text: str) -> None:
+		self.text = text
+
+	def __str__(self) -> str:
+		return 'W|A Error: ' + self.text
 
 
-async def echo(x):
-	return x
+class WolframDidntSucceed(Exception):
+
+	def __init__(self, tips: typing.List[str]) -> None:
+		self.tips = tips
+
+	def __str__(self) -> str:
+		return 'W|A Didn\'t succeed'
+
+
+class NoImageError(Exception):
+
+	def __str__(self) -> str:
+		return "Images for this request have not been downloaded yet and cannot be accessed."
+
+
+class Result:
+
+	def __init__(self, qr):
+
+		if qr['@error'] == 'true':
+			raise WolframError(qr['error'].get('@msg', ''))
+
+		if qr['@success'] == 'false':
+			raise WolframDidntSucceed([
+				tip['@text']
+				for tip in listify(qr['tips']['tip'])
+			] if 'tips' in qr else [])
+
+		self.sections = [
+			Section(pod)
+			for pod in listify(qr.get('pod', []))
+		]
+
+		self.assumptions = Assumptions(
+			listify(qr['assumptions']['assumption'])
+			if 'assumptions' in qr else []
+		)
+
+		self.timeouts = list(filter(bool, qr.get('@timedout', '').split(',')))
+
+	async def download_images(self, session):
+		futures = [i.get_futures(session) for i in self.sections]
+		await asyncio.gather(*futures)
+
+
+class Client:
+
+	def __init__(self, appid, server = None):
+		self._appid = appid
+		self._server = server or 'https://api.wolframalpha.com/v2/query'
+		self._default_width = None
+		self._default_max_width = None
+		self._default_plot_with = None
+		self._default_location = None
+
+	async def request(self, query: str, assumptions: typing.List[str] = [], *, session=None, **kwargs) -> Result:
+		if session is None:
+			async with aiohttp.ClientSession() as session:
+				return await self._request(query, assumptions, session=session, **kwargs)
+		else:
+			return await self._request(query, assumptions, session=session, **kwargs)	
+
+	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20) -> Result:
+		payload = [
+			('appid', self._appid),
+			('input', query),
+			('units', 'nonmetric' if imperial else 'metric')
+		]
+		for i in assumptions:
+			payload.append(('assumption', i))
+		async with session.get(self._server, params=payload, timeout=timeout) as result:
+			result.raise_for_status()
+			xml = await result.text()
+		doc = xmltodict.parse(xml)
+		result = Result(doc['queryresult'])
+		if download_images:
+			await result.download_images(session)
+		return result
+
+
 
 
 async def download_image(session, url):
@@ -35,45 +119,50 @@ async def download_image(session, url):
 
 
 def listify(x):
+	''' Wraps an object in a list if it is not already a list '''
 	if not isinstance(x, list):
 		return [x]
 	return x
 
 
-async def web_get_text_multiple_attempts(session, server, payload, timeout, attempts = 2):
-	while attempts > 0:
-		try:
-			async with session.get(server, params = payload, timeout = timeout) as result:
-				result.raise_for_status()
-				return await result.text()
-		except Exception:
-			attempts -= 1
-			if attempts == 0:
-				raise RequestFailed
-	raise Exception('This point of the code should never have been reached.')
+# async def web_get_text_multiple_attempts(session, server, payload, timeout, attempts = 2):
+# 	while attempts > 0:
+# 		try:
+# 			async with session.get(server, params = payload, timeout = timeout) as result:
+# 				result.raise_for_status()
+# 				return await result.text()
+# 		except Exception:
+# 			attempts -= 1
+# 			if attempts == 0:
+# 				raise RequestFailed
+# 	raise Exception('This point of the code should never have been reached.')
 
 
 class Assumptions:
 
-	def __init__(self):
+	def __init__(self, qr=[]):
 		self.as_text = []
 		self.emoji_count = 0
 		self.emoji_to_code = {}
 		self.count = 0
 		self.count_unknown = 0
+		self.count_known = 0
+		for i in qr:
+			self.add_assumption(i)
 
 	def to_json(self):
 		return {
-			'as_test': self.as_text,
+			'as_text': self.as_text,
 			'emoji_count': self.emoji_count,
 			'emoji_to_code': self.emoji_to_code,
 			'count': self.count,
 			'count_unknown': self.count_unknown
 		}
 
+	@staticmethod
 	def from_json(json):
 		new = Assumptions()
-		new.as_text = json['as_test']
+		new.as_text = json['as_text']
 		new.emoji_count = json['emoji_count']
 		new.emoji_to_code = json['emoji_to_code']
 		new.count = json['count']
@@ -94,13 +183,14 @@ class Assumptions:
 
 	def add_assumption(self, assumption):
 		self.count += 1
+		self.count_known += 1
 		values = listify(assumption.get('value', []))
 		type = assumption['@type']
 		print('Processing assumption of type', type)
 		result = None
 		template = assumption.get('@template', 'Assuming ${desc1}. Use ${desc2} instead.').replace('${', '{').replace('\\"', '"')
 		if type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
-			# List of alternatives on a single line. "{word} is {description}"
+			# typing.List of alternatives on a single line. "{word} is {description}"
 			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
@@ -125,7 +215,7 @@ class Assumptions:
 				sub_values['desc' + str(i + 1)] = emoji + codify(o['@desc'])
 			result = template.format(**sub_values)
 		elif type in {'SubCategory', 'Attribute', 'TideStation'}:
-			# List of alternatives on different lines. "Assuming {desc}"
+			# typing.List of alternatives on different lines. "Assuming {desc}"
 			optext_array = []
 			for o in values[1:]:
 				emoji = self.use_emoji(o['@input'])
@@ -136,7 +226,7 @@ class Assumptions:
 				'\n'.join(optext_array)
 			)
 		elif type in {'DateOrder', 'CoordinateSystem'}:
-			# List of alternatives on same line. No {word}
+			# typing.List of alternatives on same line. No {word}
 			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
@@ -148,7 +238,7 @@ class Assumptions:
 				values[0]['@desc'],
 				' or '.join(optext_array)
 			)
-		elif type in {'MortalityYearDOB', 'ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'ListOrTimes'}:
+		elif type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
 			# Only two option. May or may not have {word}.
 			v = values[1]
 			sub_values = {
@@ -158,6 +248,7 @@ class Assumptions:
 			}
 			result = template.format(**sub_values)
 		else:
+			self.count_known -= 1
 			self.count_unknown += 1
 			result = 'Unknown assumption type `{}`'.format(type)
 		assert(result is not None)
@@ -169,103 +260,28 @@ class Assumptions:
 
 class Section:
 
-	def __init__(self, title, id):
-		self.title = title
-		self.urls = []
-		self.images = []
-		self.id = id
+	def __init__(self, pod):
+		self.title = pod.get('@title') # type: str
+		self.id = pod.get('@id') # type: str
+		self._urls = [
+			subpod['img']['@src']
+			for subpod in listify(pod.get('subpod', []))
+		]
+		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
 
-	def add_image(self, url):
-		self.urls.append(url)
-		self.images.append(None)
+	def __getitem__(self, key):
+		v = self._images[key]
+		if v is None:
+			raise NoImageError
+		return v
+
+	def __len__(self):
+		return len(self._urls)
 
 	async def download_image(self, session, index):
-		image = await download_image(session, self.urls[index])
-		self.images[index] = image
+		image = await download_image(session, self._urls[index])
+		self._images[index] = image
 
 	def get_futures(self, session):
-		futures = [self.download_image(session, i) for i in range(len(self.urls))]
+		futures = [self.download_image(session, i) for i in range(len(self._urls))]
 		return asyncio.gather(*futures)
-
-
-class Result:
-
-	def __init__(self, ):
-		self.tips = []
-		self.textout = []
-		self.sections = []
-		self.timeouts = []
-		self.assumptions = Assumptions()
-		self.did_fail = False
-		self.error_text = []
-
-	def add_data(self, qr):
-		if qr['@error'] == 'true':
-			self.did_fail = True
-			self.error_text = qr['error'].get('@msg', '?')
-			self.textout = [
-				'**The server produced an error**',
-				qr['error'].get('@msg', '?'),
-				''
-			]
-		else:
-			# Show the tips
-			if qr['@success'] == 'false':
-				if 'tips' in qr:
-					for tip in listify(qr['tips']['tip']):
-						self.tips.append(tip['@text'])
-			# List the assumptions
-			if 'assumptions' in qr:
-				self.textout.append('**The following assumptions were made**')
-				for assumption in listify(qr['assumptions']['assumption']):
-					self.assumptions.add_assumption(assumption)
-				self.textout += self.assumptions.as_text
-				self.textout.append('')
-			# List the pods
-			for pod in listify(qr.get('pod', [])):
-				section = Section(pod['@title'], pod.get('@id'))
-				for sub in listify(pod['subpod']):
-					section.add_image(sub['img']['@src'])
-				self.sections.append(section)
-			# List the things that timed out
-			self.timeouts = list(filter(lambda x : x != '', qr.get('@timedout', '').split(',')))
-			# If there's nothing, give an error
-
-	async def download(self, session):
-		futures = [i.get_futures(session) for i in self.sections]
-		await asyncio.gather(*futures)
-
-	def __str__(self):
-		self.result = []
-		return '\n'.join(self.result)
-
-
-class Client:
-
-	def __init__(self, appid, server = None):
-		self.appid = appid
-		self.server = server or r'https://api.wolframalpha.com/v2/query' #?input=pi&appid=XXXX
-
-	async def request(self, query, assumptions, debug = False):
-		print('Inside the request function!')
-		print(query, assumptions)
-		result = Result()
-		async with aiohttp.ClientSession() as session:
-			payload = [
-				('appid', self.appid),
-				('input', query)
-			] + [
-				('assumption', i) for i in assumptions
-			]
-			# print(json.dumps(payload, indent = 4))
-			xml = await web_get_text_multiple_attempts(session, self.server, payload, 30, 2)
-			# print(xml)
-			doc = xmltodict.parse(xml)
-			# print(json.dumps(doc, indent = 4))
-			qr = doc['queryresult']
-			result.add_data(qr)
-			await result.download(session)
-			# print(futures)
-			# results = await asyncio.gather(*futures)
-			# print(results)
-		return result

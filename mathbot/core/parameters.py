@@ -9,7 +9,7 @@ import json
 import sys
 
 
-PREVENT_ARG_PARSING = False
+DEFAULT_PARAMETER_FILE = 'parameters_default.json'
 
 
 def _dictionary_overwrite(old, new):
@@ -21,9 +21,10 @@ def _dictionary_overwrite(old, new):
 		old[key] = _dictionary_overwrite(old.get(key), new[key])
 	return old
 
+
 def dictionary_overwrite(*dicts):
-	result = dicts[0]
-	for i in dicts[1:]:
+	result = [{}]
+	for i in dicts:
 		result = _dictionary_overwrite(result, i)
 	return result
 
@@ -41,54 +42,36 @@ def resolve_parameters(params):
 	return params
 
 
-def load_parameter_file(filename):
-	try:
-		with open(filename) as f:
-			result = json.loads(f.read())
-		return result
-	except (FileNotFoundError, PermissionError, IsADirectoryError):
-		print('Could not load parameters from file:', filename)
-		return {}
-
-
 def load_parameters(sources):
-	dicts = [load_parameter_file('parameters_default.json')]
-	for i in sources:
-		if i.endswith('.env'):
-			ev = os.environ.get(i[:-4])
-			# print(ev)
-			jdata = json.loads(ev)
-			dicts.append(jdata)
-		elif i.startswith('{'):
-			try:
-				dicts.append(json.loads(i))
-			except:
-				print('Failed to load parameters from argument:')
-				print(i)
-		else:
-			dicts.append(load_parameter_file(i))
-	return resolve_parameters(
-		dictionary_overwrite(*dicts)
-	)
+	if not isinstance(sources, list):
+		raise TypeError('Sources should be a list')
+	default = _load_json_file(DEFAULT_PARAMETER_FILE)
+	dictionary = resolve_parameters(dictionary_overwrite(default, *sources))
+	return Parameters(dictionary)
 
 
-parameters = None
+def _load_json_file(filename):
+	with open(filename) as f:
+		return json.load(f)
 
 
-def get(path):
-	global parameters
-	if parameters is None:
-		if PREVENT_ARG_PARSING:
-			parameters = load_parameters([])
-		else:
-			parameters = load_parameters(sys.argv[1:])
-	# Break the string down into its components
-	path = path.replace('.', ' ').split(' ')
-	# Reverse it because popping from the back is much faster
-	path = path[::-1]
-	result = parameters
-	# Follow the path through the parameters and return
-	# whatever we end up at
-	while len(path) > 0:
-		result = result[path.pop()]
-	return result
+class Parameters:
+
+	def __init__(self, dictionary):
+		self.dictionary = dictionary
+
+	def get(self, path):
+		peices = path.replace('.', ' ').split(' ')
+		result = self.dictionary
+		for i in peices:
+			result = result[i]
+		return result
+
+	def getd(self, path, default):
+		peices = path.replace('.', ' ').split(' ')
+		result = self.dictionary
+		for i in peices:
+			if i not in result:
+				return default
+			result = result[i]
+		return result

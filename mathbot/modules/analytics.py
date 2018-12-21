@@ -2,95 +2,78 @@
 
 import aiohttp
 
-import core.module
-import core.handles
-import core.parameters
-
 CARBON_URL = 'https://www.carbonitex.net/discord/data/botdata.php'
 DISCORD_BOTS_URL = 'https://bots.discord.pw/api/bots/{bot_id}/stats'
 BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
 
-class AnalyticsModule(core.module.Module):
+class AnalyticsModule:
 
-	# @core.handles.startup_task()
-	# async def identify_bot_farms(self):
-	# 	''' This function lists any medium / large servers with more bots
-	# 		than humans. The eventual goal is to identify and leave any
-	# 		servers that are just full of bots and don't actually have any
-	# 		proper activity in them. I should also add some metric gathering
-	# 		to figure out how much the bot gets used in various servers.
-	# 	'''
-	# 	print('    Humans |  Bots | Server Name')
-	# 	for server in self.client.servers:
-	# 		num_humans = 0
-	# 		num_bots = 0
-	# 		for user in server.members:
-	# 			if user.bot:
-	# 				num_bots += 1
-	# 			else:
-	# 				num_humans += 1
-	# 		num_members = num_humans + num_bots
-	# 		if num_bots > num_humans and num_members > 20:
-	# 			print('    {:6d} | {:5d} | {}'.format(
-	# 				num_humans,
-	# 				num_bots,
-	# 				server.name
-	# 			))
+	def __init__(self, bot):
+		self.bot = bot
 
-	@core.handles.startup_task()
-	async def post_stats(self):
-		ns = self.num_servers()
-		print('Shard', self.shard_id, 'is on', ns, 'servers')
+	async def identify_bot_farms(self):
+		''' This function lists any medium / large servers with more bots
+			than humans. The eventual goal is to identify and leave any
+			servers that are just full of bots and don't actually have any
+			proper activity in them. I should also add some metric gathering
+			to figure out how much the bot gets used in various servers.
+		'''
+		print('    Humans |  Bots | Server Name')
+		for server in self.bot.guilds:
+			num_humans = 0
+			num_bots = 0
+			for user in server.members:
+				if user.bot:
+					num_bots += 1
+				else:
+					num_humans += 1
+			num_members = num_humans + num_bots
+			if num_bots > num_humans and num_members > 20:
+				print('    {:6d} | {:5d} | {}'.format(
+					num_humans,
+					num_bots,
+					server.name
+				))
+
+	async def on_ready(self):
+		num_servers = len(self.bot.guilds)
+		num_shards = self.bot.parameters.get('shards total')
+		print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
 		async with aiohttp.ClientSession() as session:
-			# Submit stats to carbonitex.net
-			carbon_key = core.parameters.get('analytics carbon')
-			if carbon_key:
-				data = {
-					'key': carbon_key,
-					'servercount': ns
-				}
-				async with session.post(CARBON_URL, data = data) as response:
-					print('Analytics: Carbon:', response.status)
-					if response.status != 200:
-						print(await response.text())
-			# Submit stats to bots.discord.pw
-			discord_bots_key = core.parameters.get('analytics discord-bots')
-			if discord_bots_key:
-				url = DISCORD_BOTS_URL.format(bot_id = self.client.user.id)
-				payload = {
-					'json': {
-						'server_count': ns,
-						'shard_id': self.shard_id,
-						'shard_count': self.shard_count
-					},
-					'headers': {
-						'Authorization': discord_bots_key
-					}
-				}
-				async with session.post(url, **payload) as response:
-					print('Analytics: bots.pw:', response.status)
-					if response.status != 200:
-						print(await response.text())
-			# Submit to discordbots.org
-			bots_org_key = core.parameters.get('analytics bots-org')
-			if bots_org_key:
-				url = BOTS_ORG_URL.format(bot_id = self.client.user.id)
-				payload = {
-					'json': {
-						'server_count': ns,
-						'shard_count': self.shard_count,
-						'shard_id': self.shard_id
-					},
-					'headers': {
-						'Authorization': bots_org_key,
-						'Content-Type': 'application/json'
-					}
-				}
-				async with session.post(url, **payload) as response:
-					print('Analytics: bots.org:', response.status)
-					if response.status != 200:
-						print(await response.text())
+			for shard_id in self.bot.shard_ids:
+				# Submit stats to bots.discord.pw
+				discord_bots_key = self.bot.parameters.get('analytics discord-bots')
+				if discord_bots_key:
+					url = DISCORD_BOTS_URL.format(bot_id = self.bot.user.id)
+					await self.send_stats(session, num_servers, num_shards, shard_id, url, discord_bots_key)
+				# Submit to discordbots.org
+				bots_org_key = self.bot.parameters.get('analytics bots-org')
+				if bots_org_key:
+					url = BOTS_ORG_URL.format(bot_id = self.bot.user.id)
+					await self.send_stats(session, num_servers, num_shards, shard_id, url, bots_org_key)
+				# All servers get attached to the first shard, subsequent ones are zero
+				# bots.discord.pw bugs out when given zero servers though.
+				num_servers = 1
 
-	def num_servers(self):
-		# return '3800' # Something temporary (but accurate-ish) while I'm testing.
-		return len(self.client.servers)
+	@staticmethod
+	async def send_stats(session, num_servers, num_shards, shard_id, url, key):
+		# Both the servers have a similar API so we can do this
+		payload = {
+			'json': {
+				'server_count': num_servers,
+				'shard_count': num_shards,
+				'shard_id': shard_id
+			},
+			'headers': {
+				'Authorization': key,
+				'Content-Type': 'application/json'
+			}
+		}
+		async with session.post(url, **payload) as response:
+			print(f'Analytics ({url}): {response.status}')
+			if response.status not in [200, 204]:
+				print(await response.text())
+
+
+def setup(bot):
+	bot.add_cog(AnalyticsModule(bot))

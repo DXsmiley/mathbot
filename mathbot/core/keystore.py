@@ -9,21 +9,43 @@ import collections
 import json
 import aioredis
 import time
+import warnings
+import abc
 
 
-class Interface:
-
-	async def get(self, key):
-		raise NotImplementedError
-
-	async def set(self, key, value):
-		raise NotImplementedError
-
-	async def expire(self, key, time):
-		raise NotImplementedError
+KEY_DELIMITER = ':'
 
 
-class Redis(Interface):
+class Driver(abc.ABC):
+
+	@abc.abstractmethod
+	async def get(self, key: str):
+		pass
+
+	@abc.abstractmethod
+	async def set(self, key: str, value):
+		pass
+
+	@abc.abstractmethod
+	async def delete(self, key: str, value) -> None:
+		pass
+
+	@abc.abstractmethod
+	async def expire(self, key: str, time: int):
+		pass
+
+	@abc.abstractmethod
+	async def lpush(self, key, value):
+		pass
+
+	@abc.abstractmethod
+	async def rpop(self, key):
+		pass
+
+
+class Redis(Driver):
+
+	__slots__ = ['url', 'db_number', 'started', 'connection', 'startup_lock']
 
 	def __init__(self, url, number = 0):
 		self.url = url
@@ -39,14 +61,15 @@ class Redis(Interface):
 				user, password, host, port = re.split(r':|@', self.url[8:])
 				if password == '':
 					password = None
-				self.connection = await aioredis.create_reconnecting_redis(
+				self.connection = await aioredis.create_redis_pool(
 					(host, int(port)),
 					password = password,
 					db = self.db_number
 				)
 				print('Connected to redis server!')
 
-	def decipher(self, value):
+	@staticmethod
+	def decipher(value):
 		if value is None:
 			return None
 		string = value.decode('utf-8')
@@ -82,9 +105,11 @@ class Redis(Interface):
 		return self.decipher(await self.connection.rpop(key))
 
 
-class Disk(Interface):
+class Disk(Driver):
 
-	def __init__(self, filename = None):
+	__slots__ = ['filename', 'data']
+
+	def __init__(self, filename:str=None):
 		self.filename = filename
 		self.data = collections.defaultdict(
 			lambda : {
@@ -124,11 +149,19 @@ class Disk(Interface):
 				return True
 		return False
 
+	@staticmethod
+	def decipher(value):
+		try:
+			return int(value)
+		except (ValueError, TypeError):
+			pass
+		return value
+
 	async def get(self, key):
 		# if the key is expires, there is no value
 		if self.is_expired(key):
 			self.data[key]['value'] = None
-		return self.data[key]['value']
+		return self.decipher(self.data[key]['value'])
 
 	async def set(self, key, value):
 		# If the key is expired, the new key has no expiery
@@ -141,7 +174,8 @@ class Disk(Interface):
 		self.save()
 
 	async def delete(self, key):
-		del self.data[key]
+		if key in self.data:
+			del self.data[key]
 
 	async def expire(self, key, seconds):
 		self.data[key]['expires'] = time.time() + seconds
@@ -158,24 +192,74 @@ class Disk(Interface):
 			await self.set(key, collections.deque())
 		if len(self.data[key]['value']) == 0:
 			return None
-		return self.data[key]['value'].pop()
+		return self.decipher(self.data[key]['value'].pop())
 
 
-KEY_DELIMITER = ':'
-SETUP = False
-INTERFACE = None
+class Interface:
+
+	__slots__ = ['driver']
+
+	def __init__(self, driver: Driver) -> None:
+		self.driver = driver
 
 
-def setup_redis(url, number = 0):
-	global INTERFACE
-	INTERFACE = Redis(url, number)
-	SETUP = True
+	async def get(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.get(key)
 
 
-def setup_disk(filename):
-	global INTERFACE
-	INTERFACE = Disk(filename)
-	SETUP = True
+	# It's a bit strange how the end of this is the value
+	async def set(self, *args, expire = None):
+		if len(args) < 2:
+			raise ValueError(f'keystore.set requires at least 2 arguments')
+		key, value = reduce_key_val(args)
+		await self.driver.set(key, value)
+		if expire is not None:
+			await self.driver.expire(key, expire)
+
+
+	async def get_json(self, *keys):
+		data = await self.get(*keys)
+		return None if data is None else json.loads(data)
+
+
+	async def set_json(self, *args, expire = None):
+		if len(args) < 2:
+			raise ValueError(f'keystore.set_json requires at least 2 arguments')
+		key, value = reduce_key_val(args)
+		await self.driver.set(key, json.dumps(value))
+		if expire is not None:
+			await self.driver.expire(key, expire)
+
+	async def lpush(self, *args):
+		key, value = reduce_key_val(args)
+		await self.driver.lpush(key, value)
+
+	async def rpop(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.rpop(key)
+
+	async def delete(self, *args):
+		assert(len(args) >= 1)
+		key = reduce_key(args)
+		await self.driver.delete(key)
+
+	async def expire(self, *args):
+		if len(args) < 2:
+			raise ValueError(f'keystore.expire requires at least 2 arguments')
+		# args = list(args)
+		# time = args.pop()
+		# key = reduce_key(args)
+		key, time = reduce_key_val(args)
+		await self.driver.expire(key, time)
+
+
+def create_redis(url, number = 0):
+	return Interface(Redis(url, number))
+
+
+def create_disk(filename):
+	return Interface(Disk(filename))
 
 
 def reduce_key(keys):
@@ -186,53 +270,5 @@ def reduce_key(keys):
 
 
 def reduce_key_val(keys):
-	assert(len(keys) >= 2)
-	return KEY_DELIMITER.join(keys[:-1]), keys[-1]
-
-
-async def get(*keys):
-	key = reduce_key(keys)
-	return await INTERFACE.get(key)
-
-
-# It's a bit strange how the end of this is the value
-async def set(*args, expire = None):
-	assert(len(args) >= 2)
-	key, value = reduce_key_val(args)
-	await INTERFACE.set(key, value)
-	if expire is not None:
-		await INTERFACE.expire(key, expire)
-
-
-async def get_json(*keys):
-	data = await get(*keys)
-	return None if data is None else json.loads(data)
-
-
-async def set_json(*args, expire = None):
-	assert(len(args) >= 2)
-	key, value = reduce_key_val(args)
-	await INTERFACE.set(key, json.dumps(value))
-	if expire is not None:
-		await INTERFACE.expire(key, expire)
-
-async def lpush(*args):
-	key, value = reduce_key_val(args)
-	await INTERFACE.lpush(key, value)
-
-async def rpop(*keys):
-	key = reduce_key(keys)
-	return await INTERFACE.rpop(key)
-
-async def delete(*args):
-	assert(len(args) >= 1)
-	key = reduce_key(args)
-	await INTERFACE.delete(key)
-
-
-async def expire(*args):
-	assert(len(args) >= 2)
-	args = list(args)
-	time = args.pop()
-	key = reduce_key(args)
-	await INTERFACE.expire(key, time)
+	assert len(keys) >= 2
+	return KEY_DELIMITER.join(map(str, keys[:-1])), keys[-1]

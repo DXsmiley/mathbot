@@ -7,14 +7,14 @@ It's primary features are:
 - Querying Wolfram|Alpha
 - A Turing complete calculator
 
-The bot is currently developed for python `3.6.2`.
+The bot is currently developed for python `3.6.4`.
 
 ## Links
 
-- [Add the bot to your own server](https://discordapp.com/oauth2/authorize?&client_id=172236682245046272&scope=bot&permissions=126016)
-- [Command documentation for users](https://dxsmiley.github.io/mathbot/docs.html)
+- [Add the bot to your own server](https://dxsmiley.github.io/mathbot/add.html)
 - [Support me on Patreon](https://www.patreon.com/dxsmiley)
 - [Project Trello Board](https://trello.com/b/j6b7vpGA/mathbot)
+- [Official Discord Server](https://discord.gg/JbJbRZS)
 
 ## Setup for use
 
@@ -22,14 +22,15 @@ The bot is currently developed for python `3.6.2`.
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requirements.txt
+pipenv --python 3.6
+pipenv install --skip-lock
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
 
 It is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Setup for development
 
@@ -37,14 +38,17 @@ Then navigate into the `mathbot` directory and run the bot with `python bot.py p
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pip install -r requirements.txt
+pipenv --python 3.6
+pipenv install --dev --skip-lock
 ```
 
-Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `"production"`. Optionally change the other parameters.
+Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Contributing guide
+
+Relevent discussion takes place on [the MathBot Discord server](https://discord.gg/JbJbRZS).
 
 For small changes, feel free to fork the repo and make a pull request once you've made the changes. For larger things, check the [Trello board](https://trello.com/b/j6b7vpGA/mathbot) and see if anyone's already working on it. If not, shoot me a message to say that you're working on it so we don't get multiple people doing the same thing.
 
@@ -56,6 +60,16 @@ Yes I use tabs for indentation.
 2. Open parameters.json and change `wolfram > key`.
 
 This should really only be used for development and personal use.
+
+## Test Suite
+
+Use the `test` script in side the `mathbot` folder to run the test suite.
+
+Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the neccicary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
+
+For the sake example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
+
+There are some additional tests that require a human to verify the bot's output. These can be enabled with `--run-automata-human`.
 
 ## Guide to `parameters.json`
 
@@ -80,6 +94,7 @@ This should really only be used for development and personal use.
 - *automata*
 	- *token* : token to use for the automata bot
 	- *target* : the username of the bot that the automata should target
+	- *channel*: the ID of the channel that the tests should be run in
 - *advertising*
 	- *enable* : should be `true` or `false`. When `true`, the bot will occasionally mention the Patreon page when running queries.
 	- *interval* : the number of queries between mentions of the Patreon page. This is measured on a per-channel basis.
@@ -87,5 +102,5 @@ This should really only be used for development and personal use.
 - *error-reporting*
 	- *channel*: ID of channel to send error reports to. If not specified, reports will not be sent.
 - *shards*
-	- "total": The total number of shards that the bot is running on.
-	- "mine": A list of integers (starting at `0`) specifying which shards should be run in this process.
+	- *total*: The total number of shards that the bot is running on.
+	- *mine*: A list of integers (starting at `0`) specifying which shards should be run in this process.

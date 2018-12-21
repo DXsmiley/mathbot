@@ -1,4 +1,5 @@
 import re
+import calculator.formatter
 
 
 def wrap_if_plus(s):
@@ -31,27 +32,45 @@ def format_value(x):
 	return '"{}"'.format(str(x))
 
 
-class EvaluationError(Exception):
+class TooMuchOutputError(Exception):
+    pass
+
+
+class FormattedError(Exception):
 
 	def __init__(self, description, *values):
 		if len(values) == 0:
 			self.description = description
 		else:
-			formatted = list(map(format_value, values))
+			formatted = list(map(lambda x: calculator.formatter.format(x, limit = 2000), values))
 			self.description = description.format(*formatted)
 
 	def __str__(self):
 		return self.description
 
 
-class DomainError(EvaluationError):
+class CompilationError(Exception):
+	''' Problem in the code found during compilation '''
 
-	def __init__(self, function_name, value):
-		self.function_name = function_name
-		self.value = value
+	def __init__(self, description, source = None):
+		self.description = description
+		if source is None:
+			self.position = None
+		else:
+			self.position = source['source']['position']
 
 	def __str__(self):
-		return '{} cannot be applied to {}'.format(
-			self.function_name,
-			format_value(self.value)
-		)
+		return self.description
+
+
+class EvaluationError(FormattedError):
+	''' Things that go wrong at runtime '''
+
+class SystemError(FormattedError):
+	''' Problem due to a bug in the system, not the user's code '''
+
+class AccessFailedError(EvaluationError):
+	''' Failed to access a variable '''
+	def __init__(self, name):
+		super().__init__('Failed to access variable {}', name)
+		self.name = name

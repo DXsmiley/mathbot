@@ -2,6 +2,7 @@ import itertools
 import operator
 import math
 import cmath
+import sympy
 
 import calculator.errors
 
@@ -11,6 +12,34 @@ NUMBER = [int, float]
 COMPLEX = [int, float, complex]
 
 LIST_OF_NOTHING = ['nothing'] * 4
+
+# Set of functions that call the asyncronous comparitors.
+# Only __aeq__ and __alt__ should be implemented.
+
+async def super_equals(a, b):
+	if hasattr(a, '__aeq__'):
+		return await a.__aeq__(b)
+	if hasattr(b, '__aeq__'):
+		return await b.__aeq__(a)
+	return a == b
+
+async def super_not_equals(a, b):
+	return not (await super_equals(a, b))
+
+async def super_less_than(a, b):
+	if hasattr(a, '__alt__'):
+		return await a.__alt__(b)
+	return a < b
+
+async def super_less_eq(a, b):
+	return (await super_equals(a, b)) or (await super_less_than(a, b))
+
+async def super_more_than(a, b):
+	return await super_less_than(b, a)
+
+async def super_more_eq(a, b):
+	return (await super_equals(a, b)) or (await super_less_than(b, a))
+
 
 class Overloadable:
 
@@ -168,19 +197,20 @@ def power_complex(base, exponent):
 function_factorial = Overloadable('Cannot perform the factorial function on {0}')
 @function_factorial.overload(NUMBER)
 def protected_factorial(x):
-	try:
-		if x > 300:
-			raise calculator.errors.EvaluationError('Cannot perform factorial on a number greater than 300')
-		if not float(x).is_integer() or x < 0:
-			try:
-				return cap_integer_size(math.gamma(x + 1))
-			except ValueError:
-				raise calculator.errors.EvaluationError('Cannot perform factorial on a negative integer')
-			except OverflowError:
-				raise calculator.errors.EvaluationError('Overflow inside gamma function')
-		return cap_integer_size(math.factorial(x))
-	except TypeError:
-		raise calculator.errors.EvaluationError('Cannot perform factorial on {}'.format(x))
+	return sympy.gamma(x + 1)
+	# try:
+	# 	if x > 300:
+	# 		raise calculator.errors.EvaluationError('Cannot perform factorial on a number greater than 300')
+	# 	if not float(x).is_integer() or x < 0:
+	# 		try:
+	# 			return sympy.Number(sympy.gamma(x + 1))
+	# 		except ValueError:
+	# 			raise calculator.errors.EvaluationError('Cannot perform factorial on a negative integer')
+	# 		except OverflowError:
+	# 			raise calculator.errors.EvaluationError('Overflow inside gamma function')
+	# 	return sympy.Number(cap_integer_size(math.factorial(float(x))))
+	# except TypeError:
+	# 	raise calculator.errors.EvaluationError('Cannot perform factorial on {}'.format(x))
 
 def log_func_real(number, base = 10):
 	try:

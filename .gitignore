@@ -9,3 +9,10 @@ parameters.json
 # virtualenv directory
 venv/
 .flake8
+# coverage.py
+.coverage*
+htmlcov
+.mypy_cache
+*.pyc
+.pytest_cache
+Pipfile.lock

@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+python3.6 -m calculator
+
