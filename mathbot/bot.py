@@ -122,7 +122,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 
 	async def on_error(self, event, *args, **kwargs):
 		_, error, _ = sys.exc_info()
-		if event in ['message', 'on_message', 'message_discarded', 'on_message_discarded']:
+		if event in ['message', 'on_message', 'message_discarded', 'on_message_discarded', 'on_command_error']:
 			msg = f'**Error while handling a message**'
 			await self.handle_contextual_error(args[0].channel, error, msg)
 		else:
