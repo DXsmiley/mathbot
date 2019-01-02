@@ -281,7 +281,7 @@ class CalculatorModule():
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
-					if ENABLE_LIBS:
+					if ENABLE_LIBS and not utils.is_private(channel):
 						print('Loading libraries for channel', channel)
 						await self.run_libraries(channel, channel.guild)
 					if ENABLE_HISTORY:
