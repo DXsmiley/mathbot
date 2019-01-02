@@ -222,7 +222,11 @@ class CalculatorModule():
 			await core.blame.set_blame(self.bot.keystore, msg, message.author)
 			return msg
 		arg = message.content
-		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&' and await self.bot.settings.resolve_message('f-calc-shortcut', message):
+		if len(arg) > 2 and \
+		   arg.startswith('==') and \
+		   arg[2] not in '=<>+*/!@#$%^&' and \
+		   'results from bdsmtest.org' not in arg.lower() and \
+		   await self.bot.settings.resolve_message('f-calc-shortcut', message):
 			if not await self.bot.settings.resolve_message('c-calc', message):
 				raise core.settings.DisabledCommandByServerOwner
 			await self.perform_calculation(arg.strip()[2:], message, send)
