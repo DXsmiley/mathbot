@@ -225,6 +225,9 @@ class WolframModule:
 			if reaction.emoji == DELETE_EMOJI:
 				await self.delete_results(reaction, user)
 
+	# async def on_raw_reaction_add(self, payload):
+	# 	print(payload)
+
 	async def rerun_rection(self, reaction, user):
 		ctx = AQcontextImitator(
 			bot=self.bot,
