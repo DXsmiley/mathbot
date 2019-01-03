@@ -218,7 +218,6 @@ class WolframModule:
 					await self.answer_query(ctx, query, small=small)
 
 	async def on_reaction_add(self, reaction, user):
-		print('Reaction added', reaction.emoji)
 		if not user.bot: # Might need to change this when autmated testing is reinstated
 			if reaction.emoji == RERUN_EMOJI and await self.bot.settings.resolve_message('c-wolf', reaction.message):
 				await self.rerun_rection(reaction, user)
