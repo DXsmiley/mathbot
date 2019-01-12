@@ -257,7 +257,7 @@ class WolframModule:
 
 	async def delete_results(self, reaction, user):
 		async with AssumptionDataScope(reaction.message, self.bot) as data:
-			if user.id == data['blame']:
+			if data is not None and user.id == data['blame']:
 				async def get_and_delete(i):
 					m = await reaction.message.channel.get_message(i)
 					await m.delete()
