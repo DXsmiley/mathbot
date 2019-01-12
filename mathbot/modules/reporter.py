@@ -48,7 +48,7 @@ class ReporterModule:
 					print(message)
 					print('--------------------')
 					if len(message) > 1900:
-						message = message[1900:] + ' **(emergency trim)**'
+						message = message[:1900] + ' **(emergency trim)**'
 					await report_channel.send(message)
 				else:
 					await asyncio.sleep(10)
@@ -73,8 +73,10 @@ class ReporterModule:
 				pass
 		return None
 
+
 async def report(bot, string: str):
 	await bot.keystore.lpush('error-report', string)
+
 
 def setup(bot):
 	bot.add_cog(ReporterModule(bot))

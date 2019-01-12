@@ -392,6 +392,8 @@ class CalculatorModule():
 		if utils.is_private(channel):
 			return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
 		else:
+			if channel.guild.owner is None:
+				return False
 			return (await self.bot.patron_tier(channel.guild.owner.id)) >= patrons.TIER_CONSTANT
 
 
