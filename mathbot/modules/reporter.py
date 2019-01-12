@@ -29,13 +29,18 @@ class ReporterModule:
 		self.sent_duty_note = False
 
 	async def send_reports(self):
-		print('Shard', self.bot.shard_ids, 'will report errors!')
+		print('Shard', self.bot.shard_ids, 'started reporting task!')
+		report_channel = None
+		while not self.bot.is_closed() and report_channel is None:
+			report_channel = await self.get_report_channel()
+			if report_channel:
+				print('Shard', self.bot.shard_ids, 'will report errors!')
+				await channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
+			else:
+				await asyncio.sleep(10)	
 		while not self.bot.is_closed():
 			try:
-				report_channel = await self.get_report_channel()
-				message = None
-				if report_channel:
-					message = await self.bot.keystore.rpop('error-report')
+				message = await self.bot.keystore.rpop('error-report')
 				if message:
 					# Errors should have already been trimmed before they reach this point,
 					# but this is just in case something slips past
@@ -63,9 +68,6 @@ class ReporterModule:
 			try:
 				channel = self.bot.get_channel(channel_id)
 				if channel:
-					if not self.sent_duty_note:
-						self.sent_duty_note = True
-						await channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
 					return channel
 			except Exception:
 				pass
