@@ -30,16 +30,15 @@ class ReporterModule:
 		self.sent_duty_note = False
 
 	async def send_reports(self):
+		print('Shard', self.bot.shard_ids, 'started reporting task.')
+		await asyncio.sleep(10)
 		try:
-			print('Shard', self.bot.shard_ids, 'started reporting task!')
-			report_channel = None
-			while not self.bot.is_closed() and report_channel is None:
-				report_channel = await self.get_report_channel()
-				if report_channel:
-					print('Shard', self.bot.shard_ids, 'will report errors!')
-					await report_channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
-				else:
-					await asyncio.sleep(10)	
+			report_channel = await self.get_report_channel()
+			if report_channel is None:
+				print('Shard', self.bot.shard_ids, 'will not report')
+				return
+			termcolor.cprint(f'Shard {self.bot.shard_ids} will report errors', 'green')
+			await report_channel.send(f'Shard `{self.bot.shard_ids}` reporting for duty!')
 			while not self.bot.is_closed():
 				try:
 					message = await self.bot.keystore.rpop('error-report')
@@ -70,16 +69,14 @@ class ReporterModule:
 			termcolor.cprint('*' * len(m), 'red')
 			traceback.print_exc()
 
+
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = self.bot.parameters.get('error-reporting channel')
 		if channel_id:
 			try:
-				channel = self.bot.get_channel(channel_id)
-				if channel:
-					return channel
+				return self.bot.get_channel(channel_id)
 			except Exception:
 				pass
-		return None
 
 
 async def report(bot, string: str):
