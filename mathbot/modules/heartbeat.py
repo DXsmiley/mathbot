@@ -45,6 +45,7 @@ class Heartbeat:
 
 	@command()
 	async def heartbeat(self, context):
+		error_queue_length = await self.bot.keystore.llen('error-report')
 		current_time = int(time.time())
 		lines = ['```']
 		for i in range(self.bot.shard_count):
@@ -56,7 +57,7 @@ class Heartbeat:
 				timediff // 60,
 				timediff % 60
 			))
-		lines.append('```')
+		lines += ['', f'Error queue length: {error_queue_length}', '```']
 		await context.send('\n'.join(lines))
 
 def setup(bot):

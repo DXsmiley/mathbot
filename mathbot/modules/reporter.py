@@ -50,8 +50,12 @@ class ReporterModule:
 			except asyncio.CancelledError:
 				raise
 			except Exception:
-				print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.bot.shard_id))
+				m = f'Exception in ReporterModule.send_reports on shard {self.bot.shard_id}. This is bad.'
+				print('*' * len(m))
+				print(m)
+				print('*' * len(m))
 				traceback.print_exc()
+		print('Report sending task has finished')
 
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = self.bot.parameters.get('error-reporting channel')

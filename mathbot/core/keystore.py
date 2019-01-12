@@ -104,6 +104,10 @@ class Redis(Driver):
 		await self.ensure_started()
 		return self.decipher(await self.connection.rpop(key))
 
+	async def llen(self, key):
+		await self.ensure_started()
+		return self.decipher(await self.connection.llen(key))
+
 
 class Disk(Driver):
 
@@ -194,6 +198,11 @@ class Disk(Driver):
 			return None
 		return self.decipher(self.data[key]['value'].pop())
 
+	async def llen(self, key):
+		if not isinstance(self.data[key]['value'], collections.deque):
+			return 0
+		return len(self.data[key]['value'])
+
 
 class Interface:
 
@@ -252,6 +261,10 @@ class Interface:
 		# key = reduce_key(args)
 		key, time = reduce_key_val(args)
 		await self.driver.expire(key, time)
+
+	async def llen(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.llen(key)
 
 
 def create_redis(url, number = 0):
