@@ -72,6 +72,8 @@ class Redis(Driver):
 	def decipher(value):
 		if value is None:
 			return None
+		if isinstance(value, int):
+			return value
 		string = value.decode('utf-8')
 		try:
 			integer = int(string)
