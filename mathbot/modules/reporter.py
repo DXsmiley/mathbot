@@ -37,7 +37,6 @@ class ReporterModule:
 				report_channel = await self.get_report_channel()
 				if report_channel:
 					print('Shard', self.bot.shard_ids, 'will report errors!')
-					something
 					await report_channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
 				else:
 					await asyncio.sleep(10)	
