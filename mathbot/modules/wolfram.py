@@ -259,8 +259,11 @@ class WolframModule:
 		async with AssumptionDataScope(reaction.message, self.bot) as data:
 			if data is not None and user.id == data['blame']:
 				async def get_and_delete(i):
-					m = await reaction.message.channel.get_message(i)
-					await m.delete()
+					try:
+						m = await reaction.message.channel.get_message(i)
+						await m.delete()
+					except discord.error.NotFound:
+						pass
 				await asyncio.gather(*[
 					get_and_delete(i) for i in data['image ids'] + [data['message id']]
 				])
@@ -330,8 +333,11 @@ class WolframModule:
 			posted = await ctx.send(embed=embed)
 
 			await posted.add_reaction(DELETE_EMOJI)
-			if not small and show_assuptions:
-				await self.add_reaction_emoji(posted, result.assumptions)
+			try:
+				if not small and show_assuptions:
+					await self.add_reaction_emoji(posted, result.assumptions)
+			except discord.errors.NotFound:
+				pass
 			payload = {
 				'assumptions': result.assumptions.to_json(),
 				'query': query,
