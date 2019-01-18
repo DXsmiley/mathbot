@@ -31,7 +31,6 @@ from patrons import PatronageMixin
 warnings.simplefilter('default')
 logging.basicConfig(level = logging.INFO)
 sys.setrecursionlimit(2500)
-core.blame.monkey_patch()
 
 
 REQUIRED_PERMISSIONS_MESSAGE = '''\
@@ -86,7 +85,16 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				elif not all(required):
 					await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
 				else:
+					context.send = self.send_patch(message, context.send)
 					await self.invoke(context)
+
+	def send_patch(self, invoker, original):
+		async def send(*args, **kwargs):
+			sent = await original(*args, **kwargs)
+			await core.blame.set_blame(self.keystore, sent, invoker.author)
+			self.message_link(invoker, sent)
+			return sent
+		return send
 
 	def _can_post_in_guild(self, message):
 		perms = message.channel.permissions_for(message.guild.me)
@@ -102,11 +110,12 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	# into some other command, so I might add some additional
 	# restrictions to this later.
 	async def on_message_edit(self, before, after):
-		to_delete = self.command_output_map.pop(before.id, [])
-		await asyncio.gather(
-			self._delete_messages(to_delete),
-			self.on_message(after)
-		)
+		if before.content != after.content:
+			to_delete = self.command_output_map.pop(before.id, [])
+			await asyncio.gather(
+				self._delete_messages(to_delete),
+				self.on_message(after)
+			)
 
 	async def _delete_messages(self, messages):
 		for i in messages:
