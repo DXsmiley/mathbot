@@ -97,6 +97,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		return send
 
 	def _can_post_in_guild(self, message):
+		if message.channel is None:
+			return False
 		perms = message.channel.permissions_for(message.guild.me)
 		return perms.read_messages and perms.send_messages
 
