@@ -332,8 +332,8 @@ class WolframModule:
 
 			posted = await ctx.send(embed=embed)
 
-			await posted.add_reaction(DELETE_EMOJI)
 			try:
+				await posted.add_reaction(DELETE_EMOJI)
 				if not small and show_assuptions:
 					await self.add_reaction_emoji(posted, result.assumptions)
 			except discord.errors.NotFound:
