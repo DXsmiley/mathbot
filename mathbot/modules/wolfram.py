@@ -262,7 +262,7 @@ class WolframModule:
 					try:
 						m = await reaction.message.channel.get_message(i)
 						await m.delete()
-					except discord.error.NotFound:
+					except discord.errors.NotFound:
 						pass
 				await asyncio.gather(*[
 					get_and_delete(i) for i in data['image ids'] + [data['message id']]
