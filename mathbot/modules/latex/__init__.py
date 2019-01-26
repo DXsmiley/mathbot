@@ -152,6 +152,8 @@ async def generate_image_online(latex, colour_back):
 				image = PIL.Image.open(fo).convert('RGBA')
 		except aiohttp.client_exceptions.ClientResponseError:
 			raise RenderingError(None)
+	if image.width <= 2 or image.height <= 2:
+		raise RenderingError(None)
 	border_size = 4
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
