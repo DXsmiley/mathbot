@@ -59,7 +59,8 @@ It requires the **manage messages** permission in order to do this.
 
 
 class RenderingError(Exception):
-	pass
+	def __init__(self, log):
+		self.log = log
 
 
 class LatexModule:
@@ -110,8 +111,13 @@ class LatexModule:
 					render_result = await generate_image_online(latex, colour_back)
 				except asyncio.TimeoutError:
 					await guard.send(LATEX_TIMEOUT_MESSAGE)
-				except RenderingError:
-					await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
+				except RenderingError as e:
+					err = e.log is not None and re.search(r'^!.*?^!', e.log + '\n!', re.MULTILINE + re.DOTALL)
+					if err:
+						m = err[0].strip("!\n")
+						await guard.send(f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
+					else:
+						await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
 					await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
@@ -137,7 +143,7 @@ async def generate_image_online(latex, colour_back):
 				loc_req.raise_for_status()
 				jdata = await loc_req.json()
 				if jdata['status'] == 'error':
-					raise RenderingError
+					raise RenderingError(jdata.get('log'))
 				filename = jdata['filename']
 			# Now actually get the image
 			async with session.get(LATEX_SERVER_URL + '/' + filename, timeout=3) as img_req:
@@ -145,7 +151,7 @@ async def generate_image_online(latex, colour_back):
 				fo = io.BytesIO(await img_req.read())
 				image = PIL.Image.open(fo).convert('RGBA')
 		except aiohttp.client_exceptions.ClientResponseError:
-			raise RenderingError
+			raise RenderingError(None)
 	border_size = 4
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
