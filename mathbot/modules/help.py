@@ -26,6 +26,10 @@ class HelpModule:
 		await context.send(f'Mathbot support server: {SERVER_LINK}')
 
 	@command()
+	async def invite(self, context):
+		await context.send('Add mathbot to your server: https://dxsmiley.github.io/mathbot/add.html')
+
+	@command()
 	async def help(self, context, *, topic='help'):
 		''' Help command itself.
 			Help is sent via DM, but a small message is also sent in the public chat.
