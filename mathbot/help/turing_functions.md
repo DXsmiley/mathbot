@@ -110,29 +110,30 @@ Gets the key of a key-value pair.
 ### `avalue(pair)`
 Gets the value of a key-value pair.
 
-### `assoc(assoc-list, key, value)`
+### `assoc(assoc_list, key, value)`
 Associates a key with a value in the association list given.
 Example:
 ```
 assoc([["a" 1] ["b" 2] ["c" 3]] "hello" 55)
 ``` 
+
 produces
 ```
 [["a" 1] ["b" 2] ["c" 3] ["hello" 55]]
 ```
 
-### `aremove(assoc-list, key)`
+### `aremove(assoc_list, key)`
 Removes the given key from the assoc list.
 
-### `aremove_value(assoc-list, value)`
+### `aremove_value(assoc_list, value)`
 Removes the all given values from the assoc list.
 
-### `update(assoc-list, key, function)`
+### `update(assoc_list, key, function)`
 Updates the value of the key using function in the given association list.
 
 :::page-break
 
-### `to-set(list)`
+### `to_set(list)`
 Converts a list to a set.
 
 ### `set_insert(set a)`
