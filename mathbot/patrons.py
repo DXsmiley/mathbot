@@ -1,4 +1,5 @@
 from discord.ext.commands import command
+import discord
 
 TIER_NONE = 0
 TIER_CONSTANT = 1
@@ -29,8 +30,13 @@ class PatronModule:
 
 	@command()
 	async def check_patronage(self, ctx):
+		m = []
 		tier = await ctx.bot.patron_tier(ctx.author.id)
-		await ctx.send(f'Your patronage tier is {get_tier_name(tier)}')
+		m.append(f'Your patronage tier is {get_tier_name(tier)}')
+		if isinstance(ctx.channel, discord.TextChannel):
+			tier = await ctx.bot.patron_tier(ctx.channel.guild.owner_id)
+			m.append(f'The patrongage of this server\'s owner is {get_tier_name(tier)}')
+		await ctx.send('\n'.join(m))
 
 	async def on_ready(self):
 		guild = self.bot.get_guild(233826358369845251)

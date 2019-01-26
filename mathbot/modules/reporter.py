@@ -2,6 +2,7 @@ import collections
 import asyncio
 import traceback
 import discord
+import termcolor
 
 import core.keystore
 import core.parameters
@@ -29,44 +30,58 @@ class ReporterModule:
 		self.sent_duty_note = False
 
 	async def send_reports(self):
+		print('Shard', self.bot.shard_ids, 'started reporting task.')
+		await asyncio.sleep(10)
 		try:
-			print('Shard', self.bot.shard_ids, 'will report errors!')
-			# print('TextChannel:', report_channel)
+			report_channel = await self.get_report_channel()
+			if report_channel is None:
+				print('Shard', self.bot.shard_ids, 'will not report')
+				return
+			termcolor.cprint(f'Shard {self.bot.shard_ids} will report errors', 'green')
+			await report_channel.send(f'Shard `{self.bot.shard_ids}` reporting for duty!')
 			while not self.bot.is_closed():
-				report_channel = await self.get_report_channel()
-				message = None
-				if report_channel:
+				try:
 					message = await self.bot.keystore.rpop('error-report')
-				if message:
-					# Errors should have already been trimmed before they reach this point,
-					# but this is just in case something slips past
-					if len(message) > 1900:
-						message = message[1900:] + ' **(emergency trim)**'
-					await report_channel.send(message)
-				else:
-					await asyncio.sleep(10)
-		except asyncio.CancelledError:
-			raise
+					if message:
+						# Errors should have already been trimmed before they reach this point,
+						# but this is just in case something slips past
+						termcolor.cprint('Sending error report', 'yellow')
+						termcolor.cprint(message, 'yellow')
+						termcolor.cprint('--------------------', 'yellow')
+						if len(message) > 1900:
+							message = message[:1900] + ' **(emergency trim)**'
+						await report_channel.send(message)
+					else:
+						await asyncio.sleep(10)
+				except asyncio.CancelledError:
+					raise
+				except Exception:
+					m = f'Exception in ReporterModule.send_reports on shard {self.bot.shard_id}. This is bad.'
+					termcolor.cprint('*' * len(m), 'red')
+					termcolor.cprint(m, 'red')
+					termcolor.cprint('*' * len(m), 'red')
+					traceback.print_exc()
+			print('Report sending task has finished')
 		except Exception:
-			print('Exception in ReporterModule.send_reports on shard {}. This is bad.'.format(self.bot.shard_id))
+			m = f'Exception in ReporterModule.send_reports on shard {self.bot.shard_id} has killed the task.'
+			termcolor.cprint('*' * len(m), 'red')
+			termcolor.cprint(m, 'red')
+			termcolor.cprint('*' * len(m), 'red')
 			traceback.print_exc()
+
 
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = self.bot.parameters.get('error-reporting channel')
 		if channel_id:
 			try:
-				channel = self.bot.get_channel(channel_id)
-				if channel:
-					if not self.sent_duty_note:
-						self.sent_duty_note = True
-						await channel.send('Shard `{}` reporting for duty!'.format(self.bot.shard_ids))
-					return channel
+				return self.bot.get_channel(channel_id)
 			except Exception:
 				pass
-		return None
+
 
 async def report(bot, string: str):
 	await bot.keystore.lpush('error-report', string)
+
 
 def setup(bot):
 	bot.add_cog(ReporterModule(bot))

@@ -30,10 +30,7 @@ class MessageEditGuard:
 		if self._initial_content != self._message.clean_content:
 			print('Edit guard prevented sending of message')
 			raise MessageEditedException
-		sent_message = await self._destination.send(*args, **kwargs)
-		self._bot.message_link(self._message, sent_message)
-		await core.blame.set_blame(self._bot.keystore, sent_message, self._message.author)
-		return sent_message
+		return await self._bot.send_patch(self._message, self._destination.send)(*args, **kwargs)
 
 
 def listify(function):

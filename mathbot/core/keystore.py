@@ -61,7 +61,7 @@ class Redis(Driver):
 				user, password, host, port = re.split(r':|@', self.url[8:])
 				if password == '':
 					password = None
-				self.connection = await aioredis.create_reconnecting_redis(
+				self.connection = await aioredis.create_redis_pool(
 					(host, int(port)),
 					password = password,
 					db = self.db_number
@@ -72,6 +72,8 @@ class Redis(Driver):
 	def decipher(value):
 		if value is None:
 			return None
+		if isinstance(value, int):
+			return value
 		string = value.decode('utf-8')
 		try:
 			integer = int(string)
@@ -103,6 +105,10 @@ class Redis(Driver):
 	async def rpop(self, key):
 		await self.ensure_started()
 		return self.decipher(await self.connection.rpop(key))
+
+	async def llen(self, key):
+		await self.ensure_started()
+		return self.decipher(await self.connection.llen(key))
 
 
 class Disk(Driver):
@@ -194,6 +200,11 @@ class Disk(Driver):
 			return None
 		return self.decipher(self.data[key]['value'].pop())
 
+	async def llen(self, key):
+		if not isinstance(self.data[key]['value'], collections.deque):
+			return 0
+		return len(self.data[key]['value'])
+
 
 class Interface:
 
@@ -219,7 +230,7 @@ class Interface:
 
 
 	async def get_json(self, *keys):
-		data = await get(*keys)
+		data = await self.get(*keys)
 		return None if data is None else json.loads(data)
 
 
@@ -253,19 +264,17 @@ class Interface:
 		key, time = reduce_key_val(args)
 		await self.driver.expire(key, time)
 
+	async def llen(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.llen(key)
+
 
 def create_redis(url, number = 0):
-	global INTERFACE
-	INTERFACE = Redis(url, number)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Redis(url, number))
 
 
 def create_disk(filename):
-	global INTERFACE
-	INTERFACE = Disk(filename)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Disk(filename))
 
 
 def reduce_key(keys):

@@ -23,7 +23,7 @@ import discord
 import abc
 import functools
 
-from discord.ext.commands import command, guild_only
+from discord.ext.commands import command, guild_only, has_permissions
 
 core.help.load_from_file('./help/calculator_brief.md')
 core.help.load_from_file('./help/calculator_full.md')
@@ -77,7 +77,7 @@ class ReplayState:
 		self.loaded = False
 
 
-ENABLE_LIBS = False
+ENABLE_LIBS = True
 ENABLE_HISTORY = True
 
 
@@ -116,7 +116,7 @@ class CalculatorModule():
 	@core.util.respond
 	async def handle_libs_list(self, ctx):
 		''' Command to list all the libraries installed in this server '''
-		libs = await core.keystore.get_json('calculator', 'libs', ctx.server.id)
+		libs = await self.bot.keystore.get_json('calculator', 'libs', str(ctx.guild.id))
 		if not libs:
 			return 'This server has no calculator libraries installed.'
 		embed = discord.Embed(title="Installed libraries")
@@ -124,18 +124,26 @@ class CalculatorModule():
 			embed.add_field(name=i['name'], value=i['url'])
 		return embed
 
-	# TODO: Permissions guard
 	@command(name='libs-add', enabled=ENABLE_LIBS)
 	@guild_only()
+	@has_permissions(administrator=True)
 	@core.util.respond
 	async def handle_libs_add(self, ctx, *, url):
+		print('Adding a library')
 		''' Command to add a new library to the server '''
+		if not await self.allow_calc_history(ctx.channel):
+			return discord.Embed(
+				title='This feature is Patron-only',
+				description='This feature is currently only avaiable to bot patrons. Go to bit.ly/mathbot to become a patron.',
+				colour=discord.Colour.red()
+
+			)
 		# Filter out non-libraries
 		if not url.startswith('https://gist.github.com/'):
 			return discord.Embed(
 				title='Library load error',
 				description='Parameter was not a gist url',
-				colour = discord.Colour.red()
+				colour=discord.Colour.red()
 			)
 		# Download 
 		async with aiohttp.ClientSession() as session:
@@ -148,7 +156,7 @@ class CalculatorModule():
 					url=lib_info.url
 				)
 		# Get list of existing libraries
-		libs = await core.keystore.get_json('calculator', 'libs', ctx.server.id) or []
+		libs = await self.bot.keystore.get_json('calculator', 'libs', str(ctx.guild.id)) or []
 		# Ensure that the library is not already installed
 		if url in map(lambda x: x['url'], libs):
 			return discord.Embed(
@@ -157,10 +165,10 @@ class CalculatorModule():
 				colour=discord.Colour.red()
 			)
 		# Limit the number of libraries allow on a single server
-		if len(libs) >= 5:
+		if len(libs) >= 10:
 			return discord.Embed(
 				title='Library add error',
-				description='Servers cannot have more than five libraries installed at once.',
+				description='Servers cannot have more than ten libraries installed at once. If you want to complain about this poke @DXsmiley over here: https://discord.gg/JbJbRZS',
 				colour=discord.Colour.red()
 			)
 		# Add the new library to the list and store it again
@@ -168,7 +176,7 @@ class CalculatorModule():
 			'url': url,
 			'name': lib_info.name
 		})
-		await core.keystore.set_json('calculator', 'libs', ctx.server.id, libs)
+		await self.bot.keystore.set_json('calculator', 'libs', str(ctx.guild.id), libs)
 		return discord.Embed(
 			title='Added library',
 			description=lib_info.name,
@@ -176,23 +184,24 @@ class CalculatorModule():
 			footer='Run `=calc-reload` to load the library.'
 		)
 
-	# TODO: Permission guard
 	@command(name='libs-remove', enabled=ENABLE_LIBS)
 	@guild_only()
+	@has_permissions(administrator=True)
+	@core.util.respond
 	async def handle_libs_remove(self, message, url):
 		''' Command to remove a library from the list '''
-		libs = await core.keystore.get_json('calculator', 'libs', message.server.id) or []
+		libs = await self.bot.keystore.get_json('calculator', 'libs', str(message.guild.id)) or []
 		if not url in map(lambda x: x['url'], libs):
 			return discord.Embed(
 				title='Failed to remove library',
-				colour=discord.colour.red()
+				colour=discord.Colour.red()
 			)
 		libs = list(filter(lambda x: x['url'] != url, libs))
-		await core.keystore.set_json('calculator', 'libs', message.server.id, libs)
+		await self.bot.keystore.set_json('calculator', 'libs', str(message.guild.id), libs)
 		return discord.Embed(
 			title='Removed library',
 			footer='Run `=calc-reload` to properly unload it.',
-			colour=discord.colour.blue()
+			colour=discord.Colour.blue()
 		)
 
 	@command(name='calc-reload')
@@ -213,7 +222,11 @@ class CalculatorModule():
 			await core.blame.set_blame(self.bot.keystore, msg, message.author)
 			return msg
 		arg = message.content
-		if len(arg) > 2 and arg.startswith('==') and arg[2] not in '=<>+*/!@#$%^&' and await self.bot.settings.resolve_message('f-calc-shortcut', message):
+		if len(arg) > 2 and \
+		   arg.startswith('==') and \
+		   arg[2] not in '=<>+*/!@#$%^&' and \
+		   'results from bdsmtest.org' not in arg.lower() and \
+		   await self.bot.settings.resolve_message('f-calc-shortcut', message):
 			if not await self.bot.settings.resolve_message('c-calc', message):
 				raise core.settings.DisabledCommandByServerOwner
 			await self.perform_calculation(arg.strip()[2:], message, send)
@@ -268,9 +281,9 @@ class CalculatorModule():
 			# in this block at once.
 			async with self.replay_state[channel.id].semaphore:
 				if not self.replay_state[channel.id].loaded:
-					if ENABLE_LIBS:
+					if ENABLE_LIBS and not utils.is_private(channel):
 						print('Loading libraries for channel', channel)
-						await self.run_libraries(channel, channel.server)
+						await self.run_libraries(channel, channel.guild)
 					if ENABLE_HISTORY:
 						print('Replaying calculator commands for', channel)
 						await self.restore_history(channel, blame)
@@ -304,9 +317,9 @@ class CalculatorModule():
 			print('JSON Decode failed when unpacking commands')
 			return []
 
-	async def run_libraries(self, channel, server):
+	async def run_libraries(self, channel, guild):
 		scope = await get_scope(channel.id)
-		libs = await core.keystore.get_json('calculator', 'libs', server.id)
+		libs = await self.bot.keystore.get_json('calculator', 'libs', str(guild.id))
 		downloaded = await download_libraries(i['url'] for i in (libs or []))
 		success = all(map(lambda r: isinstance(r, LibraryDownloadSuccess), downloaded))
 		if not downloaded:
@@ -314,7 +327,8 @@ class CalculatorModule():
 		elif not success:
 			for i in downloaded:
 				if isinstance(i, LibraryDownloadIssue):
-					await self.send_message(channel,
+					# TODO: Blame message
+					await channel.send(
 						embed = discord.Embed(
 							title='Library load error',
 							description=str(i),
@@ -331,7 +345,8 @@ class CalculatorModule():
 				# print(result, worked)
 				if not worked:
 					errors.append(f'**Error in {lib.url}**\n```{result}```')
-			await self.send_message(channel,
+			# TODO: Blame message
+			await channel.send(
 				embed = discord.Embed(
 					title='Errors occurred while running the libraries.',
 					description='Use `=calc-reload` to try again.\n' + '\n\n\n'.join(errors)[:2000],
@@ -365,7 +380,7 @@ class CalculatorModule():
 				'expression': new_command
 			})
 			to_store = json.dumps(history)
-			await self.bot.keystore.set('calculator', 'history', channel.id, to_store, expire = EXPIRE_TIME)
+			await self.bot.keystore.set('calculator', 'history', str(channel.id), to_store, expire = EXPIRE_TIME)
 
 	async def allow_calc_history(self, channel):
 		# if not self.bot.parameters.get('calculator.persistent'):
@@ -377,7 +392,7 @@ class CalculatorModule():
 		if utils.is_private(channel):
 			return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
 		else:
-			return (await self.bot.patron_tier(channel.guild.owner.id)) >= patrons.TIER_CONSTANT
+			return (await self.bot.patron_tier(channel.guild.owner_id)) >= patrons.TIER_CONSTANT
 
 
 def expression_has_side_effect(expr):

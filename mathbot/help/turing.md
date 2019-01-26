@@ -2,7 +2,7 @@
 
 # Turing Completeness
 
-See `{{prefic}}help calc-more` for a list of basic builtin functions.
+See `{{prefix}}help calc-more` for a list of basic builtin functions.
 See `{{prefix}}help turing-library` for builtin functions that operate over more complicated data structures.
 
 ## Introduction
@@ -90,15 +90,17 @@ double = (x) -> x * 2
 
 Alternatively, functions defined at the top level can be given names.
 ```
-add(x y) -> x + y
+add(x y) = x + y
 ```
 
-Lambda functions that take a single argument can be defined using a shorthand that excludes the parenthesis.
+Anonymous functions that take a single argument can be defined using a shorthand that excludes the parenthesis.
 ```
 a -> a + 1
 ```
 
 ### Macro Functions
+
+*Macros may be removed at some point in the future, since they serve no purpose in a lazy language.*
 
 Macros are similar to normal functions, with the difference that all arguments have to be evaluated on demand: Your function gets a series of functions, which take no arguments and return the original value.
 

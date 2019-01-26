@@ -33,6 +33,7 @@ import core.help
 import core.settings
 import core.keystore
 import core.parameters
+import core.blame
 from imageutil import *
 
 from discord.ext.commands import command, check
@@ -89,6 +90,7 @@ If you're trying to set the bot up for development, see README.md for informatio
 '''
 
 RERUN_EMOJI = '🔄'
+DELETE_EMOJI = '🗑'
 EXPAND_EMOJI = '\U000025B6' # ▶️
 MAX_REACTIONS_IN_MESSAGE = 18
 
@@ -102,14 +104,14 @@ ASSUMPTIONS_MADE_MESSAGE = \
 
 class AssumptionDataScope:
 
-	def __init__(self, message: discord.Message, client: discord.Client) -> None:
+	def __init__(self, message: discord.Message, client) -> None:
 		# self.message_id = message.id
 		self.client = client
 		self.data = None
 		self.message = message
 
 	async def __aenter__(self):
-		self.data = await core.keystore.get_json('wolfram', 'message', self.message.id)
+		self.data = await self.client.keystore.get_json('wolfram', 'message', str(self.message.id))
 		if self.data is not None:
 			self.data['assumptions'] = wolfapi.Assumptions.from_json(self.data['assumptions'])
 			# chan = self.client.get_channel(self.data['channel id'])
@@ -121,7 +123,7 @@ class AssumptionDataScope:
 		if self.data is not None:
 			self.data['assumptions'] = self.data['assumptions'].to_json()
 			del self.data['message']
-			await core.keystore.set_json('wolfram', 'message', self.message.id, self.data, expire = 60 * 60 * 30)
+			await self.client.keystore.set_json('wolfram', 'message', str(self.message.id), self.data, expire = 60 * 60 * 30)
 
 
 API_CLIENT = None
@@ -170,52 +172,101 @@ class Locker:
 			self.lock_set.remove(self.lock_id)
 
 
+class AQcontextImitator:
+
+	def __init__(self, *, bot, channel, author):
+		self.bot = bot
+		self.channel = channel
+		self.author = author
+
+	def typing(self):
+		return self.channel.typing()
+
+	async def send(self, *args, **kwargs):
+		m = await self.channel.send(*args, **kwargs)
+		await core.blame.set_blame(self.bot.keystore, m, self.author)
+		return m
+
+	@property
+	def guild(self):
+		return self.channel.guild
+
+
 class WolframModule:
+
+	def __init__(self, bot):
+		self.bot = bot
 
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
 	async def wolf(self, ctx, *, query):
-		if query in ['', 'help']:
-			await ctx.send(f'Usage: `{ctx.prefix}wolf x^2 - 3`. Run `{ctx.prefix}help wolf` for details.')
-		else:
-			async with Locker(ctx) as ok:
-				if ok:
-					await self.answer_query(ctx, query, small=False)
+		await self.command_impl(ctx, query, False, 'wolf')
 
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
 	async def pup(self, ctx, *, query):
+		await self.command_impl(ctx, query, True, 'pup')
+
+	async def command_impl(self, ctx, query, small, name):
 		if query in ['', 'help']:
-			await ctx.send(f'Usage: `{ctx.prefix}pup plot x^2 - 3`. Run `{ctx.prefix}help pup` for details.')
+			await ctx.send(f'Usage: `{ctx.prefix}{name} plot x^2 - 3`. Run `{ctx.prefix}help {name}` for details.')
 		else:
 			async with Locker(ctx) as ok:
 				if ok:
-					await self.answer_query(ctx, query, small=True)
+					await self.answer_query(ctx, query, small=small)
+
+	async def on_reaction_add(self, reaction, user):
+		if not user.bot: # Might need to change this when autmated testing is reinstated
+			if reaction.emoji == RERUN_EMOJI and await self.bot.settings.resolve_message('c-wolf', reaction.message):
+				await self.rerun_rection(reaction, user)
+			if reaction.emoji == DELETE_EMOJI:
+				await self.delete_results(reaction, user)
+
+	# async def on_raw_reaction_add(self, payload):
+	# 	print(payload)
 
 	async def rerun_rection(self, reaction, user):
-		async with AssumptionDataScope(reaction.message, self.client) as data:
+		ctx = AQcontextImitator(
+			bot=self.bot,
+			channel=reaction.message.channel,
+			author=user
+		)
+		async with AssumptionDataScope(reaction.message, self.bot) as data:
 			if data is not None and not data['used'] and data['blame'] == user.id:
-				if await core.settings.get_setting(reaction.message, 'c-wolf'): # Make sure it's still allowed here...
-					assumptions_to_use = list(filter(bool, [
-						data['assumptions'].emoji_to_code.get(i.emoji)
-						for i in reaction.message.reactions
-						if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 1
-					]))
-					channel = reaction.message.channel
-					print('Rerunning query:', data['query'])
-					if len(assumptions_to_use) == 0:
-						print('   with no assumptions!?')
-						if data['no change warning'] == False:
-							await ctx.send("Why would you re-run a query without changing the assumptions? :thinking:", blame = user)
-						data['no change warning'] = True
-					else:
-						print('With assumptions')
-						for i in assumptions_to_use:
-							print('    -', i)
-						if await self.lock_wolf(channel, user, data['query'], assumptions = assumptions_to_use):
+				assumptions_to_use = list(filter(bool, [
+					data['assumptions'].emoji_to_code.get(i.emoji)
+					for i in reaction.message.reactions
+					if isinstance(i.emoji, str) and i.emoji in wolfapi.ASSUMPTION_EMOJI and i.count > 1
+				]))
+				print('Rerunning query:', data['query'])
+				if len(assumptions_to_use) == 0:
+					print('   with no assumptions!?')
+					if data['no change warning'] == False:
+						await ctx.send("Why would you re-run a query without changing the assumptions? :thinking:")
+					data['no change warning'] = True
+				else:
+					print('With assumptions')
+					for i in assumptions_to_use:
+						print('    -', i)
+					async with Locker(ctx) as ok:
+						if ok:
+							await self.answer_query(ctx, data['query'], small=False, assumptions=assumptions_to_use)
 							data['used'] = True
+
+	async def delete_results(self, reaction, user):
+		async with AssumptionDataScope(reaction.message, self.bot) as data:
+			if data is not None and user.id == data['blame']:
+				async def get_and_delete(i):
+					try:
+						m = await reaction.message.channel.get_message(i)
+						await m.delete()
+					except discord.errors.NotFound:
+						pass
+				await asyncio.gather(*[
+					get_and_delete(i) for i in data['image ids'] + [data['message id']]
+				])
 
 	async def answer_query(self, ctx, query, assumptions=[], small=False, debug=False):
 		safe.sprint('wolfram|alpha :', ctx.author.name, ':', query)
@@ -223,78 +274,83 @@ class WolframModule:
 		author = ctx.author
 		api = get_api(ctx.bot)
 
-		async with ctx.typing():
+		# Filter out bad words
+		enable_filter = False
+		if not is_private(channel):
+			enable_filter = await ctx.bot.settings.resolve('f-wolf-filter', channel, channel.guild, default = 'nsfw' not in channel.name)
+		if enable_filter and wordfilter.is_bad(query):
+			await ctx.send(FILTER_FAILURE)
+			return
 
-			# Filter out bad words
-			enable_filter = False
-			if not is_private(channel):
-				enable_filter = await ctx.bot.settings.resolve('f-wolf-filter', channel, channel.guild, default = 'nsfw' not in channel.name)
-			if enable_filter and wordfilter.is_bad(query):
-				await ctx.send(FILTER_FAILURE)
-				return
-
-			# Perform the query
-			try:
+		# Perform the query
+		try:
+			async with ctx.typing():
 				units = await ctx.bot.keystore.get(f'p-wolf-units:{author.id}')
 				result = await api.request(query, assumptions, imperial=(units == 'imperial'), debug=debug)
-			except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
+		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
+			await ctx.send(ERROR_MESSAGE_NO_RESULTS)
+		except asyncio.TimeoutError:
+			print('W|A timeout:', query)
+			await ctx.send(ERROR_MESSAGE_TIMEOUT.format(query))
+		except aiohttp.ClientError as error:
+			print('Wolf: HTTP processing error:', error.message)
+			await ctx.send('The server threw an error. Try again in a moment.')
+		except xml.parsers.expat.ExpatError as error:
+			print('Wolf: XML processing error:', error)
+			await ctx.send('The server returned some malformed data. Try again in a moment.')
+		else:
+
+			if len(result.sections) == 0:
 				await ctx.send(ERROR_MESSAGE_NO_RESULTS)
-			except asyncio.TimeoutError:
-				print('W|A timeout:', query)
-				await ctx.send(ERROR_MESSAGE_TIMEOUT.format(query))
-			except aiohttp.ClientError as error:
-				print('Wolf: HTTP processing error:', error.message)
-				await ctx.send('The server threw an error. Try again in a moment.')
-			except xml.parsers.expat.ExpatError as error:
-				print('Wolf: XML processing error:', error)
-				await ctx.send('The server returned some malformed data. Try again in a moment.')
-			else:
+				return
 
-				if len(result.sections) == 0:
-					await ctx.send(ERROR_MESSAGE_NO_RESULTS)
-					return
+			is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
 
-				is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
-
-				sections_reduced = result.sections if not small else list(
-					cleanup_section_list(
-						itertools.chain(
-							[find_first(section_is_input, result.sections, None)],
-							list(filter(section_is_important, result.sections))
-							or [find_first(section_is_not_input, result.sections, None)]
-						)
+			sections_reduced = result.sections if not small else list(
+				cleanup_section_list(
+					itertools.chain(
+						[find_first(section_is_input, result.sections, None)],
+						list(filter(section_is_important, result.sections))
+						or [find_first(section_is_not_input, result.sections, None)]
 					)
 				)
+			)
 
-				# Post images
-				for img in process_images(sections_reduced, is_dark):
-					await ctx.send(file=image_to_discord_file(img, 'result.png'))
-					await asyncio.sleep(1.05)
+			# Post images
+			messages = []
+			for img in process_images(sections_reduced, is_dark):
+				messages.append(await ctx.send(file=image_to_discord_file(img, 'result.png')))
+				await asyncio.sleep(1.05)
 
-				# Assuptions are currently disabled because of a 'bug'.
-				# I think it's that discord sends emoji reaction updates
-				# on a different shard to the one that handles the channel
-				# that the message is in, which means that the shard
-				# receiving the notif doesn't know what to do with the info
-				# it receives.
-				embed, show_assuptions = await self.format_adm(ctx, None, small)
+			# Assuptions are currently disabled because of a 'bug'.
+			# I think it's that discord sends emoji reaction updates
+			# on a different shard to the one that handles the channel
+			# that the message is in, which means that the shard
+			# receiving the notif doesn't know what to do with the info
+			# it receives.
+			embed, show_assuptions = await self.format_adm(ctx, result.assumptions, small)
 
-				posted = await ctx.send(embed=embed)
+			posted = await ctx.send(embed=embed)
 
-				if not small and show_assuptions and False:
+			try:
+				await posted.add_reaction(DELETE_EMOJI)
+				if not small and show_assuptions:
 					await self.add_reaction_emoji(posted, result.assumptions)
-					payload = {
-						'assumptions': result.assumptions.to_json(),
-						'query': query,
-						'used': False,
-						'blame': blame.id,
-						'channel id': posted.channel.id,
-						'message id': posted.id,
-						'no change warning': False
-					}
-					await core.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
+			except discord.errors.NotFound:
+				pass
+			payload = {
+				'assumptions': result.assumptions.to_json(),
+				'query': query,
+				'used': False,
+				'blame': author.id,
+				'channel id': posted.channel.id,
+				'message id': posted.id,
+				'image ids': [i.id for i in messages],
+				'no change warning': False
+			}
+			await ctx.bot.keystore.set_json('wolfram', 'message', str(posted.id), payload, expire = 60 * 60 * 24)
 
-				print('Done.')
+			print('Done.')
 
 	@staticmethod
 	async def format_adm(ctx, assuptions, small):
@@ -318,9 +374,9 @@ class WolframModule:
 					if emoji:
 						# Whenever we add a reaction, it automatically exhausts the bucket.
 						# This seems strange, but whatever.
-						await self.client.add_reaction(message, emoji)
-						await asyncio.sleep(0.3)
-			await self.client.add_reaction(message, RERUN_EMOJI)
+						await message.add_reaction(emoji)
+						# await asyncio.sleep(0.3)
+			await message.add_reaction(RERUN_EMOJI)
 		except discord.errors.NotFound:
 			# The message could potentially get deleted part way through
 			# adding emoji. If this happens we should ignore it.
@@ -366,7 +422,7 @@ def retheme_images(strip):
 		recolours the ones that need to me
 	'''
 	for image, section, is_title in strip:
-		if is_title or (not re.search(r'^Flag:|Image:|:Colou?rData$', section.id)):
+		if is_title or (not re.search(r'^Flag:|Image:|OriginalImage|Colou?rData$', section.id)):
 			image_recolour_to_dark_theme(image)
 		yield image
 
@@ -451,4 +507,4 @@ def cleanup_section_list(items):
 
 
 def setup(bot):
-	bot.add_cog(WolframModule())
+	bot.add_cog(WolframModule(bot))
