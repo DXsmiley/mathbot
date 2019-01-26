@@ -65,9 +65,9 @@ This should really only be used for development and personal use.
 
 Use the `test` script in side the `mathbot` folder to run the test suite.
 
-Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the neccicary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
+Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the necessary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
 
-For the sake example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
+For the sake of example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
 
 There are some additional tests that require a human to verify the bot's output. These can be enabled with `--run-automata-human`.
 
