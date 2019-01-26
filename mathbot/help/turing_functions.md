@@ -77,6 +77,67 @@ produces
 10
 ```
 
+### `interleave(element, sequence)`
+Example:
+```
+interleave(;, "hello")
+```
+produces
+```
+"h,e,l,l,o"
+```
+
+### `flatten(sequence)`
+Flattens a list of lists.
+Example:
+```
+flatten([[1 2] [3 4]])
+```
+produces
+```
+[1 2 3 4]
+```
+
+### `in(a, sequence)`
+Checks if a is in the sequence.
+
+### `apair(a, b)`
+Creates a new key-value pair from two objects.
+
+### `akey(pair)`
+Gets the key of a key-value pair.
+
+### `avalue(pair)`
+Gets the value of a key-value pair.
+
+### `assoc(assoc-list, key, value)`
+Associates a key with a value in the association list given.
+Example:
+```
+assoc([["a" 1] ["b" 2] ["c" 3]] "hello" 55)
+``` 
+produces
+```
+[["a" 1] ["b" 2] ["c" 3] ["hello" 55]]
+```
+
+### `aremove(assoc-list, key)`
+Removes the given key from the assoc list.
+
+### `aremove_value(assoc-list, value)`
+Removes the all given values from the assoc list.
+
+### `update(assoc-list, key, function)`
+Updates the value of the key using function in the given association list.
+
+:::page-break
+
+### `to-set(list)`
+Converts a list to a set.
+
+### `set_insert(set a)`
+Add the object a to the set.
+
 ### `array(...)` (variadic)
 Produces an array containing the specified elements.
 

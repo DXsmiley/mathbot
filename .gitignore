@@ -15,4 +15,5 @@ htmlcov
 .mypy_cache
 *.pyc
 .pytest_cache
+.vscode/
 Pipfile.lock
