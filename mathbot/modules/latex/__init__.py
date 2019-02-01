@@ -62,6 +62,12 @@ class RenderingError(Exception):
 	def __init__(self, log):
 		self.log = log
 
+	def __str__(self):
+		return f'RenderingError@{id(self)}'
+
+	def __repr__(self):
+		return f'RenderingError@{id(self)}'
+
 
 class LatexModule:
 
