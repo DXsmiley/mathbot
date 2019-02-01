@@ -119,7 +119,7 @@ class LatexModule:
 					await guard.send(LATEX_TIMEOUT_MESSAGE)
 				except RenderingError as e:
 					err = e.log is not None and re.search(r'^!.*?^!', e.log + '\n!', re.MULTILINE + re.DOTALL)
-					if err:
+					if err and len(err[0]) < 1000:
 						m = err[0].strip("!\n")
 						await guard.send(f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
 					else:
