@@ -129,7 +129,7 @@ class LatexModule:
 				else:
 					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
-				if sent_message:
+				if sent_message and (await self.bot.settings.resolve_message('f-tex-trashcan', message)):
 					try:
 						await sent_message.add_reaction(DELETE_EMOJI)
 					except discord.errors.NotFound:

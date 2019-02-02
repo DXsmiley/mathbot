@@ -37,6 +37,7 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 - `f-calc-shortcut` : Toggles the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: *Enabled*
 - `f-tex-inline`: Toggles the ability to add inline tex to messages. See `=help tex` for details. Default: *Disabled*.
 - `f-tex-delete`: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: *Disabled*.
+- `f-tex-trashcan`: When enabled, the bot will add a trashcan reaction to output messages which can be used by the invoker to delete them. Even if disabled, users can still add the reaction manually to delete the message. Default *Enabled*.
 - `f-wolf-filter`: Toggles the word filter for W|A queries. This is enabled by default for all non-nsfw channels.
 - `f-wolf-mention`: Toggles the `@mention` in the footer of W|A results. Default: *Enabled*.
 - `f-roll-unlimited`: When enabled there is no limit (apart from the discord message limit) to the amount of rolls shown with the roll command.
