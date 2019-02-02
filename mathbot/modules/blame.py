@@ -5,60 +5,39 @@
 # to track down the person responsible
 
 import core.help
+from core.util import respond
 from discord.ext.commands import command
 from discord import Embed, Colour
-
-
-
-MESSAGE_NOTHING_RECENT_FOUND = "No recent message was found."
-MESSAGE_NOT_FOUND = "Couldn't find who was resposible for that :confused:"
-MESSAGE_INVALID_ID = "`{}` is not a valid message ID"
-MESSAGE_BLAME = '{} was responsible for that message.'
-
-
-def is_message_id(s):
-	return s.isnumeric()
+import json
 
 
 class BlameModule:
 
 	@command()
+	@respond
 	async def blame(self, context, message_id: str):
-		
-		response = Embed(
-			description='Argument was not a valid message ID',
-			colour = Colour.red()
-		)
-		
 		if message_id == 'recent':
-			response = Embed(
-				description='Could not find any recent message',
-				colour = Colour.red()
-			)
 			async for m in context.channel.history(limit=100):
 				if m.author == context.bot.user:
-					user = await context.bot.keystore.get('blame', str(m.id))
-					if user is None: continue
-					response = Embed(
-						description=f'{user} was responsible for the most recent message in this channel.',
-						colour = Colour.blue()
-					)
-					break
-		
-		elif is_message_id(message_id):
-			user = await context.bot.keystore.get('blame', message_id)
+					user = await context.bot.keystore.get_json('blame', str(m.id))
+					if user is not None:
+						return found_response(user, 'was responsible for the most recent message in this channel.')
+			return error_response('Could not find any recent message')
+		elif message_id.isnumeric():
+			user = await context.bot.keystore.get_json('blame', message_id)
 			if user is None:
-				response = Embed(
-					description='Could not find the blame information for that message',
-					colour = Colour.red()
-				)
-			else:
-				response = Embed(
-					description=f'{user} was responsible for that message.',
-					colour = Colour.blue()
-				)
-		
-		await context.send(embed=response)
+				return error_response('Could not find the blame information for that message')
+			return found_response(user, 'was responsible for that message.')
+		return error_response('Argument was not a valid message ID')			
+
+
+def found_response(blob, description):
+	user = '{mention} ({name}#{discriminator})'.format(**blob)
+	return Embed(description=f'{user} {description}', colour=Colour.blue())
+
+
+def error_response(text):
+	return Embed(description=text, colour=Colour.red())
 
 
 def setup(bot):
