@@ -14,3 +14,4 @@ List of commands:
 - `{{prefix}}tex` - Render LaTeX
 - `{{prefix}}theme` - Changes the colour of the output
 - `{{prefix}}wolf` - Query Wofram|Alpha
+- `{{prefix}}oeis` - Search the Online Encyclopedia of Integer Sequences
