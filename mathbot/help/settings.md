@@ -34,6 +34,7 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 - `c-tex` : Toggles the `{{prefix}}tex` command. Default: *Enabled*
 - `c-wolf` : Toggles the `{{prefix}}wolf` command. Default: *Enabled*
 - `c-roll` : Toggles the `{{prefix}}roll` command. Default: *Enabled*
+- `c-oeis` : Toggles the `{{prefix}}oeis` command. Default: *Enabled*
 - `f-calc-shortcut` : Toggles the `==` shortcut for the `{{prefix}}calc` command. Disabling this **will not** produce an error message if a user attempts to use this command. This is intended to be used *only* if this command conflicts with other bots on your server. Default: *Enabled*
 - `f-tex-inline`: Toggles the ability to add inline tex to messages. See `=help tex` for details. Default: *Disabled*.
 - `f-tex-delete`: When enabled, the bot will delete messages used to invoke the tex command after a few seconds. Default: *Disabled*.

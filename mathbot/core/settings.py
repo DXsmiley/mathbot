@@ -13,6 +13,7 @@ SETTINGS = {
 	'c-calc': {'default': True},
 	'c-wolf': {'default': True},
 	'c-roll': {'default': True},
+	'c-oeis': {'default': True},
 	'f-calc-shortcut': {'default': True},
 	'f-wolf-filter': {'default': True},
 	'f-wolf-mention': {'default': True},

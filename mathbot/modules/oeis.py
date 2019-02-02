@@ -3,10 +3,12 @@ import json
 
 from urllib.parse import urlencode
 from discord.ext.commands import command
+from core.settings import command_allowed
 
 class OEIS:
 
 	@command()
+	@command_allowed('c-oeis')
 	async def oeis(self, ctx, *, query=''):
 		with ctx.typing():
 			async with aiohttp.ClientSession() as session:
