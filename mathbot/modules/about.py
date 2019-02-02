@@ -9,6 +9,7 @@ import core.help
 from discord.ext.commands import command
 import codecs
 from modules.reporter import report
+from core.settings import command_allowed
 
 
 
@@ -83,6 +84,7 @@ class AboutModule:
 		await context.invoke(cmd, topic='about')
 
 	@command(name=codecs.encode('shefhvg', 'rot_13'))
+	@command_allowed('x-bonus')
 	async def ignore_pls(self, context):
 		with open('not_an_image', 'rb') as f:
 			await context.send(file=discord.File(f, 'youaskedforit.png'))

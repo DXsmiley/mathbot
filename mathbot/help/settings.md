@@ -43,6 +43,7 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 - `f-wolf-mention`: Toggles the `@mention` in the footer of W|A results. Default: *Enabled*.
 - `f-roll-unlimited`: When enabled there is no limit (apart from the discord message limit) to the amount of rolls shown with the roll command.
 - `m-disabled-cmd`: Toggles the "That command cannot be used in this location" message. Default: *Enabled*.
+- `x-bonus` : Toggles bonus commands. Default: *Enabled*
 
 :::page-break
 

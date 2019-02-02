@@ -24,6 +24,7 @@ SETTINGS = {
 	'f-tex-trashcan': {'default': True},
 	'f-roll-unlimited': {'default': False},
 	'm-disabled-cmd': {'default': True},
+	'x-bonus': {'default': True},
 }
 
 
