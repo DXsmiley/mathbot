@@ -26,6 +26,7 @@ core.help.load_from_file('./help/latex.md')
 
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
+DELETE_EMOJI = '🗑'
 
 
 # Load data from external files
@@ -113,20 +114,33 @@ class LatexModule:
 	async def render_and_reply(self, message, latex, colour_back):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
 			async with message.channel.typing():
+				sent_message = None
 				try:
 					render_result = await generate_image_online(latex, colour_back)
 				except asyncio.TimeoutError:
-					await guard.send(LATEX_TIMEOUT_MESSAGE)
+					sent_message = await guard.send(LATEX_TIMEOUT_MESSAGE)
 				except RenderingError as e:
 					err = e.log is not None and re.search(r'^!.*?^!', e.log + '\n!', re.MULTILINE + re.DOTALL)
 					if err and len(err[0]) < 1000:
 						m = err[0].strip("!\n")
-						await guard.send(f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
+						sent_message = await guard.send(f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
 					else:
-						await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
+						sent_message = await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
-					await guard.send(file=discord.File(render_result, 'latex.png'))
+					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
+				if sent_message:
+					try:
+						await sent_message.add_reaction(DELETE_EMOJI)
+					except discord.errors.NotFound:
+						pass
+
+	async def on_reaction_add(self, reaction, user):
+		if not user.bot:
+			if reaction.emoji == DELETE_EMOJI:
+				blame = await self.bot.keystore.get_json('blame', str(reaction.message.id))
+				if blame is not None and blame['id'] == user.id:
+					await reaction.message.delete()
 
 	async def get_colours(self, user):
 		colour_setting = await self.bot.keystore.get('p-tex-colour', str(user.id)) or 'dark'
