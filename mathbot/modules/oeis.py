@@ -4,6 +4,9 @@ import json
 from urllib.parse import urlencode
 from discord.ext.commands import command
 from core.settings import command_allowed
+import core
+
+core.help.load_from_file('./help/oeis.md')
 
 class OEIS:
 
