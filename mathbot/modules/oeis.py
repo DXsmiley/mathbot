@@ -13,6 +13,9 @@ class OEIS:
 	@command()
 	@command_allowed('c-oeis')
 	async def oeis(self, ctx, *, query=''):
+		if query == '':
+			await ctx.send(f'The `{ctx.prefix}oeis` command is used to query the Online Encyclopedia of Integer Sequences. See `{ctx.prefix}help oeis` for details.')
+			return
 		with ctx.typing():
 			async with aiohttp.ClientSession() as session:
 				params = {
