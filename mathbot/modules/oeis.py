@@ -31,12 +31,12 @@ class OEIS:
 					if count == 0:
 						await ctx.send('No sequences were found.')
 					elif res is None:
-						await ctx.send(f'There are {count} relavent sequences. Please be more specific.')
+						await ctx.send(f'There are {count} relevant sequences. Please be more specific.')
 					else:
 						name = res[0]['name']
 						number = res[0]['number']
 						digits = res[0]['data'].replace(',', ', ').strip()
-						m = f'There were {count} relavent sequences. Here is one:\n\n**{name}**\nhttps://oeis.org/A{number}\n\n{digits}\n'
+						m = f'There were {count} relevant sequences. Here is one:\n\n**{name}**\nhttps://oeis.org/A{number}\n\n{digits}\n'
 						# for c in res[0]['comment']:
 						# 	if len(m) + len(c) + 10 < 2000:
 						# 		m += f'\n> {c}'
