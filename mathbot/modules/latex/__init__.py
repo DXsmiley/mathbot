@@ -21,6 +21,7 @@ from queuedict import QueueDict
 from open_relative import *
 from discord.ext.commands import command
 from utils import is_private, MessageEditGuard
+from contextlib import suppress
 
 core.help.load_from_file('./help/latex.md')
 
@@ -129,11 +130,13 @@ class LatexModule:
 				else:
 					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
-				if sent_message and (await self.bot.settings.resolve_message('f-tex-trashcan', message)):
-					try:
-						await sent_message.add_reaction(DELETE_EMOJI)
-					except discord.errors.NotFound:
-						pass
+				if sent_message:
+					if await self.bot.settings.resolve_message('f-tex-trashcan', message):
+						with suppress(discord.errors.NotFound):
+							await sent_message.add_reaction(DELETE_EMOJI)
+					if self.bot.settings.resolve_message('f-tex-delete', message):
+						with suppress(discord.errors.NotFound):
+							await message.delete()
 
 	async def on_reaction_add(self, reaction, user):
 		if not user.bot:
