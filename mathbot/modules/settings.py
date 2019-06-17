@@ -148,6 +148,26 @@ class SettingsModule:
 		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
 
 	@command()
+	async def checkdmsettings(self, ctx):
+		lines = [
+			' Setting          | Default  | Resolved ',
+			'------------------+----------+----------'
+		]
+		items = [
+			(core.settings.get_cannon_name(name), details)
+			for name, details in core.settings.SETTINGS.items()
+			if 'redirect' not in details
+		]
+		for setting, s_details in sorted(items, key=lambda x: x[0]):
+			resolved = await ctx.bot.settings.resolve_message(setting, ctx.message)
+			lines.append(' {: <16} | {: <8} | {: <8}'.format(
+				setting,
+				SettingsModule.expand_value(s_details['default']),
+				resolved
+			))
+		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
+
+	@command()
 	@guild_only()
 	async def prefix(self, ctx, *, arg=''):
 		prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
