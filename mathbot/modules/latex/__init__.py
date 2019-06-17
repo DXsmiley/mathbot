@@ -134,7 +134,7 @@ class LatexModule:
 					if await self.bot.settings.resolve_message('f-tex-trashcan', message):
 						with suppress(discord.errors.NotFound):
 							await sent_message.add_reaction(DELETE_EMOJI)
-					if self.bot.settings.resolve_message('f-tex-delete', message):
+					if await self.bot.settings.resolve_message('f-tex-delete', message):
 						with suppress(discord.errors.NotFound):
 							await message.delete()
 
