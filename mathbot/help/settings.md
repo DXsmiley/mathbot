@@ -58,12 +58,7 @@ Enable the `=calc` command on a single channel:
 ## Troubleshooting
 
 Ensure you are typing words *exactly* as shown.
-:::discord
 If you are still having problems you can ask on the official server: {{server_link}}
-:::endblock
-:::webpage
-If you are still having problems you can ask [on the official server]({{server_link}}).
-:::endblock
 
 ## Extra tools
 
