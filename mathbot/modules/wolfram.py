@@ -41,7 +41,7 @@ from core.util import respond
 from utils import is_private, image_to_discord_file
 
 
-core.help.load_from_file('./help/wolfram.md')
+core.help.register('wolfram')
 
 ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?

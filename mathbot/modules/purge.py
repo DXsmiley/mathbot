@@ -16,7 +16,7 @@ The `=purge` command cannot be used in a private channel.
 See `=help purge` for more details.
 '''
 
-core.help.load_from_file('./help/purge.md')
+core.help.register('purge')
 
 class PurgeModule:
 	@command()

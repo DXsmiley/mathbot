@@ -23,7 +23,7 @@ from discord.ext.commands import command
 from utils import is_private, MessageEditGuard
 from contextlib import suppress
 
-core.help.load_from_file('./help/latex.md')
+core.help.register('latex')
 
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'

@@ -1,9 +1,12 @@
 import codecs
 import difflib
+import os
+import os.path
+from collections import defaultdict
 
 
 TOPICS = {}
-PRIMARY_TOPICS = []
+PRIMARY_TOPICS = defaultdict(list)
 
 
 class DuplicateTopicError(Exception):
@@ -13,69 +16,67 @@ class DuplicateTopicError(Exception):
 		return 'Multiple entries for help topic "{}"'.format(self.topic)
 
 
-def add(topics, message, from_file = False):
+def add(topics, language, message, from_file = False):
 	if not from_file:
 		print('Still using core.help.add for topics', topics)
 	if isinstance(topics, str):
 		topics = topics.split(' ')
 	# The first topic in a list is the 'primary' topic, which gets listed
 	if topics[0] != '':
-		PRIMARY_TOPICS.append(topics[0])
+		PRIMARY_TOPICS[language].append(topics[0])
 	if isinstance(message, str):
 		message = [message]
+	print(f'Adding help document {language} - {" ".join(topics)}')
 	for i in topics:
-		if i in TOPICS:
+		if (i, language) in TOPICS:
 			raise DuplicateTopicError(i)
-		TOPICS[i] = message
+		TOPICS[i, language] = message
 
 
-def get(topic):
-	return TOPICS.get(topic.lower())
+def get(topic, language='en'):
+	# Fallback for when no translation exists
+	if (topic.lower(), language) not in TOPICS:
+		language = 'en'
+	return TOPICS.get((topic.lower(), language))
 
 
-def listing():
-	return sorted(PRIMARY_TOPICS)
+def listing(language='en'):
+	return sorted(PRIMARY_TOPICS[language])
 
 
-def get_similar(topic):
-	return sorted(difflib.get_close_matches(topic.lower(), PRIMARY_TOPICS, len(PRIMARY_TOPICS)))
+def get_similar(topic, language='en'):
+	pt = PRIMARY_TOPICS[language]
+	return sorted(difflib.get_close_matches(topic.lower(), pt, len(pt)))
 
 
-def load_from_file(filename, topics = None):
+def register(name, topics = None):
 	if topics is None:
 		topics = []
-	pages = [[]]
-	with codecs.open(filename, 'r', 'utf-8') as f:
-		lines = f.readlines()
-		remove_section = False
-		for i in map(str.rstrip, lines):
-			if remove_section:
-				if i.startswith(':::endblock'):
-					remove_section = False
-			else:
-				if i.startswith('#'):
-					pages[-1].append('**{}**'.format(i.strip('# ')))
-				elif not i.startswith(':::'):
-					pages[-1].append(i)
-				else:
-					command = i[3:].split(' ')
-					if command[0] == 'topics':
-						topics += command[1:]
-					elif command[0] == 'page-break':
-						pages.append([])
-					elif command[0] == 'endblock':
-						pass
-					elif command[0] == 'discord':
-						pass
-					elif command[0] == 'webpage':
-						remove_section = True
+	for lang in os.listdir('./help'):
+		path = os.path.join('./help/', lang)
+		if os.path.isdir(path):
+			with codecs.open(os.path.join(path, name + '.md'), 'r', 'utf-8') as f:
+				pages = [[]]
+				lines = f.readlines()
+				for i in map(str.rstrip, lines):
+					if i.startswith('#'):
+						pages[-1].append('**{}**'.format(i.strip('# ')))
+					elif not i.startswith(':::'):
+						pages[-1].append(i)
 					else:
-						print('Unknown command sequence in help page:', command[0])
-		pages = ['\n'.join(lines) for lines in pages]
-		for i in pages:
-			if len(i) >= 1800:
-				print('Help page is too long, add a `:::page-break` to start a new page')
-				print('-------------------------------------------------')
-				print(i)
-				print('-------------------------------------------------')
-	add(topics, pages, from_file = True)
+						command = i[3:].split(' ')
+						if command[0] == 'topics':
+							topics += command[1:]
+						elif command[0] == 'page-break':
+							# TODO: Automatic page breaks, so translators don't have to deal with them.
+							pages.append([])
+						else:
+							print('Unknown command sequence in help page:', command[0])
+				pages = ['\n'.join(lines) for lines in pages]
+				for i in pages:
+					if len(i) >= 1800:
+						print('Help page is too long, add a `:::page-break` to start a new page')
+						print('-------------------------------------------------')
+						print(i)
+						print('-------------------------------------------------')
+				add(topics, lang, pages, from_file = True)

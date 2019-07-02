@@ -8,10 +8,10 @@ import core.settings
 from discord.ext.commands import command, guild_only, has_permissions
 
 
-core.help.load_from_file('./help/settings.md')
-core.help.load_from_file('./help/theme.md')
-core.help.load_from_file('./help/units.md')
-core.help.load_from_file('./help/prefix.md')
+core.help.register('settings')
+core.help.register('theme')
+core.help.register('units')
+core.help.register('prefix')
 
 
 CHECKSETTING_TEMPLATE = '''\

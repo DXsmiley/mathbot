@@ -23,10 +23,10 @@ Uptime: {} days {} hours {} minutes {} seconds
 """
 
 
-core.help.load_from_file('./help/help.md', topics = [''])
-core.help.load_from_file('./help/about.md')
-core.help.load_from_file('./help/management.md')
-core.help.load_from_file('./help/commands.md')
+# core.help.register('./help/help.md', topics = [''])
+core.help.register('about')
+core.help.register('management')
+core.help.register('commands')
 
 
 async def get_bot_total_servers(id):

@@ -25,13 +25,13 @@ import functools
 
 from discord.ext.commands import command, guild_only, has_permissions
 
-core.help.load_from_file('./help/calculator_brief.md')
-core.help.load_from_file('./help/calculator_full.md')
-core.help.load_from_file('./help/calculator_history.md')
-core.help.load_from_file('./help/calculator_libraries.md')
-core.help.load_from_file('./help/turing.md')
-core.help.load_from_file('./help/turing_functions.md')
-# core.help.load_from_file('./help/turing.md')
+core.help.register('calculator_brief')
+core.help.register('calculator_full')
+core.help.register('calculator_history')
+core.help.register('calculator_libraries')
+core.help.register('turing')
+core.help.register('turing_functions')
+# core.help.register('turing')
 
 
 SHORTCUT_HELP_CLARIFICATION = '''\

@@ -10,7 +10,7 @@ import core.util
 from discord.ext.commands import command
 import math
 
-core.help.load_from_file('./help/roll.md')
+core.help.register('roll')
 
 FORMAT_REGEX = re.compile(r'^(?:(\d*)[ d]+)?(\d+)$')
 

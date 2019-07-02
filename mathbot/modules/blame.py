@@ -41,5 +41,5 @@ def error_response(text):
 
 
 def setup(bot):
-	core.help.load_from_file('./help/blame.md')
+	core.help.register('blame')
 	bot.add_cog(BlameModule())
