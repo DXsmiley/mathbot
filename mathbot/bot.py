@@ -73,6 +73,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		if self.release != 'production' or not message.author.bot:
 			if utils.is_private(message.channel) or self._can_post_in_guild(message):
 				context = await self.get_context(message)
+				# TODO: Allow servers to set a default language
+				context.lang = await self.keystore.get('lang', str(message.author.id)) or 'en'
 				perms = context.message.channel.permissions_for(context.me)
 				required = [
 					perms.add_reactions,

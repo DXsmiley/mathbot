@@ -4,6 +4,7 @@ import re
 import core.keystore
 import core.help
 import core.settings
+from itertools import starmap
 
 from discord.ext.commands import command, guild_only, has_permissions
 
@@ -187,6 +188,20 @@ class SettingsModule:
 		prefix = new_prefix.strip().replace('`', '')
 		await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
 		await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
+
+	@command()
+	async def lang(self, ctx):
+		listing = '\n'.join(starmap(lambda c, n: f'- {c} ({n})', core.help.LANGUAGES))
+		await ctx.send(f'Your current language is {ctx.lang}.\n\nAvailable languages are\n{listing}\n\nChange your languages with `{ctx.prefix}setlang`.')
+
+	@command()
+	async def setlang(self, ctx, lang):
+		if lang.lower() not in {x[0].lower() for x in core.help.LANGUAGES}:
+			await ctx.send(f'`{lang}` is not a valid language')
+		else:
+			await ctx.bot.keystore.set('lang', str(ctx.message.author.id), lang)
+			await ctx.send(f'Your language has been set to {lang}')
+
 
 def setup(bot):
 	bot.add_cog(SettingsModule())

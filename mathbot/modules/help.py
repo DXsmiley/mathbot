@@ -31,6 +31,13 @@ class HelpModule:
 
 	@command()
 	async def help(self, context, *, topic='help'):
+		await self.handle_help(context, topic, context.lang)
+
+	@command(aliases=['help-en'])
+	async def help_en(self, context, *, topic='help'):
+		await self.handle_help(context, topic, 'en')
+
+	async def handle_help(self, context, topic, language):
 		''' Help command itself.
 			Help is sent via DM, but a small message is also sent in the public chat.
 			Specifying a non-existent topic will show an error and display a list
@@ -39,10 +46,16 @@ class HelpModule:
 		if topic in ['topics', 'topic', 'list']:
 			return await self._send_topic_list(context)
 
-		found_doc = core.help.get(topic)
+		found_doc, did_fallback = core.help.get(topic, language=language)
 		if found_doc is None:
 			await context.send(self._suggest_topics(topic))
 			return
+
+		if did_fallback:
+			await context.message.author.send(embed = discord.Embed(
+				title='This help page is not available in your language yet',
+				description=f'If you want to help translate documents, talk to us on the mathbot server: {SERVER_LINK}'
+			))
 
 		# Display the default prefix if the user is in DMs and uses no prefix.
 		prefix = context.prefix or '='

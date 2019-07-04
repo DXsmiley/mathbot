@@ -23,7 +23,7 @@ Uptime: {} days {} hours {} minutes {} seconds
 """
 
 
-# core.help.register('./help/help.md', topics = [''])
+core.help.register('help', topics = [''])
 core.help.register('about')
 core.help.register('management')
 core.help.register('commands')

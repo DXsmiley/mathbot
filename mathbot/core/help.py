@@ -7,6 +7,10 @@ from collections import defaultdict
 
 TOPICS = {}
 PRIMARY_TOPICS = defaultdict(list)
+LANGUAGES = [
+	('en', 'English'),
+	('en_PR', 'Pirate'),
+]
 
 
 class DuplicateTopicError(Exception):
@@ -35,9 +39,11 @@ def add(topics, language, message, from_file = False):
 
 def get(topic, language='en'):
 	# Fallback for when no translation exists
+	did_fallback = False
 	if (topic.lower(), language) not in TOPICS:
 		language = 'en'
-	return TOPICS.get((topic.lower(), language))
+		did_fallback = True
+	return (TOPICS.get((topic.lower(), language)), did_fallback)
 
 
 def listing(language='en'):
