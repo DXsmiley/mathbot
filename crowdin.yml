@@ -1,0 +1,6 @@
+"files" : [
+  {
+    "source" : "/mathbot/help/en/*.md",
+    "translation" : "/mathbot/help/%two_letters_code%/%original_file_name%"
+  }
+]
