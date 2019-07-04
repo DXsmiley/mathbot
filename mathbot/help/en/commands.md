@@ -1,6 +1,7 @@
 :::topics commands command
 
 List of commands:
+
 - `{{prefix}}about` - General information about the bot
 - `{{prefix}}blame` - Find who was responsible for the bot sending a message
 - `{{prefix}}calc` - Basic calculator (aliased to `==`)
