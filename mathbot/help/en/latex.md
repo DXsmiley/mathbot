@@ -20,10 +20,10 @@ You can use the `{{prefix}}theme` command to change the colour of the results.
 
 The bot currently uses an external rendering service. The following features are known to break things:
 
- - `$` to start and end the equations. These are not required, and may do strange things. Use `\text{words}` to place text.
- - `\usepackage`, for any reason.
- - Macros such as `\@ifpackageloaded`.
- - Loading of external images, and other resources.
+- `$` to start and end the equations. These are not required, and may do strange things. Use `\text{words}` to place text.
+- `\usepackage`, for any reason.
+- Macros such as `\@ifpackageloaded`.
+- Loading of external images, and other resources.
 
 :::page-break
 
@@ -45,11 +45,9 @@ The `{{prefix}}texw` command (**w** for **wide**) will increase the with of the 
 
 The `{{prefix}}texp` command (**p** for **plain**) will remove the `\begin` and `\end` boilerplate, allowing you to add your own. This is useful if you're using `tikzcd` or similar.
 
-
 ## Deleting Commands
 
-You can get the bot to automatically delete invokation commands after a short time by setting `=set server f-tex-delete enable`.
-The bot will require the *manage messages* permission for this work properly.
+You can get the bot to automatically delete invokation commands after a short time by setting `=set server f-tex-delete enable`. The bot will require the *manage messages* permission for this work properly.
 
 ## Custom Macros
 
