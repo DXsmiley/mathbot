@@ -10,5 +10,4 @@ Source code: https://github.com/DXsmiley/mathbot
 
 MathBot is written in Python using discord.py (<https://github.com/Rapptz/discord.py>).
 
-Thankyou to the following patrons for supporting the bot:
-{{patreon_listing}}
+Thankyou to the following patrons for supporting the bot: {{patreon_listing}}
