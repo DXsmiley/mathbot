@@ -1,10 +1,10 @@
 :::topics help
 
-Hello! I'm a bot that provides some maths-related features.
+Yarrr! I be a bot that crunches those numbers so ye can count yer peices of eight.
 
-Add MathBot to your server using this link: <{{add_link}}>
+Bring me aboard your ship with this link: <{{add_link}}>
 
-MathBot is developed by DXsmiley. You can talk to him via the official MathBot server: <{{server_link}}>
+Me captain goes by the name DXsmiley. You can parley with him on his ship: <{{server_link}}>
 
 The following user commands are available:
 
