@@ -12,13 +12,10 @@ There are also settings for customising command output.
 
 The general structure of the settings command is:
 
-```
-{{prefix}}set context setting value
-```
+    {{prefix}}set context setting value
+    
 
-`context` should be either `channel` or `server`.
-`setting` should be the name of one of the settings, listed below.
-`value` should be a valid value for the setting. Either `enable`, `disable` or `reset`.
+`context` should be either `channel` or `server`. `setting` should be the name of one of the settings, listed below. `value` should be a valid value for the setting. Either `enable`, `disable` or `reset`.
 
 :::page-break
 
@@ -49,16 +46,13 @@ These settings can be applied to the `server` and `channel` contexts, but only b
 
 ## Examples
 
-Disable the `=wolf` command on a server:
-`{{prefix}}set server c-wolf disable`
+Disable the `=wolf` command on a server: `{{prefix}}set server c-wolf disable`
 
-Enable the `=calc` command on a single channel:
-`{{prefix}}set channel c-calc enable`
+Enable the `=calc` command on a single channel: `{{prefix}}set channel c-calc enable`
 
 ## Troubleshooting
 
-Ensure you are typing words *exactly* as shown.
-If you are still having problems you can ask on the official server: {{server_link}}
+Ensure you are typing words *exactly* as shown. If you are still having problems you can ask on the official server: {{server_link}}
 
 ## Extra tools
 
