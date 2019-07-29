@@ -1,4 +1,4 @@
-:::topics help
+:::topics (blank) help
 
 Hello! I'm a bot that provides some maths-related features.
 
@@ -14,6 +14,8 @@ The following user commands are available:
     `{{prefix}}roll` - Rolls dice. See `{{prefix}}help roll` for details.
     `{{prefix}}oeis` - Search the Online Encyclopedia of Integer Sequences.
     `{{prefix}}theme theme` - Change the colour of the `{{prefix}}tex` and `{{prefix}}wolf` results. See `{{prefix}}help theme` for details.
+    `{{prefix}}lang` - See your current language selection and list of available languages.
+    `{{prefix}}setlang` - Change your specified language (translations under development).
     
 
 More help is also available:
@@ -25,6 +27,6 @@ More help is also available:
     `{{prefix}}about` - General information about the bot.
     
 
-All commands can be invoked by mentioning the bot. For example, the command `{{mention}} prefix` will always tell you the bot's prefix on the current server even if you don't know what it is.
+All commands can be invoked by mentioning the bot. For example, the command `\{{mention}} prefix` will always tell you the bot's prefix on the current server even if you don't know what it is.
 
-Support the bot on Patreon: https://www.patreon.com/dxsmiley
+Support the bot on Patreon: <{{patreon_link}}>
