@@ -1,4 +1,4 @@
-:::topics help
+:::topics (blank) help
 
 Yarrr! I be a bot that crunches those numbers so ye can count yer pieces of eight.
 
@@ -14,6 +14,8 @@ The following swashbuckler commands are available for use:
     `{{prefix}}roll` - Play dice. See `{{prefix}}help roll` for details.
     `{{prefix}}oeis` - Search the Online Encyclopedia of Integer Sequences.
     `{{prefix}}theme theme` - Change the colour of the `{{prefix}}tex` and `{{prefix}}wolf` results. See `{{prefix}}help theme` for details.
+    `{{prefix}}lang` - See your current language selection and list of available languages.
+    `{{prefix}}setlang` - Change your specified language (translations under development).
     
 
 More help is also available:
@@ -25,6 +27,6 @@ More help is also available:
     `{{prefix}}about` - You want me life's story, aye?
     
 
-All commands can be invoked by mentioning the bot. The command `{{mention}} prefix` will tell you the prefix no matter what ship you're on!
+All commands can be invoked by mentioning the bot. For example, the command `\{{mention}} prefix` will always tell you the bot's prefix on the current server even if you don't know what it is.
 
-Plunder yer own pockets for me: https://www.patreon.com/dxsmiley
+Support the bot on Patreon: <{{patreon_link}}>
