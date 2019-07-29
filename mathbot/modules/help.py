@@ -68,6 +68,7 @@ class HelpModule:
 					mention=context.bot.user.mention,
 					add_link='https://dxsmiley.github.io/mathbot/add.html',
 					server_link=SERVER_LINK,
+					patreon_link='https://www.patreon.com/dxsmiley',
 					patreon_listing=await context.bot.get_patron_listing()
 				)
 				await context.message.author.send(page)

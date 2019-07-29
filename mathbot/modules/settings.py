@@ -192,14 +192,15 @@ class SettingsModule:
 	@command()
 	async def lang(self, ctx):
 		listing = '\n'.join(starmap(lambda c, n: f'- {c} ({n})', core.help.LANGUAGES))
-		await ctx.send(f'Your current language is {ctx.lang}.\n\nAvailable languages are\n{listing}\n\nChange your languages with `{ctx.prefix}setlang`.')
+		await ctx.send(f'Your current language is {core.help.CODE_TO_NAME.get(ctx.lang)} ({ctx.lang}).\n\nAvailable languages are\n{listing}\n\nChange your languages with `{ctx.prefix}setlang`.')
 
 	@command()
 	async def setlang(self, ctx, lang):
-		if lang.lower() not in {x[0].lower() for x in core.help.LANGUAGES}:
+		newcode = core.help.LANGUAGE_INPUT_MAPPING.get(lang.lower())
+		if newcode is None:
 			await ctx.send(f'`{lang}` is not a valid language')
 		else:
-			await ctx.bot.keystore.set('lang', str(ctx.message.author.id), lang)
+			await ctx.bot.keystore.set('lang', str(ctx.message.author.id), newcode)
 			await ctx.send(f'Your language has been set to {lang}')
 
 
