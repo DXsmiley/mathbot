@@ -357,6 +357,13 @@ def test_strings():
 	doit('\\"Hello"', 'ello')
 	doit(';a:; :"string"', "a string")
 
+	tokenization_fail('"a')
+
+	doit('“Hello”', "Hello")
+	tokenization_fail('“a“b”c”')
+	tokenization_fail('“a“')
+	tokenization_fail('”a”')
+
 def test_lists():
 	doit("'[1 2 3]", 1)
 	doit("'\\[1 2 3]", 2)
@@ -392,7 +399,7 @@ def test_unicode():
 	doformatted(';🐶 : ;🦊 :[]', '"🐶🦊"')
 	doformatted(';🐶 : ;🦊 :[]', '"🐶🦊"')
 	doformatted('"🐶🦊"', '"🐶🦊"')
-	doformatted('ord(;🐱)', '128049')
+	doformatted('ord(;🐱)', '128\u201A049')
 	doformatted('chr(ord(;🐱))', '🐱')
 
 def test_small_floats():
@@ -462,3 +469,23 @@ def test_floats():
 	doit('1e2', 100)
 	doit('1e+1', 10)
 	doit('1e+2', 100)
+
+def test_unicode_operators():
+	doit('1 ≤ 1', True)
+	doit('1 ≤ 2', True)
+	doit('2 ≤ 1', False)
+	doit('1 ≯ 1', True)
+	doit('1 ≯ 2', True)
+	doit('2 ≯ 1', False)
+	doit('1 ≥ 1', True)
+	doit('2 ≥ 1', True)
+	doit('1 ≥ 2', False)
+	doit('1 ≮ 1', True)
+	doit('1 ≮ 2', False)
+	doit('2 ≮ 1', True)
+	doit('1 ≠ 1', False)
+	doit('1 ≠ 2', True)
+	doit('1 ≤ 2 ≤ 3', True)
+	doit('4 ≤ 2 ≤ 3', False)
+	doit('1 ≤ 2 ≤ 1', False)
+

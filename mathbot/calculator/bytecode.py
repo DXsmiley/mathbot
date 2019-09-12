@@ -97,9 +97,14 @@ OPERATOR_DICT = {
 	'<': I.BIN_LESS,
 	'>': I.BIN_MORE,
 	'<=': I.BIN_L_EQ,
+	'≤': I.BIN_L_EQ,
+	'≯': I.BIN_L_EQ,
 	'>=': I.BIN_M_EQ,
+	'≥': I.BIN_M_EQ,
+	'≮': I.BIN_M_EQ,
 	'==': I.BIN_EQUL,
 	'!=': I.BIN_N_EQ,
+	'≠': I.BIN_N_EQ,
 	':': I.LIST_PREPEND
 }
 
@@ -108,9 +113,13 @@ COMPARATOR_DICT = {
 	'<': I.CMP_LESS,
 	'>': I.CMP_MORE,
 	'<=': I.CMP_L_EQ,
+	'≤': I.CMP_L_EQ,
+	'≯': I.CMP_L_EQ,
 	'>=': I.CMP_M_EQ,
+	'≥': I.CMP_M_EQ,
+	'≮': I.CMP_M_EQ,
 	'==': I.CMP_EQUL,
-	'!=': I.CMP_N_EQ
+	'!=': I.CMP_N_EQ,
 }
 
 
