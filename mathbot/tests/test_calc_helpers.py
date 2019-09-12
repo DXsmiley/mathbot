@@ -49,6 +49,10 @@ def throws(equation):
 	with pytest.raises(calculator.errors.EvaluationError):
 		calculator.calculate(equation, tick_limit = TIMEOUT, use_runtime=True)
 
+def tokenization_fail(equation):
+	with pytest.raises(calculator.parser.TokenizationFailed):
+		calculator.calculate(equation, tick_limit = TIMEOUT)
+
 def compile_fail(equation):
 	with pytest.raises(calculator.errors.CompilationError):
 		calculator.calculate(equation, tick_limit = TIMEOUT)
