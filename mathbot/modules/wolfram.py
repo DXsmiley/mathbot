@@ -36,7 +36,7 @@ import core.parameters
 import core.blame
 from imageutil import *
 
-from discord.ext.commands import command, check
+from discord.ext.commands import command, check, Cog
 from core.util import respond
 from utils import is_private, image_to_discord_file
 
@@ -192,7 +192,7 @@ class AQcontextImitator:
 		return self.channel.guild
 
 
-class WolframModule:
+class WolframModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -217,6 +217,7 @@ class WolframModule:
 				if ok:
 					await self.answer_query(ctx, query, small=small)
 
+	@Cog.listener()
 	async def on_reaction_add(self, reaction, user):
 		if not user.bot: # Might need to change this when autmated testing is reinstated
 			if reaction.emoji == RERUN_EMOJI and await self.bot.settings.resolve_message('c-wolf', reaction.message):
@@ -260,7 +261,7 @@ class WolframModule:
 			if data is not None and user.id == data['blame']:
 				async def get_and_delete(i):
 					try:
-						m = await reaction.message.channel.get_message(i)
+						m = await reaction.message.channel.fetch_message(i)
 						await m.delete()
 					except discord.errors.NotFound:
 						pass

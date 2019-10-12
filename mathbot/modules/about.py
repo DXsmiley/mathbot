@@ -6,7 +6,7 @@ import asyncio
 import aiohttp
 import datetime
 import core.help
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import codecs
 from modules.reporter import report
 from core.settings import command_allowed
@@ -37,7 +37,7 @@ async def get_bot_total_servers(id):
 			return jdata.get('server_count')
 
 
-class AboutModule:
+class AboutModule(Cog):
 
 	# Send a message detailing the shard number, server count,
 	# uptime and and memory using of this shard

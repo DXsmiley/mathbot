@@ -2,7 +2,7 @@
 
 import re
 import core.help
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import discord
 from utils import is_private
 
@@ -18,7 +18,7 @@ def doubleformat(string, **replacements):
 	return string
 
 
-class HelpModule:
+class HelpModule(Cog):
 	''' Module that serves help pages. '''
 
 	@command()

@@ -2,12 +2,14 @@ import collections
 import asyncio
 import traceback
 import discord
+from discord.ext.commands import Cog
 import termcolor
 
 import core.keystore
 import core.parameters
 
 import typing
+
 
 
 # This queue is a global object, which actually means that multiple
@@ -19,12 +21,13 @@ QUEUE = typing.Deque[str]()
 QUEUE = collections.deque()
 
 
-class ReporterModule:
+class ReporterModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.send_task = None
 
+	@Cog.listener()
 	async def on_ready(self):
 		self.send_task = self.bot.loop.create_task(self.send_reports())
 		self.sent_duty_note = False

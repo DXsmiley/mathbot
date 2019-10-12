@@ -5,7 +5,7 @@ import core.keystore
 import core.help
 import core.settings
 
-from discord.ext.commands import command, guild_only, has_permissions
+from discord.ext.commands import command, guild_only, has_permissions, Cog
 
 
 core.help.load_from_file('./help/settings.md')
@@ -47,7 +47,7 @@ class WasProblems(Exception):
 	pass
 
 
-class SettingsModule:
+class SettingsModule(Cog):
 
 	reduce_value = {
 		'enable': 1,

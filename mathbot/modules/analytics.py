@@ -10,7 +10,7 @@ HITLIST = [
 	(BOTS_GG_URL, 'bots-gg', 'guildCount', 'shardCount', 'shardId')
 ]
 
-class AnalyticsModule:
+class AnalyticsModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -39,6 +39,7 @@ class AnalyticsModule:
 					server.name
 				))
 
+	@Cog.listener()
 	async def on_ready(self):
 		num_servers = len(self.bot.guilds)
 		num_shards = self.bot.parameters.get('shards total')

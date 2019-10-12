@@ -1,8 +1,8 @@
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import subprocess
 import modules.reporter
 
-class Reboot:
+class Reboot(Cog):
 
 	@command()
 	async def reboot(self, ctx):

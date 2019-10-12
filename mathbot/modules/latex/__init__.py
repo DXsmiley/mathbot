@@ -19,7 +19,7 @@ import discord
 import json
 from queuedict import QueueDict
 from open_relative import *
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 from utils import is_private, MessageEditGuard
 from contextlib import suppress
 
@@ -71,7 +71,7 @@ class RenderingError(Exception):
 		return f'RenderingError@{id(self)}'
 
 
-class LatexModule:
+class LatexModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -91,6 +91,7 @@ class LatexModule:
 	async def texp(self, context, *, latex=''):
 		await self.handle(context.message, latex, noblock=True)
 
+	@Cog.listener()
 	async def on_message_discarded(self, message):
 		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
 			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
@@ -138,6 +139,7 @@ class LatexModule:
 						with suppress(discord.errors.NotFound):
 							await message.delete()
 
+	@Cog.listener()
 	async def on_reaction_add(self, reaction, user):
 		if not user.bot:
 			if reaction.emoji == DELETE_EMOJI:
