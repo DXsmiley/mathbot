@@ -1,5 +1,2 @@
-amethyst: cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [0, 1]}}'
-emerald:  cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [2, 3]}}'
-saphire:  cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [4, 5]}}'
-topaz:    cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [6, 7]}}'
-peridot:  cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [8, 9]}}'
+amethyst: cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [0, 1, 2, 3, 4]}}'
+emerald:  cd mathbot && python entrypoint.py PARAMETERS.env '{"shards": {"mine": [5, 6, 7, 8, 9]}}'
