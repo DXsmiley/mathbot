@@ -158,9 +158,12 @@ class LatexModule(Cog):
 
 
 async def generate_image_online(latex, colour_back):
+	OVERSAMPLING = 2
 	payload = {
 		'format': 'png',
 		'code': latex.strip(),
+		'density': 220 * OVERSAMPLING,
+		'quality': 100
 	}
 	async with aiohttp.ClientSession() as session:
 		try:
@@ -179,11 +182,13 @@ async def generate_image_online(latex, colour_back):
 			raise RenderingError(None)
 	if image.width <= 2 or image.height <= 2:
 		raise RenderingError(None)
-	border_size = 4
+	border_size = 5 * OVERSAMPLING
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
 	backing = imageutil.new_monocolour((width + border_size * 2, height + border_size * 2), colour_back)
 	backing.paste(image, (border_size, border_size), image)
+	if OVERSAMPLING != 1:
+		backing = backing.resize((backing.width // OVERSAMPLING, backing.height // OVERSAMPLING), resample = PIL.Image.BICUBIC)
 	fobj = io.BytesIO()
 	backing.save(fobj, format='PNG')
 	fobj = io.BytesIO(fobj.getvalue())
