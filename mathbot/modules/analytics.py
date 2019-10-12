@@ -1,6 +1,7 @@
 # Provides stats on the bot to bot listing services
 
 import aiohttp
+from discord.ext.commands import Cog
 
 BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
 BOTS_GG_URL = 'https://discord.bots.gg/api/v1/bots/{bot_id}/stats'
