@@ -10,7 +10,6 @@ sympy = "*"
 aioredis = "==1.2.0"
 coverage = "*"
 expiringdict = {git = "https://github.com/mailgun/expiringdict.git", ref = "2fa0e533c2737e89ccaf66e72b497f5a654d2607"}
-"discord.py" = "==1.2.3"
 psutil = "*"
 xmltodict = "*"
 Markdown = "*"

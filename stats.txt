@@ -1,0 +1,25 @@
+Original discord.py:
+
+Member      184484
+User        154373
+KeyedRef    154223
+_Overwrites 149067
+list        88968
+Colour      74905
+Role        74745
+Permissions 74745
+TextChannel 52258
+Emoji       36466
+
+After stripping some fields, notably colour from role:
+
+Member       184135
+User         154029
+KeyedRef     153928
+_Overwrites  149019
+list         88201 
+Role         74734 
+TextChannel  52252 
+Emoji        36469 
+VoiceChannel 17604 
+dict         14059 

@@ -10,6 +10,7 @@ import re
 import json
 import typing
 import traceback
+import objgraph
 
 import termcolor
 import discord
@@ -68,6 +69,9 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 
 	def run(self):
 		super().run(self.parameters.get('token'))
+
+	async def on_ready(self):
+		objgraph.show_most_common_types()
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
