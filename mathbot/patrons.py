@@ -46,9 +46,9 @@ class PatronModule(Cog):
 			print('Could not get mathbot guild in order to find patrons')
 		else:
 			for member in guild.members:
-				tier = max(role_name_to_tier(r.name) for r in member.roles)
+				tier = max(role_id_to_tier(r.id) for r in member.roles)
 				if tier != 0:
-					print(member, 'is teir', get_tier_name(tier))
+					print(member, 'is tier', get_tier_name(tier))
 					if tier != TIER_SPECIAL:
 						# replacement to avoid anyone putting in a link or something
 						listing.append((member.nick or member.name).replace('.', '\N{zero width non-joiner}'))
@@ -70,13 +70,13 @@ def get_tier_name(tier):
 		raise InvalidPatronRankError
 
 
-def role_name_to_tier(name):
+def role_id_to_tier(name):
 	return {
-		'Constant': TIER_CONSTANT,
-		'Quadratic': TIER_QUADRATIC,
-		'Exponential': TIER_EXPONENTIAL,
-		'Moderator': TIER_SPECIAL,
-		'Developer': TIER_SPECIAL
+		491182624258129940: TIER_CONSTANT,
+		491182701806878720: TIER_QUADRATIC,
+		491182737026449410: TIER_EXPONENTIAL,
+		294413896893071365: TIER_SPECIAL,
+		233826884113268736: TIER_SPECIAL
 	}.get(name, TIER_NONE)
 
 

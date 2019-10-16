@@ -89,13 +89,13 @@ class Role(Hashable):
 
     __slots__ = (
         'id',
-        'name',
+        # 'name',
         '_permissions',
         # '_colour',
         'position',
         'managed',
         # 'mentionable',
-        'hoist',
+        # 'hoist',
         'guild',
         '_state'
     )
@@ -107,10 +107,10 @@ class Role(Hashable):
         self._update(data)
 
     def __str__(self):
-        return self.name
+        return repr(self)
 
     def __repr__(self):
-        return '<Role id={0.id} name={0.name!r}>'.format(self)
+        return '<Role id={0.id}>'.format(self)
 
     def __lt__(self, other):
         if not isinstance(other, Role) or not isinstance(self, Role):
@@ -149,11 +149,11 @@ class Role(Hashable):
         return not r
 
     def _update(self, data):
-        self.name = data['name']
+        # self.name = data['name']
         self._permissions = data.get('permissions', 0)
         self.position = data.get('position', 0)
         # self._colour = data.get('color', 0)
-        self.hoist = data.get('hoist', False)
+        # self.hoist = data.get('hoist', False)
         self.managed = data.get('managed', False)
         # self.mentionable = data.get('mentionable', False)
 
@@ -216,65 +216,65 @@ class Role(Hashable):
         payload = [{"id": z[0], "position": z[1]} for z in zip(roles, change_range)]
         await http.move_role_position(self.guild.id, payload, reason=reason)
 
-    async def edit(self, *, reason=None, **fields):
-        """|coro|
+    # async def edit(self, *, reason=None, **fields):
+    #     """|coro|
 
-        Edits the role.
+    #     Edits the role.
 
-        You must have the :attr:`~Permissions.manage_roles` permission to
-        use this.
+    #     You must have the :attr:`~Permissions.manage_roles` permission to
+    #     use this.
 
-        All fields are optional.
+    #     All fields are optional.
 
-        Parameters
-        -----------
-        name: :class:`str`
-            The new role name to change to.
-        permissions: :class:`Permissions`
-            The new permissions to change to.
-        colour: :class:`Colour`
-            The new colour to change to. (aliased to color as well)
-        hoist: :class:`bool`
-            Indicates if the role should be shown separately in the member list.
-        mentionable: :class:`bool`
-            Indicates if the role should be mentionable by others.
-        position: :class:`int`
-            The new role's position. This must be below your top role's
-            position or it will fail.
-        reason: Optional[:class:`str`]
-            The reason for editing this role. Shows up on the audit log.
+    #     Parameters
+    #     -----------
+    #     name: :class:`str`
+    #         The new role name to change to.
+    #     permissions: :class:`Permissions`
+    #         The new permissions to change to.
+    #     colour: :class:`Colour`
+    #         The new colour to change to. (aliased to color as well)
+    #     hoist: :class:`bool`
+    #         Indicates if the role should be shown separately in the member list.
+    #     mentionable: :class:`bool`
+    #         Indicates if the role should be mentionable by others.
+    #     position: :class:`int`
+    #         The new role's position. This must be below your top role's
+    #         position or it will fail.
+    #     reason: Optional[:class:`str`]
+    #         The reason for editing this role. Shows up on the audit log.
 
-        Raises
-        -------
-        Forbidden
-            You do not have permissions to change the role.
-        HTTPException
-            Editing the role failed.
-        InvalidArgument
-            An invalid position was given or the default
-            role was asked to be moved.
-        """
+    #     Raises
+    #     -------
+    #     Forbidden
+    #         You do not have permissions to change the role.
+    #     HTTPException
+    #         Editing the role failed.
+    #     InvalidArgument
+    #         An invalid position was given or the default
+    #         role was asked to be moved.
+    #     """
 
-        position = fields.get('position')
-        if position is not None:
-            await self._move(position, reason=reason)
-            self.position = position
+    #     position = fields.get('position')
+    #     if position is not None:
+    #         await self._move(position, reason=reason)
+    #         self.position = position
 
-        try:
-            colour = fields['colour']
-        except KeyError:
-            colour = fields.get('color', self.colour)
+    #     try:
+    #         colour = fields['colour']
+    #     except KeyError:
+    #         colour = fields.get('color', self.colour)
 
-        payload = {
-            'name': fields.get('name', self.name),
-            'permissions': fields.get('permissions', self.permissions).value,
-            'color': colour.value,
-            'hoist': fields.get('hoist', self.hoist),
-            'mentionable': fields.get('mentionable', self.mentionable)
-        }
+    #     payload = {
+    #         'name': fields.get('name', self.name),
+    #         'permissions': fields.get('permissions', self.permissions).value,
+    #         'color': colour.value,
+    #         'hoist': fields.get('hoist', self.hoist),
+    #         'mentionable': fields.get('mentionable', self.mentionable)
+    #     }
 
-        data = await self._state.http.edit_role(self.guild.id, self.id, reason=reason, **payload)
-        self._update(data)
+    #     data = await self._state.http.edit_role(self.guild.id, self.id, reason=reason, **payload)
+    #     self._update(data)
 
     async def delete(self, *, reason=None):
         """|coro|
