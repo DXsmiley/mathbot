@@ -10,6 +10,7 @@ import objgraph
 import discord
 import discord.ext.commands
 import logging
+import gc
 
 
 logging.basicConfig(level = logging.INFO)
@@ -40,6 +41,10 @@ class LeaveBot(discord.ext.commands.AutoShardedBot):
 
 	async def on_ready(self):
 		objgraph.show_most_common_types()
+		self._connection.emoji = []
+		gc.collect()
+		objgraph.show_most_common_types()
+
 
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ Permissions 74745
 TextChannel 52258
 Emoji       36466
 
+
 After stripping some fields, notably colour from role:
 
 Member       184135
@@ -23,3 +24,17 @@ TextChannel  52252
 Emoji        36469 
 VoiceChannel 17604 
 dict         14059 
+
+
+After stripping custom emoji support:
+
+Member          184042
+User            153974
+KeyedRef        153862
+_Overwrites     149018
+list            91870
+Role            74734
+TextChannel     52251
+VoiceChannel    17604
+dict            14058
+CategoryChannel 12387

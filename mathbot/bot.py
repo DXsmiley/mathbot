@@ -11,6 +11,7 @@ import json
 import typing
 import traceback
 import objgraph
+import gc
 
 import termcolor
 import discord
@@ -71,6 +72,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		super().run(self.parameters.get('token'))
 
 	async def on_ready(self):
+		self._connection.emoji = []
+		gc.collect()
 		objgraph.show_most_common_types()
 
 	async def on_message(self, message):
