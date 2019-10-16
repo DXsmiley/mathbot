@@ -15,6 +15,7 @@ xmltodict = "*"
 Markdown = "*"
 Pillow = "*"
 termcolor = "*"
+objgraph = "*"
 
 [dev-packages]
 pytest = "==3.6.1"
