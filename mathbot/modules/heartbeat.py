@@ -4,14 +4,15 @@ import time
 import asyncio
 import discord
 import traceback
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 
-class Heartbeat:
+class Heartbeat(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.background_task = None
 
+	@Cog.listener()
 	async def on_ready(self):
 		self.background_task = self.bot.loop.create_task(self.pulse())
 

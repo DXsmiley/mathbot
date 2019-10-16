@@ -6,12 +6,12 @@
 
 import core.help
 from core.util import respond
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 from discord import Embed, Colour
 import json
 
 
-class BlameModule:
+class BlameModule(Cog):
 
 	@command()
 	@respond

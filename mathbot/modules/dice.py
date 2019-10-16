@@ -7,7 +7,7 @@ import random
 import core.help
 import core.settings
 import core.util
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import math
 
 core.help.load_from_file('./help/roll.md')
@@ -21,7 +21,7 @@ class DiceException(Exception): pass
 class ValuesTooBigException(DiceException): pass
 
 
-class DiceModule:
+class DiceModule(Cog):
 
 	''' Module to allow the user to roll dice '''
 

@@ -1,6 +1,7 @@
 # Provides stats on the bot to bot listing services
 
 import aiohttp
+from discord.ext.commands import Cog
 
 BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
 BOTS_GG_URL = 'https://discord.bots.gg/api/v1/bots/{bot_id}/stats'
@@ -10,7 +11,7 @@ HITLIST = [
 	(BOTS_GG_URL, 'bots-gg', 'guildCount', 'shardCount', 'shardId')
 ]
 
-class AnalyticsModule:
+class AnalyticsModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -39,6 +40,7 @@ class AnalyticsModule:
 					server.name
 				))
 
+	@Cog.listener()
 	async def on_ready(self):
 		num_servers = len(self.bot.guilds)
 		num_shards = self.bot.parameters.get('shards total')

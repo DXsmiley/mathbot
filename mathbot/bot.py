@@ -81,10 +81,12 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 					perms.read_message_history,
 				]
 				if not context.valid:
+					# dispatch a custom event
 					self.dispatch('message_discarded', message)
 				elif not all(required):
 					await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
 				else:
+					# Use d.py to invoke the actual command handler
 					context.send = self.send_patch(message, context.send)
 					await self.invoke(context)
 

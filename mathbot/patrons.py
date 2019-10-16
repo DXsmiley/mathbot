@@ -1,4 +1,4 @@
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import discord
 
 TIER_NONE = 0
@@ -23,7 +23,7 @@ class PatronageMixin:
 		return (await self.keystore.get('patron', 'listing')) or 'nobody?'
 
 
-class PatronModule:
+class PatronModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -38,6 +38,7 @@ class PatronModule:
 			m.append(f'The patrongage of this server\'s owner is {get_tier_name(tier)}')
 		await ctx.send('\n'.join(m))
 
+	@Cog.listener()
 	async def on_ready(self):
 		guild = self.bot.get_guild(233826358369845251)
 		listing = []

@@ -1,6 +1,6 @@
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 
-class ThrowsModule:
+class ThrowsModule(Cog):
 
 	@command()
 	async def throw(self, context):

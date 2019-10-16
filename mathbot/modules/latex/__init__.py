@@ -19,7 +19,7 @@ import discord
 import json
 from queuedict import QueueDict
 from open_relative import *
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 from utils import is_private, MessageEditGuard
 from contextlib import suppress
 
@@ -71,7 +71,7 @@ class RenderingError(Exception):
 		return f'RenderingError@{id(self)}'
 
 
-class LatexModule:
+class LatexModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -91,6 +91,7 @@ class LatexModule:
 	async def texp(self, context, *, latex=''):
 		await self.handle(context.message, latex, noblock=True)
 
+	@Cog.listener()
 	async def on_message_discarded(self, message):
 		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
 			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
@@ -138,6 +139,7 @@ class LatexModule:
 						with suppress(discord.errors.NotFound):
 							await message.delete()
 
+	@Cog.listener()
 	async def on_reaction_add(self, reaction, user):
 		if not user.bot:
 			if reaction.emoji == DELETE_EMOJI:
@@ -156,9 +158,12 @@ class LatexModule:
 
 
 async def generate_image_online(latex, colour_back):
+	OVERSAMPLING = 2
 	payload = {
 		'format': 'png',
 		'code': latex.strip(),
+		'density': 220 * OVERSAMPLING,
+		'quality': 100
 	}
 	async with aiohttp.ClientSession() as session:
 		try:
@@ -177,11 +182,13 @@ async def generate_image_online(latex, colour_back):
 			raise RenderingError(None)
 	if image.width <= 2 or image.height <= 2:
 		raise RenderingError(None)
-	border_size = 4
+	border_size = 5 * OVERSAMPLING
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
 	backing = imageutil.new_monocolour((width + border_size * 2, height + border_size * 2), colour_back)
 	backing.paste(image, (border_size, border_size), image)
+	if OVERSAMPLING != 1:
+		backing = backing.resize((backing.width // OVERSAMPLING, backing.height // OVERSAMPLING), resample = PIL.Image.BICUBIC)
 	fobj = io.BytesIO()
 	backing.save(fobj, format='PNG')
 	fobj = io.BytesIO(fobj.getvalue())

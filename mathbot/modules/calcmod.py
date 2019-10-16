@@ -23,7 +23,7 @@ import discord
 import abc
 import functools
 
-from discord.ext.commands import command, guild_only, has_permissions
+from discord.ext.commands import command, guild_only, has_permissions, Cog
 
 core.help.load_from_file('./help/calculator_brief.md')
 core.help.load_from_file('./help/calculator_full.md')
@@ -81,7 +81,7 @@ ENABLE_LIBS = True
 ENABLE_HISTORY = True
 
 
-class CalculatorModule():
+class CalculatorModule(Cog):
 
 	__slots__ = ['bot', 'command_history', 'replay_state']
 
@@ -215,6 +215,7 @@ class CalculatorModule():
 				del self.replay_state[channel]
 		await ctx.send('Calculator state has been flushed from this channel.')
 
+	@Cog.listener()
 	async def on_message_discarded(self, message):
 		''' Trigger the calculator when the message is prefixed by "==" '''
 		async def send(*args, **kwargs):
