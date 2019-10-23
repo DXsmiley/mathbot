@@ -304,7 +304,7 @@ class Guild(Hashable):
             # Update the member, and move it to the front of the queue since it's been accessed
             self._members_cache[member.id] = member
             self._members_cache.move_to_end(member.id, last=False)
-            if len(self._members_cache) > 500:
+            if len(self._members_cache) > 300:
                 self._members_cache.popitem()
 
     def _remove_member(self, member):
