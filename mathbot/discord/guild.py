@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 """
 
 import copy
-from collections import namedtuple, defaultdict
+from collections import namedtuple, OrderedDict
 
 from . import utils
 from .role import Role
@@ -258,7 +258,7 @@ class Guild(Hashable):
         results to a specific language.
     """
 
-    __slots__ = ('afk_timeout', 'afk_channel', '_members', '_channels', 'icon',
+    __slots__ = ('afk_timeout', 'afk_channel', '_members_cache', '_channels', 'icon',
                  'name', 'id', 'unavailable', 'banner', 'region', '_state',
                  '_default_role', '_roles', '_member_count', '_large',
                  'owner_id', 'mfa_level', 'emojis', 'features',
@@ -266,7 +266,7 @@ class Guild(Hashable):
                  '_voice_states', '_system_channel_id', 'default_notifications',
                  'description', 'max_presences', 'max_members', 'premium_tier',
                  'premium_subscription_count', '_system_channel_flags',
-                 'preferred_locale',)
+                 'preferred_locale', '_important_members')
 
     _PREMIUM_GUILD_LIMITS = {
         None: _GuildLimit(emoji=50, bitrate=96e3, filesize=8388608),
@@ -276,9 +276,11 @@ class Guild(Hashable):
         3: _GuildLimit(emoji=250, bitrate=384e3, filesize=104857600),
     }
 
+
     def __init__(self, *, data, state):
         self._channels = {}
-        self._members = {}
+        self._members_cache = OrderedDict()
+        self._important_members = {}
         self._voice_states = {}
         self._state = state
         self._from_data(data)
@@ -294,10 +296,20 @@ class Guild(Hashable):
         return self._voice_states.get(user_id)
 
     def _add_member(self, member):
-        self._members[member.id] = member
+        # ID of the mathbot server
+        print(member, member.id)
+        if self.id == 233826358369845251 or member.id == self._state.self_id:
+            self._important_members[member.id] = member
+        else:
+            # Update the member, and move it to the front of the queue since it's been accessed
+            self._members_cache[member.id] = member
+            self._members_cache.move_to_end(member.id, last=False)
+            if len(self._members_cache) > 500:
+                self._members_cache.popitem()
 
     def _remove_member(self, member):
-        self._members.pop(member.id, None)
+        self._important_members.pop(member.id, None)
+        self._members_cache.pop(member.id, None)
 
     def __str__(self):
         return self.name
@@ -445,7 +457,7 @@ class Guild(Hashable):
             try:
                 return self._member_count >= 250
             except AttributeError:
-                return len(self._members) >= 250
+                return len(self._members_cache) + len(self._important_members) >= 250
         return self._large
 
     @property
@@ -571,7 +583,7 @@ class Guild(Hashable):
     @property
     def members(self):
         """List[:class:`Member`]: A list of members that belong to this guild."""
-        return list(self._members.values())
+        return list(self._important_members.values()) + list(self._members_cache.values())
 
     def get_member(self, user_id):
         """Returns a member with the given ID.
@@ -586,7 +598,7 @@ class Guild(Hashable):
         Optional[:class:`Member`]
             The member or ``None`` if not found.
         """
-        return self._members.get(user_id)
+        return self._important_members[user_id] if user_id in self._important_members else self._members_cache.get(user_id)
 
     # @property
     # def premium_subscribers(self):
@@ -745,7 +757,7 @@ class Guild(Hashable):
         count = getattr(self, '_member_count', None)
         if count is None:
             return False
-        return count == len(self._members)
+        return count == len(self._important_members) + len(self._members_cache)
 
     @property
     def shard_id(self):

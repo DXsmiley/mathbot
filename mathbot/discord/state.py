@@ -33,6 +33,7 @@ import logging
 import math
 import weakref
 import inspect
+import json
 
 from .guild import Guild
 from .activity import _ActivityTag
@@ -398,8 +399,15 @@ class ConnectionState:
         self.dispatch('resumed')
 
     def parse_message_create(self, data):
-        channel, _ = self._get_guild_channel(data)
+        # print(json.dumps(data, indent=4))
+        channel, guild = self._get_guild_channel(data)
         message = Message(channel=channel, data=data, state=self)
+        # If member data is available, promote the user to a member
+        if 'member' in data and guild is not None:
+            blob = data['member']
+            blob['user'] = data['author']
+            message.author = Member(data=blob, guild=guild, state=self)
+        # print(message)
         self.dispatch('message', message)
         if self._messages is not None:
             self._messages.append(message)

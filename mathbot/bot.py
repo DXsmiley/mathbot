@@ -105,9 +105,20 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			return sent
 		return send
 
+
+	def dump_members(self, d):
+		print({k: v.name for k, v in d.items()})
+
+
 	def _can_post_in_guild(self, message):
+		# return True # TODO: Fix this
 		if message.channel is None:
 			return False
+		# print('==== stuff ====')
+		# print(message.guild)
+		# print(message.guild.me)
+		# self.dump_members(message.guild._members_cache)
+		# self.dump_members(message.guild._important_members)
 		perms = message.channel.permissions_for(message.guild.me)
 		return perms.read_messages and perms.send_messages
 
