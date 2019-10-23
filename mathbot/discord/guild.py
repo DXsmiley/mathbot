@@ -297,7 +297,7 @@ class Guild(Hashable):
 
     def _add_member(self, member):
         # ID of the mathbot server
-        print(member, member.id)
+        # print(member, member.id)
         if self.id == 233826358369845251 or member.id == self._state.self_id:
             self._important_members[member.id] = member
         else:
