@@ -38,3 +38,18 @@ TextChannel     52251
 VoiceChannel    17604
 dict            14058
 CategoryChannel 12387
+
+After using a weakrefdict to store members
+
+_Overwrites     152474
+list            95298
+Role            76122
+TextChannel     53273
+function        26504
+dict            22046
+VoiceChannel    17799
+tuple           15181
+CategoryChannel 12570
+weakref         7043
+(on startup, number of member objects expected to grow over time)
+
