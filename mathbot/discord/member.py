@@ -170,7 +170,8 @@ class Member(discord.abc.Messageable, _BaseUser):
         'guild',
         'nick',
         '_user',
-        '_state'
+        '_state',
+        '__weakref__'
     )
 
     def __init__(self, *, data, guild, state):

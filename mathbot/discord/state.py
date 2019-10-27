@@ -407,12 +407,13 @@ class ConnectionState:
             blob = data['member']
             blob['user'] = data['author']
             message.author = Member(data=blob, guild=guild, state=self)
+            guild._add_member(message.author)
         # print(message)
-        self.dispatch('message', message)
         if self._messages is not None:
             self._messages.append(message)
         if channel and channel.__class__ is TextChannel:
             channel.last_message_id = message.id
+        self.dispatch('message', message)
 
     def parse_message_delete(self, data):
         raw = RawMessageDeleteEvent(data)

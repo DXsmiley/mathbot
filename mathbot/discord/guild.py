@@ -26,6 +26,7 @@ DEALINGS IN THE SOFTWARE.
 
 import copy
 from collections import namedtuple, OrderedDict
+from weakref import WeakValueDictionary
 
 from . import utils
 from .role import Role
@@ -279,7 +280,8 @@ class Guild(Hashable):
 
     def __init__(self, *, data, state):
         self._channels = {}
-        self._members_cache = OrderedDict()
+        # self._members_cache = OrderedDict()
+        self._members_cache = WeakValueDictionary()
         self._important_members = {}
         self._voice_states = {}
         self._state = state
@@ -303,9 +305,9 @@ class Guild(Hashable):
         else:
             # Update the member, and move it to the front of the queue since it's been accessed
             self._members_cache[member.id] = member
-            self._members_cache.move_to_end(member.id, last=False)
-            if len(self._members_cache) > 300:
-                self._members_cache.popitem()
+            # self._members_cache.move_to_end(member.id, last=False)
+            # if len(self._members_cache) > 300:
+            #     self._members_cache.popitem()
 
     def _remove_member(self, member):
         self._important_members.pop(member.id, None)
@@ -598,7 +600,11 @@ class Guild(Hashable):
         Optional[:class:`Member`]
             The member or ``None`` if not found.
         """
-        return self._important_members[user_id] if user_id in self._important_members else self._members_cache.get(user_id)
+        if user_id in self._important_members:
+            return self._important_members[user_id]
+        if user_id in self._members_cache:
+            return self._members_cache[user_id]
+        return None
 
     # @property
     # def premium_subscribers(self):
