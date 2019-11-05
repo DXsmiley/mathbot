@@ -12,7 +12,7 @@ import re
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes) # pylint: disable=no-member
-ELEMENT_SEPARATOR = ', '
+ELEMENT_SEPARATOR = '  '
 
 
 class Collector:
