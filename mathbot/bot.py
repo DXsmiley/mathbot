@@ -76,7 +76,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self._connection.emoji = []
 		gc.collect()
 		objgraph.show_most_common_types()
-		await self.leave_inactive_servers()
+		# await self.leave_inactive_servers()
 
 	async def leave_inactive_servers(self):
 		cur_time = time.time()
