@@ -12,6 +12,7 @@ import typing
 import traceback
 import objgraph
 import gc
+import time
 
 import termcolor
 import discord
@@ -75,6 +76,20 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self._connection.emoji = []
 		gc.collect()
 		objgraph.show_most_common_types()
+		await self.leave_inactive_servers()
+
+	async def leave_inactive_servers(self):
+		cur_time = time.time()
+		for guild in self.guilds:
+			most_recent = 0
+			for channel in guild.text_channels:
+				if channel.last_message_id is not None:
+					message = await channel.fetch_message(channel.last_message_id)
+					most_recent = max(most_recent, message.created_at.timestamp())
+			if (cur_time - most_recent) > (60 * 60 * 24 * 30 * 7): # Approx. 7 months
+				print(f'Leaving guild {guild.name}')
+				# await guild.leave()
+				await report(self, f'Leaving guild: {guild.name}')
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
