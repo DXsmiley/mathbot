@@ -88,13 +88,13 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 						try:
 							message = await channel.fetch_message(channel.last_message_id)
 							most_recent = max(most_recent, message.created_at.timestamp())
-						except (NotFound, Forbidden):
+						except (discord.errors.NotFound, discord.errors.Forbidden):
 							pass
 				if (cur_time - most_recent) > (60 * 60 * 24 * 30 * 7): # Approx. 7 months
 					print(f'Leaving guild {guild.name}')
 					# await guild.leave()
 					# await report(self, f'Leaving guild: {guild.name}')
-			except HTTPException:
+			except discord.errors.HTTPException:
 				print(f'HTTPException while getting activity for guild: {guild.name}')
 
 	async def on_message(self, message):
