@@ -89,7 +89,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			if (cur_time - most_recent) > (60 * 60 * 24 * 30 * 7): # Approx. 7 months
 				print(f'Leaving guild {guild.name}')
 				# await guild.leave()
-				await report(self, f'Leaving guild: {guild.name}')
+				# await report(self, f'Leaving guild: {guild.name}')
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
