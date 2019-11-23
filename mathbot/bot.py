@@ -82,14 +82,20 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		cur_time = time.time()
 		for guild in self.guilds:
 			most_recent = 0
-			for channel in guild.text_channels:
-				if channel.last_message_id is not None:
-					message = await channel.fetch_message(channel.last_message_id)
-					most_recent = max(most_recent, message.created_at.timestamp())
-			if (cur_time - most_recent) > (60 * 60 * 24 * 30 * 7): # Approx. 7 months
-				print(f'Leaving guild {guild.name}')
-				# await guild.leave()
-				# await report(self, f'Leaving guild: {guild.name}')
+			try:
+				for channel in guild.text_channels:
+					if channel.last_message_id is not None:
+						try:
+							message = await channel.fetch_message(channel.last_message_id)
+							most_recent = max(most_recent, message.created_at.timestamp())
+						except NotFound, Forbidden:
+							pass
+				if (cur_time - most_recent) > (60 * 60 * 24 * 30 * 7): # Approx. 7 months
+					print(f'Leaving guild {guild.name}')
+					# await guild.leave()
+					# await report(self, f'Leaving guild: {guild.name}')
+			except HTTPException:
+				print(f'HTTPException while getting activity for guild: {guild.name}')
 
 	async def on_message(self, message):
 		if self.release != 'production' or not message.author.bot:
