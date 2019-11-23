@@ -94,10 +94,10 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 							pass
 				if should_leave:
 					print(f'Leaving guild {guild.name}')
-				else:
-					print(f'Staying in {guild.name}')
-					# await guild.leave()
-					# await report(self, f'Leaving guild: {guild.name}')
+					await guild.leave()
+					await report(self, f'Leaving guild: {guild.name}')
+				# else:
+				# 	print(f'Staying in {guild.name}')
 			except discord.errors.HTTPException:
 				print(f'HTTPException while getting activity for guild: {guild.name}')
 
