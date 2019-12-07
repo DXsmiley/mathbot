@@ -84,14 +84,15 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			try:
 				should_leave = True
 				for channel in guild.text_channels:
-					if channel.last_message_id is not None:
-						try:
-							message = await channel.fetch_message(channel.last_message_id)
+					try:
+						async for message in channel.history(limit=4):
 							if message.created_at.timestamp() > threshhold:
 								should_leave = False
 								break
-						except (discord.errors.NotFound, discord.errors.Forbidden):
-							pass
+					except (discord.errors.NotFound, discord.errors.Forbidden):
+						pass
+					if not should_leave:
+						break
 				if should_leave:
 					print(f'Leaving guild {guild.name}')
 					await guild.leave()
