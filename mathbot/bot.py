@@ -76,9 +76,13 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self._connection.emoji = []
 		gc.collect()
 		objgraph.show_most_common_types()
-		await self.leave_inactive_servers()
+		# await self.leave_inactive_servers()
 
 	async def leave_inactive_servers(self):
+		''' There's definitely something wrong with this
+			Or at least, at one point it was suprting "leaving guild None",
+			so it's definitely not fault tolerent enough
+		'''
 		threshhold = time.time() - (60 * 60 * 24 * 30 * 7) # Approx. 7 months
 		for guild in self.guilds:
 			try:
