@@ -35,6 +35,8 @@ class DiceModule(Cog):
 			return '🎲 Format your rolls like `2d6`.'
 		dice, faces = match.group(1, 2)
 		dice = int(dice or 1)
+		if dice <= 0:
+			return '🎲 At least one dice must be rolled.'
 		faces = int(faces or 6)
 		if faces <= 0:
 			return '🎲 Dice must have a positive number of faces.'
