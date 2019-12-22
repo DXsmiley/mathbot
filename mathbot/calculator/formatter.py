@@ -12,6 +12,7 @@ import re
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes) # pylint: disable=no-member
+ELEMENT_SEPARATOR = '  '
 
 
 class Collector:
@@ -137,7 +138,7 @@ class SimpleFormatter:
 		''' Format an array '''
 		self.fmt('array(')
 		for i in array:
-			self.fmt(i, ', ')
+			self.fmt(i, ELEMENT_SEPARATOR)
 		self.drop()
 		self.fmt(')')
 
@@ -160,15 +161,15 @@ class SimpleFormatter:
 		else:
 			self.fmt('[')
 			for i in lst:
-				self.fmt(i, ', ')
+				self.fmt(i, ELEMENT_SEPARATOR)
 			self.drop()
 			self.fmt(']')
 
 	def fmt_py_list(self, lst):
-		''' Formay a python list '''
+		''' Format a python list '''
 		self.fmt('(')
 		for i in lst:
-			self.fmt(i, ', ')
+			self.fmt(i, ', ') # leave alone as it needs to remain Python syntax
 		if lst:
 			self.drop()
 		self.fmt(')')
