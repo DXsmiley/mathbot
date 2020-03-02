@@ -72,11 +72,21 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	def run(self):
 		super().run(self.parameters.get('token'))
 
+	async def on_shard_ready(self, shard_id):
+		print('on_shard_ready', shard_id)
+
 	async def on_ready(self):
+		print('on_ready')
 		self._connection.emoji = []
 		gc.collect()
 		objgraph.show_most_common_types()
 		# await self.leave_inactive_servers()
+
+	async def on_disconnect(self):
+		print('on_disconnect')
+
+	async def on_resumed(self):
+		print('on_resumed')
 
 	async def leave_inactive_servers(self):
 		''' There's definitely something wrong with this
