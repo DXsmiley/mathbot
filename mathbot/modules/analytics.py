@@ -15,6 +15,7 @@ class AnalyticsModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
+		self.done_report = False
 
 	async def identify_bot_farms(self):
 		''' This function lists any medium / large servers with more bots
@@ -42,31 +43,36 @@ class AnalyticsModule(Cog):
 
 	@Cog.listener()
 	async def on_ready(self):
-		num_servers = len(self.bot.guilds)
-		num_shards = self.bot.parameters.get('shards total')
-		print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
-		async with aiohttp.ClientSession() as session:
-			for shard_id in self.bot.shard_ids:
-				for (url_template, key_location, k_servers, k_shard, k_sid) in HITLIST:
-					key = self.bot.parameters.get('analytics ' + key_location)
-					if key:
-						url = url_template.format(bot_id = self.bot.user.id)
-						payload = {
-							'json': {
-								k_servers: num_servers,
-								k_shard: num_shards,
-								k_sid: shard_id
-							},
-							'headers': {
-								'Authorization': key,
-								'Content-Type': 'application/json'
+		# gets triggered on every reconnect, but we only want to
+		# report things when the bot as a whole restarts,
+		# which is abouve once a day
+		if not self.done_report:
+			self.done_report = True
+			num_servers = len(self.bot.guilds)
+			num_shards = self.bot.parameters.get('shards total')
+			print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
+			async with aiohttp.ClientSession() as session:
+				for shard_id in self.bot.shard_ids:
+					for (url_template, key_location, k_servers, k_shard, k_sid) in HITLIST:
+						key = self.bot.parameters.get('analytics ' + key_location)
+						if key:
+							url = url_template.format(bot_id = self.bot.user.id)
+							payload = {
+								'json': {
+									k_servers: num_servers,
+									k_shard: num_shards,
+									k_sid: shard_id
+								},
+								'headers': {
+									'Authorization': key,
+									'Content-Type': 'application/json'
+								}
 							}
-						}
-						async with session.post(url, **payload) as response:
-							print(f'Analytics ({url}): {response.status}')
-							if response.status not in [200, 204]:
-								print(await response.text())
-				num_servers = 1
+							async with session.post(url, **payload) as response:
+								print(f'Analytics ({url}): {response.status}')
+								if response.status not in [200, 204]:
+									print(await response.text())
+					num_servers = 1
 
 
 def setup(bot):

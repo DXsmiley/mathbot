@@ -14,7 +14,8 @@ class Heartbeat(Cog):
 
 	@Cog.listener()
 	async def on_ready(self):
-		self.background_task = self.bot.loop.create_task(self.pulse())
+		if self.background_task is None:
+			self.background_task = self.bot.loop.create_task(self.pulse())
 
 	async def pulse(self):
 		''' Repeatedly update the status of the bot '''
