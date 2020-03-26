@@ -131,13 +131,13 @@ class LatexModule(Cog):
 				else:
 					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
-				if sent_message:
-					if await self.bot.settings.resolve_message('f-tex-trashcan', message):
-						with suppress(discord.errors.NotFound):
-							await sent_message.add_reaction(DELETE_EMOJI)
 					if await self.bot.settings.resolve_message('f-tex-delete', message):
 						with suppress(discord.errors.NotFound):
 							await message.delete()
+
+				if sent_message and await self.bot.settings.resolve_message('f-tex-trashcan', message):
+					with suppress(discord.errors.NotFound):
+						await sent_message.add_reaction(DELETE_EMOJI)
 
 	@Cog.listener()
 	async def on_reaction_add(self, reaction, user):
