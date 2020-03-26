@@ -152,9 +152,9 @@ class LatexModule(Cog):
 		if colour_setting == 'light':
 			return 'ffffff', '202020'
 		elif colour_setting == 'dark':
-			return '36393E', 'f0f0f0'
+			return '36393F', 'f0f0f0'
 		# Fallback in case of other weird things
-		return '36393E', 'f0f0f0'
+		return '36393F', 'f0f0f0'
 
 
 async def generate_image_online(latex, colour_back):
