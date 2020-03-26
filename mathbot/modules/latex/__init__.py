@@ -111,14 +111,23 @@ class LatexModule(Cog):
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
 			             .replace('#CONTENT', process_latex(source, is_inline))
-			await self.render_and_reply(message, latex, colour_back)
+			await self.render_and_reply(
+				message,
+				latex,
+				colour_back,
+				oversampling=(1 if wide else 2)
+			)
 
-	async def render_and_reply(self, message, latex, colour_back):
+	async def render_and_reply(self, message, latex, colour_back, *, oversampling):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
 			async with message.channel.typing():
 				sent_message = None
 				try:
-					render_result = await generate_image_online(latex, colour_back)
+					render_result = await generate_image_online(
+						latex,
+						colour_back,
+						oversampling=oversampling
+					)
 				except asyncio.TimeoutError:
 					sent_message = await guard.send(LATEX_TIMEOUT_MESSAGE)
 				except RenderingError as e:
@@ -157,12 +166,11 @@ class LatexModule(Cog):
 		return '36393F', 'f0f0f0'
 
 
-async def generate_image_online(latex, colour_back):
-	OVERSAMPLING = 2
+async def generate_image_online(latex, colour_back, *, oversampling):
 	payload = {
 		'format': 'png',
 		'code': latex.strip(),
-		'density': 220 * OVERSAMPLING,
+		'density': 220 * oversampling,
 		'quality': 100
 	}
 	async with aiohttp.ClientSession() as session:
@@ -171,6 +179,7 @@ async def generate_image_online(latex, colour_back):
 				loc_req.raise_for_status()
 				jdata = await loc_req.json()
 				if jdata['status'] == 'error':
+					print('Was error', jdata)
 					raise RenderingError(jdata.get('log'))
 				filename = jdata['filename']
 			# Now actually get the image
@@ -178,17 +187,19 @@ async def generate_image_online(latex, colour_back):
 				img_req.raise_for_status()
 				fo = io.BytesIO(await img_req.read())
 				image = PIL.Image.open(fo).convert('RGBA')
-		except aiohttp.client_exceptions.ClientResponseError:
+		except aiohttp.client_exceptions.ClientResponseError as e:
+			print(e)
 			raise RenderingError(None)
 	if image.width <= 2 or image.height <= 2:
+		print('Image is empty')
 		raise RenderingError(None)
-	border_size = 5 * OVERSAMPLING
+	border_size = 5 * oversampling
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
 	backing = imageutil.new_monocolour((width + border_size * 2, height + border_size * 2), colour_back)
 	backing.paste(image, (border_size, border_size), image)
-	if OVERSAMPLING != 1:
-		backing = backing.resize((backing.width // OVERSAMPLING, backing.height // OVERSAMPLING), resample = PIL.Image.BICUBIC)
+	if oversampling != 1:
+		backing = backing.resize((backing.width // oversampling, backing.height // oversampling), resample = PIL.Image.BICUBIC)
 	fobj = io.BytesIO()
 	backing.save(fobj, format='PNG')
 	fobj = io.BytesIO(fobj.getvalue())
