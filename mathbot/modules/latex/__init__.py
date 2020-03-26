@@ -132,8 +132,12 @@ class LatexModule(Cog):
 					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
 					await self.bot.advertise_to(message.author, message.channel, guard)
 					if await self.bot.settings.resolve_message('f-tex-delete', message):
-						with suppress(discord.errors.NotFound):
+						try:
 							await message.delete()
+						except discord.errors.NotFound:
+							pass
+						except discord.errors.Forbidden:
+							await guard.send('Failed to delete source message automatically - either grant the bot "Manage Messages" permissions or disable `f-tex-delete`')
 
 				if sent_message and await self.bot.settings.resolve_message('f-tex-trashcan', message):
 					with suppress(discord.errors.NotFound):
