@@ -46,6 +46,10 @@ class HelpModule(Cog):
 
 		# Display the default prefix if the user is in DMs and uses no prefix.
 		prefix = context.prefix or '='
+
+		print(prefix, context.bot.user.id)
+		if prefix.strip() in [f'<@{context.bot.user.id}>', f'<@!{context.bot.user.id}>']:
+			prefix = '@MathBot '
 		
 		try:
 			for index, page in enumerate(found_doc):
