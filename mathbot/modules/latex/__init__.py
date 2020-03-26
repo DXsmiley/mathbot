@@ -79,17 +79,17 @@ class LatexModule(Cog):
 	@command(aliases=['latex', 'rtex'])
 	@core.settings.command_allowed('c-tex')
 	async def tex(self, context, *, latex=''):
-		await self.handle(context.message, latex)
+		await self.handle(context.message, latex, is_inline=False)
 
 	@command(aliases=['wtex'])
 	@core.settings.command_allowed('c-tex')
 	async def texw(self, context, *, latex=''):
-		await self.handle(context.message, latex, wide=True)
+		await self.handle(context.message, latex, wide=True, is_inline=False)
 
 	@command(aliases=['ptex'])
 	@core.settings.command_allowed('c-tex')
 	async def texp(self, context, *, latex=''):
-		await self.handle(context.message, latex, noblock=True)
+		await self.handle(context.message, latex, noblock=True, is_inline=False)
 
 	@Cog.listener()
 	async def on_message_discarded(self, message):
@@ -97,9 +97,9 @@ class LatexModule(Cog):
 			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
-					await self.handle(message, latex, centre=False)
+					await self.handle(message, latex, centre=False, is_inline=True)
 
-	async def handle(self, message, source, *, centre=True, wide=False, noblock=False):
+	async def handle(self, message, source, *, is_inline, centre=True, wide=False, noblock=False):
 		if source == '':
 			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
@@ -110,7 +110,7 @@ class LatexModule(Cog):
 			latex = latex.replace('#COLOUR',  colour_text) \
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
-			             .replace('#CONTENT', process_latex(source))
+			             .replace('#CONTENT', process_latex(source, is_inline))
 			await self.render_and_reply(message, latex, colour_back)
 
 	async def render_and_reply(self, message, latex, colour_back):
@@ -214,9 +214,9 @@ def extract_inline_tex(content):
 	return latex.rstrip()
 
 
-def process_latex(latex):
+def process_latex(latex, is_inline):
 	latex = latex.replace('`', ' ').strip(' \n')
-	if latex.startswith('tex'):
+	if latex.startswith('tex') and not is_inline:
 		latex = latex[3:].strip('\n')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
