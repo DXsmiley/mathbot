@@ -183,7 +183,7 @@ async def generate_image_online(latex, colour_back, *, oversampling):
 				loc_req.raise_for_status()
 				jdata = await loc_req.json()
 				if jdata['status'] == 'error':
-					print('Was error', jdata)
+					print('Rendering error')
 					raise RenderingError(jdata.get('log'))
 				filename = jdata['filename']
 			# Now actually get the image
@@ -192,7 +192,7 @@ async def generate_image_online(latex, colour_back, *, oversampling):
 				fo = io.BytesIO(await img_req.read())
 				image = PIL.Image.open(fo).convert('RGBA')
 		except aiohttp.client_exceptions.ClientResponseError as e:
-			print(e)
+			print('Client response error')
 			raise RenderingError(None)
 	if image.width <= 2 or image.height <= 2:
 		print('Image is empty')
