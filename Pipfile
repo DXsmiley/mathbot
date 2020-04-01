@@ -24,7 +24,6 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-ordering = "*"
 pytest-quickcheck = "==0.8.3"
-dismock = {git = "https://github.com/RenanMsV/dismock.git", ref = "8615119682a543ee2ebdb84646eb415f2c2729f8"}
 
 [requires]
 python_version = "3.6"
