@@ -16,7 +16,7 @@ Markdown = "*"
 Pillow = "*"
 termcolor = "*"
 objgraph = "*"
-"discord.py" = {git = "https://github.com/DXsmiley/discord.py.git", ref="e3e549f9bcfa4044a6fdcf8553dfc15e3ca60e31"}
+"discord.py" = {git = "https://github.com/DXsmiley/discord.py.git", ref="a3a3808cc233cb1eeda36ac360011eb7dd69594b"}
 
 [dev-packages]
 pytest = "==3.6.1"
