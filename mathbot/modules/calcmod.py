@@ -80,6 +80,14 @@ class ReplayState:
 ENABLE_LIBS = True
 ENABLE_HISTORY = True
 
+# Servers on which history is enabled, even if the server
+# owners are not patrons.
+# Will still be disabled if ENABLE_HISTORY is False.
+HISTORY_ENABLED_SERVERS = \
+	[ 233826358369845251 # Mathbot server
+	, 265453844312358912 # Lys's server
+	]
+
 
 class CalculatorModule(Cog):
 
@@ -384,16 +392,17 @@ class CalculatorModule(Cog):
 			await self.bot.keystore.set('calculator', 'history', str(channel.id), to_store, expire = EXPIRE_TIME)
 
 	async def allow_calc_history(self, channel):
-		# if not self.bot.parameters.get('calculator.persistent'):
-		# 	return False
 		if self.bot.parameters.get('release') == 'development':
 			return True
 		if not ENABLE_HISTORY:
 			return False
 		if utils.is_private(channel):
 			return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
-		else:
-			return (await self.bot.patron_tier(channel.guild.owner_id)) >= patrons.TIER_CONSTANT
+		if channel.guild in HISTORY_ENABLED_SERVERS:
+			return True
+		if (await self.bot.patron_tier(channel.guild.owner_id)) >= patrons.TIER_CONSTANT:
+			return True
+		return False
 
 
 def expression_has_side_effect(expr):
