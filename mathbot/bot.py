@@ -32,7 +32,7 @@ from patrons import PatronageMixin
 
 
 warnings.simplefilter('default')
-logging.basicConfig(level = logging.ERROR)
+logging.basicConfig(level = logging.INFO)
 sys.setrecursionlimit(2500)
 
 
