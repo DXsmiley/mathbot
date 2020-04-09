@@ -38,7 +38,9 @@ class ReporterModule(Cog):
 		try:
 			report_channel = await self.get_report_channel()
 			if report_channel is None:
-				print('Shard', self.bot.shard_ids, 'will not report')
+				message = f'Shard {self.bot.shard_ids} has started'
+				print(message)
+				await report(self.bot, message)
 				return
 			termcolor.cprint(f'Shard {self.bot.shard_ids} will report errors', 'green')
 			await report_channel.send(f'Shard `{self.bot.shard_ids}` reporting for duty!')
