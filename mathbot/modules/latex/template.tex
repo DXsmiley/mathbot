@@ -19,6 +19,10 @@
 \usepackage{nicefrac}
 \usepackage{physics}
 
+% The physics package redifines \div to be "divergence",
+% but that's not what anyone wants
+\renewcommand{\div}{\divisionsymbol}
+
 % Hebrew characters (from https://tex.stackexchange.com/a/226850)
 \DeclareFontFamily{U}{rcjhbltx}{}
 \DeclareFontShape{U}{rcjhbltx}{m}{n}{<->rcjhbltx}{}
