@@ -229,10 +229,13 @@ def extract_inline_tex(content):
 	return latex.rstrip()
 
 
+BLOCKFORMAT_REGEX = re.compile('^```(?:tex\n)?((?:.|\n)*)```$')
+
 def process_latex(latex, is_inline):
-	latex = latex.replace('`', ' ').strip(' \n')
-	if latex.startswith('tex') and not is_inline:
-		latex = latex[3:].strip('\n')
+	latex = latex.strip(' \n')
+	blockformat = re.match(BLOCKFORMAT_REGEX, latex)
+	if blockformat:
+		latex = blockformat[1].strip(' \n')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
 			latex = latex.replace(key, value)
