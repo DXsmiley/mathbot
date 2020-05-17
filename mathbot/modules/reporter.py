@@ -25,12 +25,24 @@ class ReporterModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.send_task = None
+		self.task = None
 
 	@Cog.listener()
 	async def on_ready(self):
-		self.send_task = self.bot.loop.create_task(self.send_reports())
-		self.sent_duty_note = False
+		if self.task is not None:
+			self.task.end()
+		self.task = ReporterTask(self.bot)
+
+
+class ReporterTask:
+
+	def __init__(self, bot):
+		self.bot = bot
+		self.should_end = False
+		self.bot.loop.create_task(self.send_reports())
+
+	def end(self):
+		self.should_end = True
 
 	async def send_reports(self):
 		print('Shard', self.bot.shard_ids, 'started reporting task.')
@@ -42,9 +54,9 @@ class ReporterModule(Cog):
 				print(message)
 				await report(self.bot, message)
 				return
-			termcolor.cprint(f'Shard {self.bot.shard_ids} will report errors', 'green')
+			termcolor.cprint(f'Shard `{self.bot.shard_ids}` will report errors', 'green')
 			await report_channel.send(f'Shard `{self.bot.shard_ids}` reporting for duty!')
-			while not self.bot.is_closed():
+			while not self.should_end:
 				try:
 					message = await self.bot.keystore.rpop('error-report')
 					if message:
@@ -73,7 +85,6 @@ class ReporterModule(Cog):
 			termcolor.cprint(m, 'red')
 			termcolor.cprint('*' * len(m), 'red')
 			traceback.print_exc()
-
 
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
 		channel_id = self.bot.parameters.get('error-reporting channel')
