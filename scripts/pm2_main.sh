@@ -9,5 +9,5 @@ cd ~/mathbot
 
 export PIPENV_YES=1
 pipenv install
-echo "we'd run the bot at this point..."
-# python entrypoint.py "~/config.json"
+cd mathbot
+pipenv run python entrypoint.py ~/config.json
