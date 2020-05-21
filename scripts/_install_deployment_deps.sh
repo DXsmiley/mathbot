@@ -5,6 +5,8 @@ cd ~
 set -eux
 
 export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 
 apt-get install curl -y
 curl --version
@@ -20,10 +22,10 @@ apt-get update
 apt-get install python3.6 -y
 apt-get install python3.6-dev -y
 
-apt-get install python-pip -y
-pip --version
+apt-get install python3-pip -y
+pip3 --version
 
-pip install pipenv
+pip3 install pipenv
 pipenv --version
 
 curl -sL https://deb.nodesource.com/setup_12.x | bash -
