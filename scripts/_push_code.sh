@@ -15,6 +15,7 @@ fi
 cd mathbot
 
 git checkout deploy-on-vps
+git fetch
 git pull
 
 pm2 restart mathbot
