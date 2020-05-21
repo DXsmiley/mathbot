@@ -8,6 +8,6 @@ export LANG=C.UTF-8
 cd ~/mathbot
 
 export PIPENV_YES=1
-pipenv install --no-interactive
+pipenv install
 echo "we'd run the bot at this point..."
 # python entrypoint.py "~/config.json"
