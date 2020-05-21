@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 cffi = "*"
-aiohttp = "==3.3.2"
+aiohttp = ">=3.3.2"
 sympy = "*"
 aioredis = "==1.2.0"
 coverage = "*"
