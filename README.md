@@ -104,3 +104,17 @@ There are some additional tests that require a human to verify the bot's output.
 - *shards*
 	- *total*: The total number of shards that the bot is running on.
 	- *mine*: A list of integers (starting at `0`) specifying which shards should be run in this process.
+
+## Additional Installation Issues (Ubuntu only)
+
+If you don't have python 3.6
+```
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.6
+```
+
+If you have installation troubles with cffi or psutil
+```
+sudo apt-get install python3.6-dev
+```
