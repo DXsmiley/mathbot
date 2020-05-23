@@ -243,7 +243,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				embed = discord.Embed(
 					title='An internal error occurred.',
 					colour=discord.Colour.red(),
-					description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
+					description='If this keeps happening, you should contact the developers on the official mathbot server: https://discord.gg/JbJbRZS'
 				)
 				await destination.send(embed=embed)
 		finally:
@@ -293,12 +293,20 @@ def _create_keystore(parameters):
 
 
 async def _determine_prefix(bot, message):
-	if message.guild is None:
-		prefixes = ['= ', '=', '']
-	else:
-		custom = str(await bot.settings.get_server_prefix(message))
-		prefixes = [custom + ' ', custom]
-	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
+	try:
+		if message.guild is None:
+			prefixes = ['= ', '=', '']
+		else:
+			custom = str(await bot.settings.get_server_prefix(message))
+			prefixes = [custom + ' ', custom]
+		return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
+	except Exception:
+		m = f'Exception occurred while determining prefixes, shutting down bot'
+		termcolor.cprint('*' * len(m), 'red')
+		termcolor.cprint(m, 'red')
+		termcolor.cprint('*' * len(m), 'red')
+		traceback.print_exc()
+		await bot.close()
 
 
 if __name__ == '__main__':

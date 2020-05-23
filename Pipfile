@@ -19,7 +19,7 @@ objgraph = "*"
 "discord.py" = {git = "https://github.com/DXsmiley/discord.py.git", ref="60e1afaaf4b1f631fff1d76bba2cad3ddf1e94f7"}
 
 [dev-packages]
-pytest = "==3.6.1"
+pytest = ">=3.6.1"
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-ordering = "*"
