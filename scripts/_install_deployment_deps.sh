@@ -35,5 +35,6 @@ node --version
 npm install pm2@4.4.0 -g
 
 apt-get install build-essential -y
+apt-get install jq -y
 
 apt-get autoremove -y
