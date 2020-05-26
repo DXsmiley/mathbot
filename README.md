@@ -100,7 +100,8 @@ There are some additional tests that require a human to verify the bot's output.
 	- *interval* : the number of queries between mentions of the Patreon page. This is measured on a per-channel basis.
 	- *starting-amount* : Can be increased to lower the number of commands until the Patreon page is first mention.
 - *error-reporting*
-	- *channel*: ID of channel to send error reports to. If not specified, reports will not be sent.
+	- *channel*: ID of channel to send error reports to.
+	- *webhook*: Webhook to send error reports to.
 - *shards*
 	- *total*: The total number of shards that the bot is running on.
 	- *mine*: A list of integers (starting at `0`) specifying which shards should be run in this process.

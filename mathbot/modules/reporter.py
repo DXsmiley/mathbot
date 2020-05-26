@@ -4,6 +4,7 @@ import traceback
 import discord
 from discord.ext.commands import Cog
 import termcolor
+import aiohttp
 
 import core.keystore
 import core.parameters
@@ -50,12 +51,9 @@ class ReporterTask:
 		try:
 			report_channel = await self.get_report_channel()
 			if report_channel is None:
-				message = f'Shard {self.bot.shard_ids} has started'
-				print(message)
-				await report(self.bot, message)
+				await cprint_and_report(self.bot, 'green', f'Shard {self.bot.shard_ids} has started')
 				return
-			termcolor.cprint(f'Shard `{self.bot.shard_ids}` will report errors', 'green')
-			await report_channel.send(f'Shard `{self.bot.shard_ids}` reporting for duty!')
+			await cprint_and_report(self.bot, 'green', f'Shard `{self.bot.shard_ids}` will report errors')
 			while not self.should_end:
 				try:
 					message = await self.bot.keystore.rpop('error-report')
@@ -95,8 +93,27 @@ class ReporterTask:
 				pass
 
 
+async def cprint_and_report(bot, color: str, string: str):
+	termcolor.cprint(string, color)
+	await report(bot, string)
+
+
 async def report(bot, string: str):
-	await bot.keystore.lpush('error-report', string)
+	if bot.parameters.get('error-reporting channel'):
+		await bot.keystore.lpush('error-report', string)
+	await report_via_webhook_only(bot, string)
+
+
+async def report_via_webhook_only(bot, string: str):
+	webhook_url = bot.parameters.get('error-reporting webhook')
+	if webhook_url is not None:
+		async with aiohttp.ClientSession() as session:
+			if len(string) > 2000:
+				string = string[:2000 - 3] + "..."
+			payload = { "content": string }
+			async with session.post(webhook_url, json=payload) as resp:
+				print(resp.status)
+				print(await resp.text())
 
 
 def setup(bot):

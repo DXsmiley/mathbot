@@ -25,7 +25,7 @@ import core.settings
 import utils
 
 from queuedict import QueueDict
-from modules.reporter import report
+from modules.reporter import report, report_via_webhook_only
 
 from advertising import AdvertisingMixin
 from patrons import PatronageMixin
@@ -301,12 +301,16 @@ async def _determine_prefix(bot, message):
 			prefixes = [custom + ' ', custom]
 		return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 	except Exception:
-		m = f'Exception occurred while determining prefixes, shutting down bot'
+		m = f'Exception occurred while determining prefixes, shutting down bot (shards `{bot.shard_ids}`)'
 		termcolor.cprint('*' * len(m), 'red')
 		termcolor.cprint(m, 'red')
 		termcolor.cprint('*' * len(m), 'red')
 		traceback.print_exc()
+		# Only report errors via the webhook since the redis server
+		# might be unavailable at this point
+		await report_via_webhook_only(bot, m)
 		await bot.close()
+		return []
 
 
 if __name__ == '__main__':
