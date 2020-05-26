@@ -112,8 +112,9 @@ async def report_via_webhook_only(bot, string: str):
 				string = string[:2000 - 3] + "..."
 			payload = { "content": string }
 			async with session.post(webhook_url, json=payload) as resp:
-				print(resp.status)
-				print(await resp.text())
+				if resp.status != 200:
+					termcolor.cprint(resp.status, 'red')
+					termcolor.cprint(await resp.text(), 'red')
 
 
 def setup(bot):
