@@ -103,7 +103,7 @@ class LatexModule(Cog):
 		if source == '':
 			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
-			print(f'LaTeX - {message.author} - {source}')
+			print(f'LaTeX - {message.author} {message.author.id} - {source}')
 			colour_back, colour_text = await self.get_colours(message.author)
 			# Content replacement has to happen last in case it introduces a marker
 			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE

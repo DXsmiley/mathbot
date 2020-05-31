@@ -25,7 +25,7 @@ import core.settings
 import utils
 
 from queuedict import QueueDict
-from modules.reporter import report
+from modules.reporter import report, report_via_webhook_only
 
 from advertising import AdvertisingMixin
 from patrons import PatronageMixin
@@ -64,6 +64,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self.keystore = _create_keystore(parameters)
 		self.settings = core.settings.Settings(self.keystore)
 		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
+		self.blocked_users = parameters.get('blocked-users')
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 		for i in _get_extensions(parameters):
@@ -116,26 +117,34 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			except discord.errors.HTTPException:
 				print(f'HTTPException while getting activity for guild: {guild.name}')
 
+	def should_respond_to_message(self, message):
+		if self.release == 'production' and message.author.bot:
+			return False
+		if message.author.id in self.blocked_users:
+			return False
+		if utils.is_private(message.channel):
+			return True
+		return self._can_post_in_guild(message)
+
 	async def on_message(self, message):
-		if self.release != 'production' or not message.author.bot:
-			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				context = await self.get_context(message)
-				perms = context.message.channel.permissions_for(context.me)
-				required = [
-					perms.add_reactions,
-					perms.attach_files,
-					perms.embed_links,
-					perms.read_message_history,
-				]
-				if not context.valid:
-					# dispatch a custom event
-					self.dispatch('message_discarded', message)
-				elif not all(required):
-					await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
-				else:
-					# Use d.py to invoke the actual command handler
-					context.send = self.send_patch(message, context.send)
-					await self.invoke(context)
+		if self.should_respond_to_message(message):
+			context = await self.get_context(message)
+			perms = context.message.channel.permissions_for(context.me)
+			required = [
+				perms.add_reactions,
+				perms.attach_files,
+				perms.embed_links,
+				perms.read_message_history,
+			]
+			if not context.valid:
+				# dispatch a custom event
+				self.dispatch('message_discarded', message)
+			elif not all(required):
+				await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
+			else:
+				# Use d.py to invoke the actual command handler
+				context.send = self.send_patch(message, context.send)
+				await self.invoke(context)
 
 	def send_patch(self, invoker, original):
 		async def send(*args, **kwargs):
@@ -301,12 +310,16 @@ async def _determine_prefix(bot, message):
 			prefixes = [custom + ' ', custom]
 		return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
 	except Exception:
-		m = f'Exception occurred while determining prefixes, shutting down bot'
+		m = f'Exception occurred while determining prefixes, shutting down bot (shards `{bot.shard_ids}`)'
 		termcolor.cprint('*' * len(m), 'red')
 		termcolor.cprint(m, 'red')
 		termcolor.cprint('*' * len(m), 'red')
 		traceback.print_exc()
+		# Only report errors via the webhook since the redis server
+		# might be unavailable at this point
+		await report_via_webhook_only(bot, m)
 		await bot.close()
+		return []
 
 
 if __name__ == '__main__':

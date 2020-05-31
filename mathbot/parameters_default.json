@@ -42,5 +42,6 @@
 	"calculator": {
 		"persistent": false,
 		"libraries": false
-	}
+	},
+	"blocked-users": []
 }
