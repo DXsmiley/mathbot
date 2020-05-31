@@ -12,4 +12,4 @@ bash ./scripts/pull_redis_creds_from_heroku.sh "../config.json"
 export PIPENV_YES=1
 pipenv install
 cd mathbot
-exec pipenv run python entrypoint.py ~/config.json
+exec pipenv run python -u entrypoint.py ~/config.json
