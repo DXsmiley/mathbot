@@ -207,13 +207,13 @@ class WolframModule(Cog):
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
-	async def wolf(self, ctx, *, query):
+	async def wolf(self, ctx, *, query=''):
 		await self.command_impl(ctx, query, False, 'wolf')
 
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
-	async def pup(self, ctx, *, query):
+	async def pup(self, ctx, *, query=''):
 		await self.command_impl(ctx, query, True, 'pup')
 
 	async def command_impl(self, ctx, query, small, name):
