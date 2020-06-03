@@ -67,6 +67,9 @@ class Result:
 
 		self.timeouts = list(filter(bool, qr.get('@timedout', '').split(',')))
 
+	def __repr__(self):
+		return f'Result(sections={self.sections}, assumptions={self.assumptions}, timeouts={self.timeouts})'
+
 	async def download_images(self, session):
 		futures = [i.get_futures(session) for i in self.sections]
 		await asyncio.gather(*futures)
@@ -263,10 +266,9 @@ class Section:
 	def __init__(self, pod):
 		self.title = pod.get('@title') # type: str
 		self.id = pod.get('@id') # type: str
-		self._urls = [
-			subpod['img']['@src']
-			for subpod in listify(pod.get('subpod', []))
-		]
+		subpods = listify(pod.get('subpod', []))
+		self.plaintext = ' '.join(subpod.get('plaintext') or '' for subpod in subpods) # type: str
+		self._urls = list(subpod['img']['@src'] for subpod in subpods)
 		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
 
 	def __getitem__(self, key):
@@ -285,3 +287,6 @@ class Section:
 	def get_futures(self, session):
 		futures = [self.download_image(session, i) for i in range(len(self._urls))]
 		return asyncio.gather(*futures)
+
+	def __repr__(self):
+		return f'Section(title={self.title}, id={self.id}, plaintext={self.plaintext}, _urls={self._urls}, _images={self._images})'

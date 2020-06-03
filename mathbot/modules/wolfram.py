@@ -83,6 +83,13 @@ Alternatively, you can make the query by messaging this bot directly.
 Questions and requests should be directed to <@133804143721578505> on the official MathBot server: https://discord.gg/JbJbRZS
 '''
 
+FILTER_FAILURE_INTERPRETATION = '''\
+**The _result_ for that query contained one or more banned words and will not be shown.**
+The owner of this server has the power to turn this off.
+Alternatively, you can make the query by messaging this bot directly.
+Questions and requests should be directed to <@133804143721578505> on the official MathBot server: https://discord.gg/JbJbRZS
+'''
+
 NO_API_ERROR = '''
 No key was supplied for the Wolfram|Alpha API.
 
@@ -305,17 +312,25 @@ class WolframModule(Cog):
 				await ctx.send(ERROR_MESSAGE_NO_RESULTS)
 				return
 
-			is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
+			input_interpretation_section = find_first(section_is_input, result.sections, None)
+
+			if enable_filter:
+				if input_interpretation_section is not None:
+					if wordfilter.is_bad(input_interpretation_section.plaintext):
+						await ctx.send(FILTER_FAILURE_INTERPRETATION)
+						return
 
 			sections_reduced = result.sections if not small else list(
 				cleanup_section_list(
 					itertools.chain(
-						[find_first(section_is_input, result.sections, None)],
+						[input_interpretation_section],
 						list(filter(section_is_important, result.sections))
 						or [find_first(section_is_not_input, result.sections, None)]
 					)
 				)
 			)
+
+			is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
 
 			# Post images
 			messages = []
