@@ -65,6 +65,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self.settings = core.settings.Settings(self.keystore)
 		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
 		self.blocked_users = parameters.get('blocked-users')
+		self.closing_due_to_indeterminite_prefix = False
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 		for i in _get_extensions(parameters):
@@ -301,7 +302,14 @@ def _create_keystore(parameters):
 	raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
 
 
+# Need to do this since discord.py doesn't like iterables in here
+# \uE000 is a unicode character reserved for private use
+NO_VALID_PREFIXES = ['\uE000no-valid-prefixes']
+
+
 async def _determine_prefix(bot, message):
+	if bot.closing_due_to_indeterminite_prefix:
+		return NO_VALID_PREFIXES
 	try:
 		if message.guild is None:
 			prefixes = ['= ', '=', '']
@@ -317,9 +325,10 @@ async def _determine_prefix(bot, message):
 		traceback.print_exc()
 		# Only report errors via the webhook since the redis server
 		# might be unavailable at this point
+		bot.closing_due_to_indeterminite_prefix = True
 		await report_via_webhook_only(bot, m)
 		await bot.close()
-		return []
+		return NO_VALID_PREFIXES
 
 
 if __name__ == '__main__':
