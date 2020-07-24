@@ -14,9 +14,9 @@ if [ ! -d "mathbot" ]; then
 fi
 
 echo "Stopping shards"
-for i in $seq(0 $LAST_SHARD)
+for i in $(seq 0 $LAST_SHARD)
 do
-    pm2 stop "mathbot-$i"
+    pm2 stop "mathbot-$i" || true
 done
 
 cd mathbot
@@ -28,8 +28,10 @@ git pull
 export PIPENV_YES=1
 pipenv install
 
+cd mathbot
+
 echo "Starting shards again"
-for i in $seq(0 $LAST_SHARD)
+for i in $(seq 0 $LAST_SHARD)
 do
     pm2 start "../scripts/pm2_main.sh" --name "mathbot-$i" -- $i
 done
