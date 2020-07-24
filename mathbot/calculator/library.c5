@@ -81,7 +81,8 @@ toarray(l) = array(expand(l))
 _tolist(a o) = if (a _tolist(\a 'a:o) o)
 tolist(a) = reverse(_tolist(a []))
 
-join(a b) = if (!a b 'a:join(\a b))
+_join(a b) = if (!a b 'a:_join(\a b))
+join(xs.) = foldr(_join [] xs)
 
 _merge(a b) = ifelse(
 	!a, b,
