@@ -1,5 +1,4 @@
 import core.keystore
-import expiringdict
 import warnings
 import discord
 import discord.ext.commands
