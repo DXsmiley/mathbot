@@ -21,7 +21,7 @@ done
 
 cd mathbot
 
-git checkout deploy-on-vps
+git checkout master
 git fetch
 git pull
 
