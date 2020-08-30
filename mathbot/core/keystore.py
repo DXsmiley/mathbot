@@ -64,7 +64,7 @@ class Redis(Driver):
 					(host, int(port)),
 					password = password,
 					db = self.db_number,
-					timeout = 5
+					timeout = 10
 				)
 				self.started = True
 				print('Connected to redis server!')
