@@ -13,7 +13,7 @@ set -eu
 
 API_KEY=$(jq -rM '.reboot.heroku_key' "$1")
 
-REDIS_URL=$(curl -n -X --silent --max-time 10 GET 'https://api.heroku.com/apps/dxbot/config-vars' \
+REDIS_URL=$(curl --silent --max-time 10 -n -X GET 'https://api.heroku.com/apps/dxbot/config-vars' \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/vnd.heroku+json; version=3' \
     -H "Authorization: Bearer $API_KEY" \
