@@ -263,6 +263,9 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 def run(parameters):
 	if sys.getrecursionlimit() < 2500:
 		sys.setrecursionlimit(2500)
+	shards_total = parameters.get('shards total')
+	shards_mine = parameters.get('shards mine')
+	print('Running shards {shards_mine} (total {shards_total})')
 	MathBot(parameters).run()
 
 
