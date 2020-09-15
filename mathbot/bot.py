@@ -265,7 +265,7 @@ def run(parameters):
 		sys.setrecursionlimit(2500)
 	shards_total = parameters.get('shards total')
 	shards_mine = parameters.get('shards mine')
-	print('Running shards {shards_mine} (total {shards_total})')
+	print(f'Running shards {shards_mine} (total {shards_total})')
 	MathBot(parameters).run()
 
 
