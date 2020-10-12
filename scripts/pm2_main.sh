@@ -16,4 +16,4 @@ REDIS_URL=$(bash ./scripts/pull_redis_creds_from_heroku.sh "../config.json")
 
 cd mathbot
 exec pipenv run python -u entrypoint.py ~/config.json \
-    "{\"shards\": {\"mine\": [$1]}, \"keystore\": {\"redis\": \"${REDIS_URL}\"}}"
+    "{\"shards\": {\"mine\": [$1]}, \"keystore\": {\"redis\": {\"url\": \"${REDIS_URL}\"}}}"
