@@ -17,6 +17,6 @@ REDIS_URL=$(curl --silent --max-time 10 -n -X GET 'https://api.heroku.com/apps/d
     -H 'Content-Type: application/json' \
     -H 'Accept: application/vnd.heroku+json; version=3' \
     -H "Authorization: Bearer $API_KEY" \
-    | jq '.REDIS_URL')
+    | jq -j '.REDIS_URL')
 
 echo $REDIS_URL

@@ -20,7 +20,7 @@ git fetch
 git pull
 
 echo "Stopping shards"
-pm2 stop --all
+pm2 stop all
 
 export PIPENV_YES=1
 pipenv install
