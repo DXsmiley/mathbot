@@ -25,12 +25,10 @@ pm2 stop all
 export PIPENV_YES=1
 pipenv install
 
-cd mathbot
-
-pm2 start "pipenv run python -u startup_queue.py" --name "startup-queue"
+pm2 start "./scripts/startup_queue.sh" --name "startup-queue"
 
 echo "Starting shards again"
 for i in $(seq 0 $LAST_SHARD)
 do
-    pm2 start "../scripts/pm2_main.sh" --name "mathbot-$i" -- $i
+    pm2 start "./scripts/pm2_main.sh" --name "mathbot-$i" -- $i
 done
