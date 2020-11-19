@@ -151,6 +151,10 @@ FIXED_VALUES = {
 	'π': sympy.pi,
 	'τ': sympy.pi * 2,
 	'tau': sympy.pi * 2,
+	'φ': sympy.S.GoldenRatio,
+	'phi': sympy.S.GoldenRatio,
+	'ϕ': (1 - math.sqrt(5)) / 2,
+	'phiconj': (1 - math.sqrt(5)) / 2,
 	'true': True,
 	'false': False
 }
@@ -159,8 +163,12 @@ FIXED_VALUES = {
 FIXED_VALUES_EXPORTABLE = {
 	'π': math.pi,
 	'τ': math.pi * 2,
+	'φ': (1 + math.sqrt(5)) / 2,
+	'ϕ': (1 - math.sqrt(5)) / 2,
 	'pi': math.pi,
 	'tau': math.pi * 2,
+	'phi': (1 + math.sqrt(5)) / 2,
+	'phiconj': (1 - math.sqrt(5)) / 2,
 	'true': True,
 	'false': False
 }
