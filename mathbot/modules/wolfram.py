@@ -294,7 +294,13 @@ class WolframModule(Cog):
 		try:
 			async with ctx.typing():
 				units = await ctx.bot.keystore.get(f'p-wolf-units:{author.id}')
-				result = await api.request(query, assumptions, imperial=(units == 'imperial'), debug=debug)
+				result = await api.request(
+					query,
+					assumptions,
+					imperial=(units == 'imperial'),
+					debug=debug,
+					extra_pod_information=not small
+				)
 		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
 			await ctx.send(ERROR_MESSAGE_NO_RESULTS)
 		except asyncio.TimeoutError:

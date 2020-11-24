@@ -17,6 +17,25 @@ codify = '`{}`'.format
 ASSUMPTION_EMOJI = '🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿'
 UNKNOWN_EMOJI = '❔'
 
+# There's a thing called 'podstates' which may be required to show
+# additional information. The API documentation doesn't have a list
+# of all the pod states, so I'm logging them and putting them here
+# as I discover them (or adding them to WOLF_PODSTATES if it's useful
+# to include them in queries)
+UNINTERESTING_PODSTATES = [
+	'Result__Step-by-step solution',
+	'DecimalApproximation__Fewer digits',
+	'Result__Hide limits'
+]
+
+WOLF_PODSTATES = [
+	'Result__Show limits',
+	'DecimalApproximation__More digits'
+]
+
+
+ALL_PODSTATES = UNINTERESTING_PODSTATES + WOLF_PODSTATES
+
 
 class WolframError(Exception):
 
@@ -92,12 +111,15 @@ class Client:
 		else:
 			return await self._request(query, assumptions, session=session, **kwargs)	
 
-	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20) -> Result:
+	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20, extra_pod_information: bool=False) -> Result:
 		payload = [
 			('appid', self._appid),
 			('input', query),
-			('units', 'nonmetric' if imperial else 'metric')
+			('units', 'nonmetric' if imperial else 'metric'),
 		]
+		if extra_pod_information:
+			for i in WOLF_PODSTATES:
+				payload.append(('podstate', i))
 		for i in assumptions:
 			payload.append(('assumption', i))
 		async with session.get(self._server, params=payload, timeout=timeout) as result:
@@ -108,8 +130,6 @@ class Client:
 		if download_images:
 			await result.download_images(session)
 		return result
-
-
 
 
 async def download_image(session, url):
@@ -270,6 +290,10 @@ class Section:
 		self.plaintext = ' '.join(subpod.get('plaintext') or '' for subpod in subpods) # type: str
 		self._urls = list(subpod['img']['@src'] for subpod in subpods)
 		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
+		# Just a logging thing
+		for i in listify(pod.get('states', {}).get('state', [])):
+			if i['@input'] not in ALL_PODSTATES:
+				print('Found a new podstate:', i['@name'], i['@input'])
 
 	def __getitem__(self, key):
 		v = self._images[key]
