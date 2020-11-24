@@ -223,13 +223,17 @@ class DisabledCommandByServerOwner(discord.ext.commands.CheckFailure): pass
 class DisabledCommandByServerOwnerSilent(discord.ext.commands.CheckFailure): pass
 
 
+async def raise_if_command_disabled(bot, message, setting):
+	if not await bot.settings.resolve_message(setting, message):
+		if await bot.settings.resolve_message('m-disabled-cmd', message):
+			raise DisabledCommandByServerOwner
+		else:
+			raise DisabledCommandByServerOwnerSilent
+
+
 # Maybe move this to some other file??
 def command_allowed(setting):
 	async def predicate(context):
-		if not await context.bot.settings.resolve_message(setting, context.message):
-			if await context.bot.settings.resolve_message('m-disabled-cmd', context.message):
-				raise DisabledCommandByServerOwner
-			else:
-				raise DisabledCommandByServerOwnerSilent
+		await raise_if_command_disabled(context.bot, context.message, setting)
 		return True
 	return discord.ext.commands.check(predicate)
