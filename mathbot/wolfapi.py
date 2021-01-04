@@ -111,11 +111,12 @@ class Client:
 		else:
 			return await self._request(query, assumptions, session=session, **kwargs)	
 
-	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20, extra_pod_information: bool=False) -> Result:
+	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=30, extra_pod_information: bool=False) -> Result:
 		payload = [
 			('appid', self._appid),
 			('input', query),
 			('units', 'nonmetric' if imperial else 'metric'),
+			('scantimeout', 25)
 		]
 		if extra_pod_information:
 			for i in WOLF_PODSTATES:

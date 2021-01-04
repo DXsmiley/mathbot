@@ -47,6 +47,14 @@ ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?
 """
 
+ERROR_MESSAGE_NO_RESULTS_BUT_TIMEOUTS = """Wolfram|Alpha didn't send a result back, \
+but reported that it timed out while performing calculations.
+
+You can try the query on the Wolfram|Alpha website. If it works there, this is a \
+misconfiguration of the bot and you should reporting it to DXsmiley on the official \
+server: https://discord.gg/JbJbRZS
+"""
+
 ERROR_MESSAGE_TIMEOUT = """Wolfram|Alpha query timed out.
 Maybe you should try again?
 
@@ -315,7 +323,10 @@ class WolframModule(Cog):
 		else:
 
 			if len(result.sections) == 0:
-				await ctx.send(ERROR_MESSAGE_NO_RESULTS)
+				if result.timeouts:
+					await ctx.send(ERROR_MESSAGE_NO_RESULTS_BUT_TIMEOUTS)
+				else:
+					await ctx.send(ERROR_MESSAGE_NO_RESULTS)
 				return
 
 			input_interpretation_section = find_first(section_is_input, result.sections, None)
