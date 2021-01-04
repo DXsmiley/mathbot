@@ -119,7 +119,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				print(f'HTTPException while getting activity for guild: {guild.name}')
 
 	def should_respond_to_message(self, message):
-		if self.release == 'production' and message.author.bot:
+		if self.release == 'release' and message.author.bot:
 			return False
 		if message.author.id in self.blocked_users:
 			return False
