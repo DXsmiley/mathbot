@@ -51,11 +51,14 @@ You can seek additional support on the official mathbot server: https://discord.
 class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
 	def __init__(self, parameters):
+		shard_count = parameters.get('shards total')
+		shard_ids = parameters.get('shards mine')
+		print(f'Starting bot shards {shards_ids} ({shard_count} total)')
 		super().__init__(
 			command_prefix=_determine_prefix,
 			pm_help=True,
-			shard_count=parameters.get('shards total'),
-			shard_ids=parameters.get('shards mine'),
+			shard_count=shard_count,
+			shard_ids=shard_ids,
 			max_messages=2000,
 			fetch_offline_members=False
 		)
