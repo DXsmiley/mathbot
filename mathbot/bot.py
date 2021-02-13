@@ -53,7 +53,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	def __init__(self, parameters):
 		shard_count = parameters.get('shards total')
 		shard_ids = parameters.get('shards mine')
-		print(f'Starting bot shards {shards_ids} ({shard_count} total)')
+		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
 		super().__init__(
 			command_prefix=_determine_prefix,
 			pm_help=True,
