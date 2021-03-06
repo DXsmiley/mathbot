@@ -20,7 +20,8 @@ git fetch
 git pull
 
 echo "Stopping shards"
-pm2 stop all
+# Returns 1 if there are no processes, so we need to ignore this "error"
+pm2 stop all || true
 
 export PIPENV_YES=1
 pipenv install
