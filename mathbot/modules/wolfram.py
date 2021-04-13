@@ -47,6 +47,14 @@ ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?
 """
 
+ERROR_MESSAGE_NO_RESULTS_BUT_TIMEOUTS = """Wolfram|Alpha didn't send a result back, \
+but reported that it timed out while performing calculations.
+
+You can try the query on the Wolfram|Alpha website. If it works there, this is a \
+misconfiguration of the bot and you should reporting it to DXsmiley on the official \
+server: https://discord.gg/JbJbRZS
+"""
+
 ERROR_MESSAGE_TIMEOUT = """Wolfram|Alpha query timed out.
 Maybe you should try again?
 
@@ -78,6 +86,13 @@ Please wait for it to finish before making another one.
 
 FILTER_FAILURE = '''\
 **That query contains one or more banned words and will not be run.**
+The owner of this server has the power to turn this off.
+Alternatively, you can make the query by messaging this bot directly.
+Questions and requests should be directed to <@133804143721578505> on the official MathBot server: https://discord.gg/JbJbRZS
+'''
+
+FILTER_FAILURE_INTERPRETATION = '''\
+**The _result_ for that query contained one or more banned words and will not be shown.**
 The owner of this server has the power to turn this off.
 Alternatively, you can make the query by messaging this bot directly.
 Questions and requests should be directed to <@133804143721578505> on the official MathBot server: https://discord.gg/JbJbRZS
@@ -200,13 +215,13 @@ class WolframModule(Cog):
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
-	async def wolf(self, ctx, *, query):
+	async def wolf(self, ctx, *, query=''):
 		await self.command_impl(ctx, query, False, 'wolf')
 
 	@command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
-	async def pup(self, ctx, *, query):
+	async def pup(self, ctx, *, query=''):
 		await self.command_impl(ctx, query, True, 'pup')
 
 	async def command_impl(self, ctx, query, small, name):
@@ -287,7 +302,13 @@ class WolframModule(Cog):
 		try:
 			async with ctx.typing():
 				units = await ctx.bot.keystore.get(f'p-wolf-units:{author.id}')
-				result = await api.request(query, assumptions, imperial=(units == 'imperial'), debug=debug)
+				result = await api.request(
+					query,
+					assumptions,
+					imperial=(units == 'imperial'),
+					debug=debug,
+					extra_pod_information=not small
+				)
 		except (wolfapi.WolframError, wolfapi.WolframDidntSucceed):
 			await ctx.send(ERROR_MESSAGE_NO_RESULTS)
 		except asyncio.TimeoutError:
@@ -302,20 +323,31 @@ class WolframModule(Cog):
 		else:
 
 			if len(result.sections) == 0:
-				await ctx.send(ERROR_MESSAGE_NO_RESULTS)
+				if result.timeouts:
+					await ctx.send(ERROR_MESSAGE_NO_RESULTS_BUT_TIMEOUTS)
+				else:
+					await ctx.send(ERROR_MESSAGE_NO_RESULTS)
 				return
 
-			is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
+			input_interpretation_section = find_first(section_is_input, result.sections, None)
+
+			if enable_filter:
+				if input_interpretation_section is not None:
+					if wordfilter.is_bad(input_interpretation_section.plaintext):
+						await ctx.send(FILTER_FAILURE_INTERPRETATION)
+						return
 
 			sections_reduced = result.sections if not small else list(
 				cleanup_section_list(
 					itertools.chain(
-						[find_first(section_is_input, result.sections, None)],
+						[input_interpretation_section],
 						list(filter(section_is_important, result.sections))
 						or [find_first(section_is_not_input, result.sections, None)]
 					)
 				)
 			)
+
+			is_dark = (await ctx.bot.keystore.get(f'p-tex-colour:{author.id}')) == 'dark'
 
 			# Post images
 			messages = []

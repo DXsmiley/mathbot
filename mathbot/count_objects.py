@@ -16,7 +16,7 @@ import gc
 logging.basicConfig(level = logging.INFO)
 
 
-class LeaveBot(discord.ext.commands.AutoShardedBot):
+class MyBot(discord.ext.commands.AutoShardedBot):
 
 	def __init__(self, parameters):
 		super().__init__(
@@ -40,9 +40,9 @@ class LeaveBot(discord.ext.commands.AutoShardedBot):
 
 
 	async def on_ready(self):
-		objgraph.show_most_common_types()
-		self._connection.emoji = []
-		gc.collect()
+		# objgraph.show_most_common_types()
+		# self._connection.emoji = []
+		# gc.collect()
 		objgraph.show_most_common_types()
 
 
@@ -60,4 +60,4 @@ if __name__ == '__main__':
                 with open(i) as f:
                     yield json.load(f)
 
-    LeaveBot(retrieve_parameters()).run()
+    MyBot(retrieve_parameters()).run()

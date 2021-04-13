@@ -25,7 +25,7 @@ import core.settings
 import utils
 
 from queuedict import QueueDict
-from modules.reporter import report
+from modules.reporter import report, report_via_webhook_only
 
 from advertising import AdvertisingMixin
 from patrons import PatronageMixin
@@ -51,11 +51,14 @@ You can seek additional support on the official mathbot server: https://discord.
 class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
 	def __init__(self, parameters):
+		shard_count = parameters.get('shards total')
+		shard_ids = parameters.get('shards mine')
+		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
 		super().__init__(
 			command_prefix=_determine_prefix,
 			pm_help=True,
-			shard_count=parameters.get('shards total'),
-			shard_ids=parameters.get('shards mine'),
+			shard_count=shard_count,
+			shard_ids=shard_ids,
 			max_messages=2000,
 			fetch_offline_members=False
 		)
@@ -64,6 +67,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self.keystore = _create_keystore(parameters)
 		self.settings = core.settings.Settings(self.keystore)
 		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
+		self.blocked_users = parameters.get('blocked-users')
+		self.closing_due_to_indeterminite_prefix = False
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 		for i in _get_extensions(parameters):
@@ -116,26 +121,34 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			except discord.errors.HTTPException:
 				print(f'HTTPException while getting activity for guild: {guild.name}')
 
+	def should_respond_to_message(self, message):
+		if self.release == 'release' and message.author.bot:
+			return False
+		if message.author.id in self.blocked_users:
+			return False
+		if utils.is_private(message.channel):
+			return True
+		return self._can_post_in_guild(message)
+
 	async def on_message(self, message):
-		if self.release != 'production' or not message.author.bot:
-			if utils.is_private(message.channel) or self._can_post_in_guild(message):
-				context = await self.get_context(message)
-				perms = context.message.channel.permissions_for(context.me)
-				required = [
-					perms.add_reactions,
-					perms.attach_files,
-					perms.embed_links,
-					perms.read_message_history,
-				]
-				if not context.valid:
-					# dispatch a custom event
-					self.dispatch('message_discarded', message)
-				elif not all(required):
-					await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
-				else:
-					# Use d.py to invoke the actual command handler
-					context.send = self.send_patch(message, context.send)
-					await self.invoke(context)
+		if self.should_respond_to_message(message):
+			context = await self.get_context(message)
+			perms = context.message.channel.permissions_for(context.me)
+			required = [
+				perms.add_reactions,
+				perms.attach_files,
+				perms.embed_links,
+				perms.read_message_history,
+			]
+			if not context.valid:
+				# dispatch a custom event
+				self.dispatch('message_discarded', message)
+			elif not all(required):
+				await message.channel.send(REQUIRED_PERMISSIONS_MESSAGE)
+			else:
+				# Use d.py to invoke the actual command handler
+				context.send = self.send_patch(message, context.send)
+				await self.invoke(context)
 
 	def send_patch(self, invoker, original):
 		async def send(*args, **kwargs):
@@ -223,6 +236,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				description=f'The sever owner has disabled that command in this location.',
 				colour=discord.Colour.orange()
 			))
+		elif isinstance(error, core.settings.DisabledCommandByServerOwnerSilent):
+			pass
 		elif isinstance(error, DisabledCommand):
 			await destination.send(embed=discord.Embed(
 				title='Command globally disabled',
@@ -243,7 +258,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 				embed = discord.Embed(
 					title='An internal error occurred.',
 					colour=discord.Colour.red(),
-					description='A report has been automatically sent to the developer. If you wish to follow up, or seek additional assistance, you may do so at the mathbot server: https://discord.gg/JbJbRZS'
+					description='If this keeps happening, you should contact the developers on the official mathbot server: https://discord.gg/JbJbRZS'
 				)
 				await destination.send(embed=embed)
 		finally:
@@ -253,6 +268,9 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 def run(parameters):
 	if sys.getrecursionlimit() < 2500:
 		sys.setrecursionlimit(2500)
+	shards_total = parameters.get('shards total')
+	shards_mine = parameters.get('shards mine')
+	print(f'Running shards {shards_mine} (total {shards_total})')
 	MathBot(parameters).run()
 
 
@@ -292,13 +310,35 @@ def _create_keystore(parameters):
 	raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
 
 
+# Need to do this since discord.py doesn't like iterables in here
+# \uE000 is a unicode character reserved for private use
+NO_VALID_PREFIXES = ['\uE000no-valid-prefixes']
+
+
 async def _determine_prefix(bot, message):
-	if message.guild is None:
-		prefixes = ['= ', '=', '']
-	else:
-		custom = str(await bot.settings.get_server_prefix(message))
-		prefixes = [custom + ' ', custom]
-	return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
+	if bot.closing_due_to_indeterminite_prefix:
+		return NO_VALID_PREFIXES
+	try:
+		if message.guild is None:
+			prefixes = ['= ', '=', '']
+		else:
+			custom = str(await bot.settings.get_server_prefix(message))
+			prefixes = [custom + ' ', custom]
+		return discord.ext.commands.when_mentioned_or(*prefixes)(bot, message)
+	except Exception:
+		# Avoid a flood of error messages.
+		if not bot.closing_due_to_indeterminite_prefix:
+			m = f'Exception occurred while determining prefixes, shutting down bot (shards `{bot.shard_ids}`)'
+			termcolor.cprint('*' * len(m), 'red')
+			termcolor.cprint(m, 'red')
+			termcolor.cprint('*' * len(m), 'red')
+			traceback.print_exc()
+			# Only report errors via the webhook since the redis server
+			# might be unavailable at this point
+			bot.closing_due_to_indeterminite_prefix = True
+			await report_via_webhook_only(bot, m)
+			await bot.close()
+		return NO_VALID_PREFIXES
 
 
 if __name__ == '__main__':

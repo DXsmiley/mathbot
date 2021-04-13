@@ -139,13 +139,13 @@ class CalculatorModule(Cog):
 	async def handle_libs_add(self, ctx, *, url):
 		print('Adding a library')
 		''' Command to add a new library to the server '''
-		if not await self.allow_calc_history(ctx.channel):
-			return discord.Embed(
-				title='This feature is Patron-only',
-				description='This feature is currently only avaiable to bot patrons. Go to bit.ly/mathbot to become a patron.',
-				colour=discord.Colour.red()
+		# if not await self.allow_calc_history(ctx.channel):
+		# 	return discord.Embed(
+		# 		title='This feature is Patron-only',
+		# 		description='This feature is currently only avaiable to bot patrons. Go to bit.ly/mathbot to become a patron.',
+		# 		colour=discord.Colour.red()
 
-			)
+		# 	)
 		# Filter out non-libraries
 		if not url.startswith('https://gist.github.com/'):
 			return discord.Embed(
@@ -236,8 +236,7 @@ class CalculatorModule(Cog):
 		   arg[2] not in '=<>+*/!@#$%^&' and \
 		   'results from bdsmtest.org' not in arg.lower() and \
 		   await self.bot.settings.resolve_message('f-calc-shortcut', message):
-			if not await self.bot.settings.resolve_message('c-calc', message):
-				raise core.settings.DisabledCommandByServerOwner
+			await core.settings.raise_if_command_disabled(self.bot, message, 'c-calc')
 			await self.perform_calculation(arg.strip()[2:], message, send)
 
 	# Perform a calculation and spits out a result!
@@ -285,18 +284,17 @@ class CalculatorModule(Cog):
 	async def ensure_loaded(self, channel, blame):
 		# If command were previously run in this channel, re-run them
 		# in order to re-load any functions that were defined
-		if await self.allow_calc_history(channel):
-			# Ensure that only one coroutine is allowed to execute the code
-			# in this block at once.
-			async with self.replay_state[channel.id].semaphore:
-				if not self.replay_state[channel.id].loaded:
-					if ENABLE_LIBS and not utils.is_private(channel):
-						print('Loading libraries for channel', channel)
-						await self.run_libraries(channel, channel.guild)
-					if ENABLE_HISTORY:
-						print('Replaying calculator commands for', channel)
-						await self.restore_history(channel, blame)
-					self.replay_state[channel.id].loaded = True
+		# Ensure that only one coroutine is allowed to execute the code
+		# in this block at once.
+		async with self.replay_state[channel.id].semaphore:
+			if not self.replay_state[channel.id].loaded:
+				if ENABLE_LIBS and not utils.is_private(channel):
+					print('Loading libraries for channel', channel)
+					await self.run_libraries(channel, channel.guild)
+				if ENABLE_HISTORY and await self.allow_calc_history(channel):
+					print('Replaying calculator commands for', channel)
+					await self.restore_history(channel, blame)
+				self.replay_state[channel.id].loaded = True
 
 	async def restore_history(self, channel, blame):
 		commands_unpacked = await self.unpack_commands(channel)

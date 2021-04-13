@@ -57,15 +57,16 @@ class Redis(Driver):
 	async def ensure_started(self):
 		with await self.startup_lock:
 			if not self.started:
-				self.started = True
 				user, password, host, port = re.split(r':|@', self.url[8:])
 				if password == '':
 					password = None
 				self.connection = await aioredis.create_redis_pool(
 					(host, int(port)),
 					password = password,
-					db = self.db_number
+					db = self.db_number,
+					timeout = 10
 				)
+				self.started = True
 				print('Connected to redis server!')
 
 	@staticmethod

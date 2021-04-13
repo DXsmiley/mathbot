@@ -1,5 +1,4 @@
 import core.keystore
-import expiringdict
 import warnings
 import discord
 import discord.ext.commands
@@ -221,12 +220,20 @@ def get_cannon_name(setting):
 
 
 class DisabledCommandByServerOwner(discord.ext.commands.CheckFailure): pass
+class DisabledCommandByServerOwnerSilent(discord.ext.commands.CheckFailure): pass
+
+
+async def raise_if_command_disabled(bot, message, setting):
+	if not await bot.settings.resolve_message(setting, message):
+		if await bot.settings.resolve_message('m-disabled-cmd', message):
+			raise DisabledCommandByServerOwner
+		else:
+			raise DisabledCommandByServerOwnerSilent
 
 
 # Maybe move this to some other file??
 def command_allowed(setting):
 	async def predicate(context):
-		if not await context.bot.settings.resolve_message(setting, context.message):
-			raise DisabledCommandByServerOwner
+		await raise_if_command_disabled(context.bot, context.message, setting)
 		return True
 	return discord.ext.commands.check(predicate)

@@ -9,6 +9,7 @@ List of commands:
 - `{{prefix}}prefix` - Get the bot's prefix
 - `{{prefix}}purge` - Delete messages sent by the bot
 - `{{prefix}}roll` - Roll dice
+- `{{prefix}}rollu` - Roll dice, but do not sort the output
 - `{{prefix}}set` - Modify bot settings and permissions
 - `{{prefix}}setprefix` - Set the bot's prefix
 - `{{prefix}}stats` - Number of servers, uptime, etc.
