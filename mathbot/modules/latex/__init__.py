@@ -28,7 +28,7 @@ core.help.load_from_file('./help/latex.md')
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 DELETE_EMOJI = '🗑'
-SPOILER_REGEXP = re.compile(r'\|\|\s+.*\s+\|\|$')
+SPOILER_REGEXP = re.compile(r'^\|{2}\s+.*\|{2}$')
 
 # Load data from external files
 
@@ -114,11 +114,12 @@ class LatexModule(Cog):
 			await self.render_and_reply(
 				message,
 				latex,
+				SPOILER_REGEXP.search(source),
 				colour_back,
 				oversampling=(1 if wide else 2)
 			)
 
-	async def render_and_reply(self, message, latex, colour_back, *, oversampling):
+	async def render_and_reply(self, message, latex, is_spoiler, colour_back, *, oversampling):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
 			async with message.channel.typing():
 				sent_message = None
@@ -138,7 +139,7 @@ class LatexModule(Cog):
 					else:
 						sent_message = await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
-					sent_message = await guard.send(file=discord.File(render_result, 'latex.png', spoiler=SPOILER_REGEXP.search(message.content)))
+					sent_message = await guard.send(file=discord.File(render_result, 'latex.png', spoiler=is_spoiler))
 					await self.bot.advertise_to(message.author, message.channel, guard)
 					if await self.bot.settings.resolve_message('f-tex-delete', message):
 						try:
@@ -238,7 +239,6 @@ def process_latex(latex, is_inline):
 		latex = blockformat[1].strip(' \n')
 	if SPOILER_REGEXP.search(latex):
 		latex = latex[3:-3]
-		print(latex)
 		latex = latex.replace('\\|\\|', '||')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
