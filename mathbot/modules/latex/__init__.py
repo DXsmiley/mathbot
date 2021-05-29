@@ -104,17 +104,20 @@ class LatexModule(Cog):
 			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
 			print(f'LaTeX - {message.author} {message.author.id} - {source}')
+			is_spoiler = SPOILER_REGEXP.search(source) and (len(re.findall(r'(\s\|{2}|\|{2}\s)', source)) % 2 == 0)
 			colour_back, colour_text = await self.get_colours(message.author)
 			# Content replacement has to happen last in case it introduces a marker
 			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE
 			latex = latex.replace('#COLOUR',  colour_text) \
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
-			             .replace('#CONTENT', process_latex(source, is_inline))
+			             .replace('#CONTENT', process_latex(source, is_spoiler, is_inline))
+			# evenPipes = (len(re.findall(r'(\s\|{2}|\|{2}\s)', source)) % 2 == 0)
+			print(is_spoiler)
 			await self.render_and_reply(
 				message,
 				latex,
-				SPOILER_REGEXP.search(source),
+				is_spoiler,
 				colour_back,
 				oversampling=(1 if wide else 2)
 			)
@@ -232,12 +235,12 @@ def extract_inline_tex(content):
 
 BLOCKFORMAT_REGEX = re.compile('^```(?:tex\n)?((?:.|\n)*)```$')
 
-def process_latex(latex, is_inline):
+def process_latex(latex, is_spoiler, is_inline):
 	latex = latex.strip(' \n')
 	blockformat = re.match(BLOCKFORMAT_REGEX, latex)
 	if blockformat:
 		latex = blockformat[1].strip(' \n')
-	if SPOILER_REGEXP.search(latex):
+	if is_spoiler:
 		latex = latex[3:-3]
 		latex = latex.replace('\\|\\|', '||')
 	for key, value in TEX_REPLACEMENTS.items():
