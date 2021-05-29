@@ -112,8 +112,6 @@ class LatexModule(Cog):
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
 			             .replace('#CONTENT', process_latex(source, is_spoiler, is_inline))
-			# evenPipes = (len(re.findall(r'(\s\|{2}|\|{2}\s)', source)) % 2 == 0)
-			print(is_spoiler)
 			await self.render_and_reply(
 				message,
 				latex,
