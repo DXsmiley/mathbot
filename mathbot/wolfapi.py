@@ -23,12 +23,15 @@ UNKNOWN_EMOJI = '❔'
 # as I discover them (or adding them to WOLF_PODSTATES if it's useful
 # to include them in queries)
 UNINTERESTING_PODSTATES = [
-	'Result__Step-by-step solution',
 	'DecimalApproximation__Fewer digits',
 	'Result__Hide limits'
 ]
 
 WOLF_PODSTATES = [
+	'Step-by-step solution',
+	'Step-by-step',
+	'Show all steps',
+	'Result__Step-by-step solution',
 	'Result__Show limits',
 	'DecimalApproximation__More digits'
 ]
