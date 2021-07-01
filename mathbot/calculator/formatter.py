@@ -131,7 +131,7 @@ class SimpleFormatter:
 	def fmt_glyph(self, glyph):
 		''' Format a single glyph '''
 		o = '\\t' if glyph.value == '\t' else glyph.value
-  		o = '\\n' if glyph.value == '\n' else o
+		o = '\\n' if glyph.value == '\n' else o
 		self.fmt(o)
 		# self.fmt('`', glyph.value, '`')
 
