@@ -468,7 +468,7 @@ class LibraryDownloadError(Exception):
 		self.reason = reason
 
 
-async def download_libraries(urls: [str]) -> [LibraryDownloadResult]:
+async def download_libraries(urls: typing.List[str]) -> typing.List[LibraryDownloadResult]:
 	async with aiohttp.ClientSession() as session:
 		results = await asyncio.gather(*[
 			download_library(session, i) for i in urls

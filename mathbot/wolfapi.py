@@ -290,7 +290,7 @@ class Section:
 		subpods = listify(pod.get('subpod', []))
 		self.plaintext = ' '.join(subpod.get('plaintext') or '' for subpod in subpods) # type: str
 		self._urls = list(subpod['img']['@src'] for subpod in subpods)
-		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
+		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image.Image]]
 		# Just a logging thing
 		for i in listify(pod.get('states', {}).get('state', [])):
 			if i['@input'] not in ALL_PODSTATES:
