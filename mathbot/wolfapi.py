@@ -209,11 +209,11 @@ class Assumptions:
 		self.count += 1
 		self.count_known += 1
 		values = listify(assumption.get('value', []))
-		type = assumption['@type']
-		print('Processing assumption of type', type)
+		assumption_type = assumption['@type']
+		print('Processing assumption of type', assumption_type)
 		result = None
 		template = assumption.get('@template', 'Assuming ${desc1}. Use ${desc2} instead.').replace('${', '{').replace('\\"', '"')
-		if type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
+		if assumption_type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
 			# typing.List of alternatives on a single line. "{word} is {description}"
 			optext_array = []
 			for o in values[1:]:
@@ -226,7 +226,7 @@ class Assumptions:
 				desc1 = values[0].get('@desc', '@desc'),
 				desc2 = ' or '.join(optext_array)
 			)
-		elif type == 'MultiClash':
+		elif assumption_type == 'MultiClash':
 			# Uses only substitution. Unique
 			sub_values = {}
 			word = 'error'
@@ -236,7 +236,7 @@ class Assumptions:
 				sub_values['word' + str(i + 1)] = word
 				sub_values['desc' + str(i + 1)] = emoji + codify(o['@desc'])
 			result = template.format(**sub_values)
-		elif type in {'SubCategory', 'Attribute', 'TideStation'}:
+		elif assumption_type in {'SubCategory', 'Attribute', 'TideStation'}:
 			# typing.List of alternatives on different lines. "Assuming {desc}"
 			optext_array = []
 			for o in values[1:]:
@@ -247,7 +247,7 @@ class Assumptions:
 				values[0]['@desc'],
 				'\n'.join(optext_array)
 			)
-		elif type in {'DateOrder', 'CoordinateSystem'}:
+		elif assumption_type in {'DateOrder', 'CoordinateSystem'}:
 			# typing.List of alternatives on same line. No {word}
 			optext_array = []
 			for o in values[1:]:
@@ -259,7 +259,7 @@ class Assumptions:
 				values[0]['@desc'],
 				' or '.join(optext_array)
 			)
-		elif type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
+		elif assumption_type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
 			# Only two option. May or may not have {word}.
 			v = values[1]
 			sub_values = {
@@ -271,7 +271,7 @@ class Assumptions:
 		else:
 			self.count_known -= 1
 			self.count_unknown += 1
-			result = 'Unknown assumption type `{}`'.format(type)
+			result = 'Unknown assumption type `{}`'.format(assumption_type)
 		assert(result is not None)
 		self.as_text.append(result)
 

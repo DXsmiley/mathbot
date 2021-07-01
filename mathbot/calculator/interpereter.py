@@ -777,10 +777,10 @@ def test(string):
 	# print(json.dumps(ast, indent = 4))
 	# bytes = bytecode.build({'#': 'program', 'items': [ast]})
 	builder = bytecode.CodeBuilder()
-	bytes = runtime.wrap_with_runtime(builder, ast)
+	interpreter_bytes = runtime.wrap_with_runtime(builder, ast)
 	# for index, byte in enumerate(bytes):
 	# 	print('{:3d} - {}'.format(index, byte))
-	vm = Interpereter(bytes, builder = builder, trace = True)
+	vm = Interpereter(interpreter_bytes, builder = builder, trace = True)
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
 
 

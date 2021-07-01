@@ -201,9 +201,9 @@ async def get_channel_prefix(channel):
 def redirect(setting):
 	if setting not in SETTINGS:
 		return None
-	next = SETTINGS[setting].get('redirect')
-	if next:
-		return redirect(next)
+	next_redirect = SETTINGS[setting].get('redirect')
+	if next_redirect:
+		return redirect(next_redirect)
 	return setting
 
 
