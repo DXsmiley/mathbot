@@ -215,7 +215,6 @@ class Assumptions:
 		template = assumption.get('@template', 'Assuming ${desc1}. Use ${desc2} instead.').replace('${', '{').replace('\\"', '"')
 		if type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
 			# typing.List of alternatives on a single line. "{word} is {description}"
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()
@@ -232,7 +231,6 @@ class Assumptions:
 			sub_values = {}
 			word = 'error'
 			for i, o in enumerate(values):
-				description = o['@desc'].strip()
 				emoji = '' if i == 0 else self.use_emoji(o['@input']) + ' '
 				word = o['@word'] or word
 				sub_values['word' + str(i + 1)] = word
@@ -251,7 +249,6 @@ class Assumptions:
 			)
 		elif type in {'DateOrder', 'CoordinateSystem'}:
 			# typing.List of alternatives on same line. No {word}
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()

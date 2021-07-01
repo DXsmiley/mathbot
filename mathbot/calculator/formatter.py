@@ -66,7 +66,7 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 		return 'complex_infinity'
 
 	def _print_NaN(self, expr):
-		return 'not_a_number' if self._settings.get('unicode', True) else 'not_a_number'
+		return 'not_a_number'
 
 	def _print_Pi(self, expre):
 		return 'π' if self._settings.get('unicode', True) else 'pi'
@@ -130,7 +130,8 @@ class SimpleFormatter:
 
 	def fmt_glyph(self, glyph):
 		''' Format a single glyph '''
-		o = '\\n' if glyph.value == '\n' else '\\t' if glyph.value == '\t' else glyph.value
+		o = '\\t' if glyph.value == '\t' else glyph.value
+  		o = '\\n' if glyph.value == '\n' else o
 		self.fmt(o)
 		# self.fmt('`', glyph.value, '`')
 

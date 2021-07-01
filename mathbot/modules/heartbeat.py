@@ -37,7 +37,7 @@ class Heartbeat(Cog):
 						activity=discord.Game('with numbers'),
 						status=discord.Status.idle if current_time - slowest >= 30 else discord.Status.online
 					)
-				except:
+				except Exception:
 					print('Error while changing presence based on heartbeat')
 					traceback.print_exc()
 			await asyncio.sleep(3)

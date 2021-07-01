@@ -52,7 +52,7 @@ class ParseFailed(Exception):
 	def __str__(self):
 		if self.details == '':
 			return 'Failed to parse token at position {}'.format(self.position)
-		return 'Failed to parse token at position {} : details'.format(self.position, self.details)
+		return 'Failed to parse token at position {} : {}'.format(self.position, self.details)
 
 
 class ParseFailedBlock(ParseFailed):

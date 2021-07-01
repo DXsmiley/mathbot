@@ -62,8 +62,6 @@ class SettingsModule(Cog):
 
 	expand_value = {
 		None: '--------',
-		1: 'enabled',
-		0: 'disabled',
 		True: 'enabled',
 		False: 'disabled'
 	}.get
@@ -172,10 +170,10 @@ class SettingsModule(Cog):
 	async def prefix(self, ctx, *, arg=''):
 		prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
 		p_text = prefix or '='
-		if prefix in [None, '=']:
+		if p_text in [None, '=']:
 			m = 'The prefix for this server is `=`, which is the default.'
 		else:
-			m = f'The prefix for this server is `{prefix}`, which has been customised.'
+			m = f'The prefix for this server is `{p_text}`, which has been customised.'
 		if arg:
 			m += '\nServer admins can use the `setprefix` command to change the prefix.'
 		await ctx.send(m)

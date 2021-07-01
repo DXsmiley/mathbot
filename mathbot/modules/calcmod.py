@@ -492,8 +492,6 @@ async def download_gist(session: aiohttp.ClientSession, original_url: str, gist_
 	url = f'https://api.github.com/gists/{gist_id}'
 	url_code = None
 	url_docs = None
-	author = None
-	author_av = None
 	async with session.get(url) as response:
 
 		if response.status == '404':
@@ -502,17 +500,15 @@ async def download_gist(session: aiohttp.ClientSession, original_url: str, gist_
 		response.raise_for_status()
 
 		blob = await response.json()
-		author = blob['owner']['login']
-		author_av = blob['owner']['avatar_url']
 		description = blob['description']
 
 		for filename, metadata in blob['files'].items():
 			fn = filename.lower()
-			if match_filename(filename, ('readme', 'help'), ('md', 'txt', 'rst')):
+			if match_filename(fn, ('readme', 'help'), ('md', 'txt', 'rst')):
 				if url_docs is not None:
 					raise LibraryDownloadError('Found multiple documentation files. Requires exactly 1.')
 				url_docs = metadata['raw_url']
-			elif match_filename(filename, ('source',), ('',)):
+			elif match_filename(fn, ('source',), ('',)):
 				if url_code is not None:
 					raise LibraryDownloadError('Found multiple code files. Requires exactly 1.')
 				url_code = metadata['raw_url']

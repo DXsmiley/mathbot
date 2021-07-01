@@ -41,7 +41,7 @@ def doformatted(equation, expected):
 	assert formatted == expected
 
 def repeat(equation, start, end):
-	for i in range(20):
+	for _ in range(20):
 		r = calculator.calculate(equation, tick_limit = TIMEOUT)
 		assert start <= r <= end
 

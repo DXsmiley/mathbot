@@ -301,7 +301,7 @@ class Interpereter:
 		''' Remove n items from the top of the stack and return them
 			The first item in the list comes from the top of the stack
 		'''
-		return [self.stack.pop() for i in range(count)]
+		return [self.stack.pop() for _ in range(count)]
 
 	def push(self, item):
 		'''Push an item to the stop of the stack'''

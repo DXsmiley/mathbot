@@ -135,7 +135,7 @@ async def guard(f):
 	start = time.time()
 	try:
 		return await f
-	except Exception as e:
+	except Exception:
 		print('Guard', time.time() - start)
 
 async def many():
