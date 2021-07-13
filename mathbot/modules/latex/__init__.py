@@ -154,11 +154,10 @@ class LatexModule(Cog):
 
 	@Cog.listener()
 	async def on_reaction_add(self, reaction, user):
-		if not user.bot:
-			if reaction.emoji == DELETE_EMOJI:
-				blame = await self.bot.keystore.get_json('blame', str(reaction.message.id))
-				if blame is not None and blame['id'] == user.id:
-					await reaction.message.delete()
+		if not user.bot and reaction.emoji == DELETE_EMOJI:
+			blame = await self.bot.keystore.get_json('blame', str(reaction.message.id))
+			if blame is not None and blame['id'] == user.id:
+				await reaction.message.delete()
 
 	async def get_colours(self, user):
 		colour_setting = await self.bot.keystore.get('p-tex-colour', str(user.id)) or 'dark'
@@ -191,7 +190,7 @@ async def generate_image_online(latex, colour_back, *, oversampling):
 				img_req.raise_for_status()
 				fo = io.BytesIO(await img_req.read())
 				image = PIL.Image.open(fo).convert('RGBA')
-		except aiohttp.client_exceptions.ClientResponseError as e:
+		except aiohttp.client_exceptions.ClientResponseError:
 			print('Client response error')
 			raise RenderingError(None)
 	if image.width <= 2 or image.height <= 2:

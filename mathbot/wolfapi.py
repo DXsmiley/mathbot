@@ -209,13 +209,12 @@ class Assumptions:
 		self.count += 1
 		self.count_known += 1
 		values = listify(assumption.get('value', []))
-		type = assumption['@type']
-		print('Processing assumption of type', type)
+		assumption_type = assumption['@type']
+		print('Processing assumption of type', assumption_type)
 		result = None
 		template = assumption.get('@template', 'Assuming ${desc1}. Use ${desc2} instead.').replace('${', '{').replace('\\"', '"')
-		if type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
+		if assumption_type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
 			# typing.List of alternatives on a single line. "{word} is {description}"
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()
@@ -227,18 +226,17 @@ class Assumptions:
 				desc1 = values[0].get('@desc', '@desc'),
 				desc2 = ' or '.join(optext_array)
 			)
-		elif type == 'MultiClash':
+		elif assumption_type == 'MultiClash':
 			# Uses only substitution. Unique
 			sub_values = {}
 			word = 'error'
 			for i, o in enumerate(values):
-				description = o['@desc'].strip()
 				emoji = '' if i == 0 else self.use_emoji(o['@input']) + ' '
 				word = o['@word'] or word
 				sub_values['word' + str(i + 1)] = word
 				sub_values['desc' + str(i + 1)] = emoji + codify(o['@desc'])
 			result = template.format(**sub_values)
-		elif type in {'SubCategory', 'Attribute', 'TideStation'}:
+		elif assumption_type in {'SubCategory', 'Attribute', 'TideStation'}:
 			# typing.List of alternatives on different lines. "Assuming {desc}"
 			optext_array = []
 			for o in values[1:]:
@@ -249,9 +247,8 @@ class Assumptions:
 				values[0]['@desc'],
 				'\n'.join(optext_array)
 			)
-		elif type in {'DateOrder', 'CoordinateSystem'}:
+		elif assumption_type in {'DateOrder', 'CoordinateSystem'}:
 			# typing.List of alternatives on same line. No {word}
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()
@@ -262,7 +259,7 @@ class Assumptions:
 				values[0]['@desc'],
 				' or '.join(optext_array)
 			)
-		elif type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
+		elif assumption_type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
 			# Only two option. May or may not have {word}.
 			v = values[1]
 			sub_values = {
@@ -274,7 +271,7 @@ class Assumptions:
 		else:
 			self.count_known -= 1
 			self.count_unknown += 1
-			result = 'Unknown assumption type `{}`'.format(type)
+			result = 'Unknown assumption type `{}`'.format(assumption_type)
 		assert(result is not None)
 		self.as_text.append(result)
 
@@ -290,7 +287,7 @@ class Section:
 		subpods = listify(pod.get('subpod', []))
 		self.plaintext = ' '.join(subpod.get('plaintext') or '' for subpod in subpods) # type: str
 		self._urls = list(subpod['img']['@src'] for subpod in subpods)
-		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
+		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image.Image]]
 		# Just a logging thing
 		for i in listify(pod.get('states', {}).get('state', [])):
 			if i['@input'] not in ALL_PODSTATES:
