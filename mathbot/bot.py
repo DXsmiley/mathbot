@@ -241,7 +241,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		elif isinstance(error, DisabledCommand):
 			await destination.send(embed=discord.Embed(
 				title='Command globally disabled',
-				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintaiance.',
+				description=f'That command is currently disabled. Either it relates to an unreleased feature or is undergoing maintenance.',
 				colour=discord.Colour.orange()
 			))
 		elif isinstance(error, CommandInvokeError):
