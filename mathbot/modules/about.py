@@ -6,9 +6,10 @@ import asyncio
 import aiohttp
 import datetime
 import core.help
-from discord.ext.commands import command
-import core.dreport
+from discord.ext.commands import command, Cog
 import codecs
+from modules.reporter import report
+from core.settings import command_allowed
 
 
 
@@ -36,7 +37,7 @@ async def get_bot_total_servers(id):
 			return jdata.get('server_count')
 
 
-class AboutModule:
+class AboutModule(Cog):
 
 	# Send a message detailing the shard number, server count,
 	# uptime and and memory using of this shard
@@ -82,11 +83,12 @@ class AboutModule:
 		cmd = context.bot.get_command('help')
 		await context.invoke(cmd, topic='about')
 
-	# @command(name=codecs.encode('shefhvg', 'rot_13'))
-	# async def ignore_pls(self, message):
-	# 	with open('not_an_image', 'rb') as f:
-	# 		await self.send_file(message.channel, f, filename='youaskedforit.png')
-	# 	await core.dreport.custom_report(self.client, 'It happened.')
+	@command(name=codecs.encode('shefhvg', 'rot_13'))
+	@command_allowed('x-bonus')
+	async def ignore_pls(self, context):
+		with open('not_an_image', 'rb') as f:
+			await context.send(file=discord.File(f, 'youaskedforit.png'))
+		await report(context.bot, ':fox:')
 
 
 def get_uptime():

@@ -4,16 +4,18 @@ import time
 import asyncio
 import discord
 import traceback
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 
-class Heartbeat:
+class Heartbeat(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.background_task = None
 
+	@Cog.listener()
 	async def on_ready(self):
-		self.background_task = self.bot.loop.create_task(self.pulse())
+		if self.background_task is None:
+			self.background_task = self.bot.loop.create_task(self.pulse())
 
 	async def pulse(self):
 		''' Repeatedly update the status of the bot '''
@@ -35,7 +37,7 @@ class Heartbeat:
 						activity=discord.Game('with numbers'),
 						status=discord.Status.idle if current_time - slowest >= 30 else discord.Status.online
 					)
-				except:
+				except Exception:
 					print('Error while changing presence based on heartbeat')
 					traceback.print_exc()
 			await asyncio.sleep(3)
@@ -45,6 +47,7 @@ class Heartbeat:
 
 	@command()
 	async def heartbeat(self, context):
+		error_queue_length = await self.bot.keystore.llen('error-report')
 		current_time = int(time.time())
 		lines = ['```']
 		for i in range(self.bot.shard_count):
@@ -56,7 +59,7 @@ class Heartbeat:
 				timediff // 60,
 				timediff % 60
 			))
-		lines.append('```')
+		lines += ['', f'Error queue length: {error_queue_length}', '```']
 		await context.send('\n'.join(lines))
 
 def setup(bot):

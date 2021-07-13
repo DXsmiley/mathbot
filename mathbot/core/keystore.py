@@ -57,20 +57,24 @@ class Redis(Driver):
 	async def ensure_started(self):
 		with await self.startup_lock:
 			if not self.started:
-				self.started = True
 				user, password, host, port = re.split(r':|@', self.url[8:])
 				if password == '':
 					password = None
-				self.connection = await aioredis.create_reconnecting_redis(
+				self.connection = await aioredis.create_redis_pool(
 					(host, int(port)),
 					password = password,
-					db = self.db_number
+					db = self.db_number,
+					timeout = 10
 				)
+				self.started = True
 				print('Connected to redis server!')
 
-	def decipher(self, value):
+	@staticmethod
+	def decipher(value):
 		if value is None:
 			return None
+		if isinstance(value, int):
+			return value
 		string = value.decode('utf-8')
 		try:
 			integer = int(string)
@@ -102,6 +106,10 @@ class Redis(Driver):
 	async def rpop(self, key):
 		await self.ensure_started()
 		return self.decipher(await self.connection.rpop(key))
+
+	async def llen(self, key):
+		await self.ensure_started()
+		return self.decipher(await self.connection.llen(key))
 
 
 class Disk(Driver):
@@ -148,11 +156,19 @@ class Disk(Driver):
 				return True
 		return False
 
+	@staticmethod
+	def decipher(value):
+		try:
+			return int(value)
+		except (ValueError, TypeError):
+			pass
+		return value
+
 	async def get(self, key):
 		# if the key is expires, there is no value
 		if self.is_expired(key):
 			self.data[key]['value'] = None
-		return self.data[key]['value']
+		return self.decipher(self.data[key]['value'])
 
 	async def set(self, key, value):
 		# If the key is expired, the new key has no expiery
@@ -183,7 +199,12 @@ class Disk(Driver):
 			await self.set(key, collections.deque())
 		if len(self.data[key]['value']) == 0:
 			return None
-		return self.data[key]['value'].pop()
+		return self.decipher(self.data[key]['value'].pop())
+
+	async def llen(self, key):
+		if not isinstance(self.data[key]['value'], collections.deque):
+			return 0
+		return len(self.data[key]['value'])
 
 
 class Interface:
@@ -210,7 +231,7 @@ class Interface:
 
 
 	async def get_json(self, *keys):
-		data = await get(*keys)
+		data = await self.get(*keys)
 		return None if data is None else json.loads(data)
 
 
@@ -244,19 +265,17 @@ class Interface:
 		key, time = reduce_key_val(args)
 		await self.driver.expire(key, time)
 
+	async def llen(self, *keys):
+		key = reduce_key(keys)
+		return await self.driver.llen(key)
+
 
 def create_redis(url, number = 0):
-	global INTERFACE
-	INTERFACE = Redis(url, number)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Redis(url, number))
 
 
 def create_disk(filename):
-	global INTERFACE
-	INTERFACE = Disk(filename)
-	SETUP = True
-	return Interface(INTERFACE)
+	return Interface(Disk(filename))
 
 
 def reduce_key(keys):

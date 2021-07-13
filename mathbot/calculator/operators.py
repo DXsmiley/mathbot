@@ -16,12 +16,20 @@ LIST_OF_NOTHING = ['nothing'] * 4
 # Set of functions that call the asyncronous comparitors.
 # Only __aeq__ and __alt__ should be implemented.
 
+def rectify_bool(x):
+	if x is sympy.true:
+		return True
+	if x is sympy.false:
+		return False
+	return x
+
+
 async def super_equals(a, b):
 	if hasattr(a, '__aeq__'):
 		return await a.__aeq__(b)
 	if hasattr(b, '__aeq__'):
 		return await b.__aeq__(a)
-	return a == b
+	return rectify_bool(a == b)
 
 async def super_not_equals(a, b):
 	return not (await super_equals(a, b))
@@ -29,7 +37,7 @@ async def super_not_equals(a, b):
 async def super_less_than(a, b):
 	if hasattr(a, '__alt__'):
 		return await a.__alt__(b)
-	return a < b
+	return rectify_bool(a < b)
 
 async def super_less_eq(a, b):
 	return (await super_equals(a, b)) or (await super_less_than(a, b))

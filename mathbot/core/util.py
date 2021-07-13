@@ -1,4 +1,5 @@
 import functools
+import discord
 
 def permission_names(perm):
 	for permission, has in perm:
@@ -11,5 +12,8 @@ def respond(coro):
 	async def internal(self, ctx, *args, **kwargs):
 		result = await coro(self, ctx, *args, **kwargs)
 		if result is not None:
-			await ctx.send(result)
+			if isinstance(result, discord.Embed):
+				await ctx.send(embed=result)
+			else:
+				await ctx.send(result)
 	return internal

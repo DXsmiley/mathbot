@@ -4,7 +4,7 @@ import asyncio
 from utils import is_private
 
 
-from discord.ext.commands import command, guild_only, has_permissions
+from discord.ext.commands import command, guild_only, has_permissions, Cog
 
 USER_PERM_ERROR = '''\
 You do not have the permissions required to perform that operation in this channel.
@@ -18,7 +18,7 @@ See `=help purge` for more details.
 
 core.help.load_from_file('./help/purge.md')
 
-class PurgeModule:
+class PurgeModule(Cog):
 	@command()
 	@guild_only()
 	@has_permissions(manage_messages=True)

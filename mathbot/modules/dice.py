@@ -7,7 +7,7 @@ import random
 import core.help
 import core.settings
 import core.util
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import math
 
 core.help.load_from_file('./help/roll.md')
@@ -21,7 +21,7 @@ class DiceException(Exception): pass
 class ValuesTooBigException(DiceException): pass
 
 
-class DiceModule:
+class DiceModule(Cog):
 
 	''' Module to allow the user to roll dice '''
 
@@ -30,11 +30,23 @@ class DiceModule:
 	@core.util.respond
 	async def roll(self, ctx, arg):
 		''' Roll command. Argument should be of the format `2d6` or similar. '''
+		return await self.handle_roll(ctx, arg, should_sort=True)
+
+	@command()
+	@core.settings.command_allowed('c-roll')
+	@core.util.respond
+	async def rollu(self, ctx, arg):
+		''' Variant of the roll command that does not sort the output. '''
+		return await self.handle_roll(ctx, arg, should_sort=False)
+
+	async def handle_roll(self, ctx, arg, should_sort):
 		match = FORMAT_REGEX.match(arg.strip('`'))
 		if match is None or match.group(2) is None:
 			return '🎲 Format your rolls like `2d6`.'
 		dice, faces = match.group(1, 2)
 		dice = int(dice or 1)
+		if dice <= 0:
+			return '🎲 At least one dice must be rolled.'
 		faces = int(faces or 6)
 		if faces <= 0:
 			return '🎲 Dice must have a positive number of faces.'
@@ -60,7 +72,7 @@ class DiceModule:
 
 			return f'🎲 total: {total}'
 		else:
-			rolls, total = self.formatted_roll(dice, faces)
+			rolls, total = self.formatted_roll(dice, faces, should_sort=should_sort)
 			final_message = f'🎲 {rolls}'
 			return final_message if len(final_message) <= limit else f'🎲 total: {total}'
 
@@ -69,11 +81,12 @@ class DiceModule:
 		unlimited = await ctx.bot.settings.resolve_message('f-roll-unlimited', ctx.message)
 		return 2000 if unlimited else 200
 
-	def formatted_roll(self, dice, faces):
+	def formatted_roll(self, dice, faces, should_sort=True):
 		''' Roll dice and return a string of the results as well as the total. '''
-		rolls = sorted(random.randint(1, faces) for _ in range(dice))
+		rolls = [random.randint(1, faces) for _ in range(dice)]
 		total = sum(rolls)
-		s = f'{" ".join(map(str, rolls))} (total: {total})'
+		ordered_rolls = sorted(rolls) if should_sort else rolls
+		s = f'{" ".join(map(str, ordered_rolls))} (total: {total})'
 		return (s if dice > 1 else str(total)), total
 
 	def gaussian_roll(self, dice, faces, limit=100000):

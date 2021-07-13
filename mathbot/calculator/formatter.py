@@ -12,6 +12,7 @@ import re
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes) # pylint: disable=no-member
+ELEMENT_SEPARATOR = '  '
 
 
 class Collector:
@@ -65,19 +66,20 @@ class CustomSympyPrinter(sympy.printing.str.StrPrinter):
 		return 'complex_infinity'
 
 	def _print_NaN(self, expr):
-		return 'not_a_number' if self._settings.get('unicode', True) else 'not_a_number'
+		return 'not_a_number'
 
 	def _print_Pi(self, expre):
 		return 'π' if self._settings.get('unicode', True) else 'pi'
 
 	def _print_Integer(self, expr):
+		SEP = '\N{SINGLE LOW-9 QUOTATION MARK}'
 		normal = super()._print_Integer(expr)[::-1]
 		out = []
 		for i, c in enumerate(normal):
 			if i % 3 == 0 and i != 0:
-				out.append('\N{SINGLE LOW-9 QUOTATION MARK}')
+				out.append(SEP)
 			out.append(c)
-		return ''.join(out[::-1])
+		return ''.join(out[::-1]).replace('-' + SEP, '-')
 
 
 class SimpleFormatter:
@@ -128,7 +130,8 @@ class SimpleFormatter:
 
 	def fmt_glyph(self, glyph):
 		''' Format a single glyph '''
-		o = '\\n' if glyph.value == '\n' else '\\t' if glyph.value == '\t' else glyph.value
+		o = '\\t' if glyph.value == '\t' else glyph.value
+		o = '\\n' if glyph.value == '\n' else o
 		self.fmt(o)
 		# self.fmt('`', glyph.value, '`')
 
@@ -136,7 +139,7 @@ class SimpleFormatter:
 		''' Format an array '''
 		self.fmt('array(')
 		for i in array:
-			self.fmt(i, ', ')
+			self.fmt(i, ELEMENT_SEPARATOR)
 		self.drop()
 		self.fmt(')')
 
@@ -159,15 +162,15 @@ class SimpleFormatter:
 		else:
 			self.fmt('[')
 			for i in lst:
-				self.fmt(i, ', ')
+				self.fmt(i, ELEMENT_SEPARATOR)
 			self.drop()
 			self.fmt(']')
 
 	def fmt_py_list(self, lst):
-		''' Formay a python list '''
+		''' Format a python list '''
 		self.fmt('(')
 		for i in lst:
-			self.fmt(i, ', ')
+			self.fmt(i, ', ') # leave alone as it needs to remain Python syntax
 		if lst:
 			self.drop()
 		self.fmt(')')

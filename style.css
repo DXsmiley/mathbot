@@ -76,6 +76,7 @@ button {
 	/*bottom: 0px;*/
 	transition: 0.3s;
 	transform: scale(1);
+	cursor: pointer;
 }
 
 button:hover {

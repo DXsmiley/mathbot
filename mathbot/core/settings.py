@@ -1,5 +1,4 @@
 import core.keystore
-import expiringdict
 import warnings
 import discord
 import discord.ext.commands
@@ -13,6 +12,7 @@ SETTINGS = {
 	'c-calc': {'default': True},
 	'c-wolf': {'default': True},
 	'c-roll': {'default': True},
+	'c-oeis': {'default': True},
 	'f-calc-shortcut': {'default': True},
 	'f-wolf-filter': {'default': True},
 	'f-wolf-mention': {'default': True},
@@ -20,8 +20,10 @@ SETTINGS = {
 	'f-delete-tex': {'default': False},
 	'f-tex-inline': {'redirect': 'f-inline-tex', 'cannon-name': True},
 	'f-tex-delete': {'redirect': 'f-delete-tex', 'cannon-name': True},
+	'f-tex-trashcan': {'default': True},
 	'f-roll-unlimited': {'default': False},
 	'm-disabled-cmd': {'default': True},
+	'x-bonus': {'default': True},
 }
 
 
@@ -199,9 +201,9 @@ async def get_channel_prefix(channel):
 def redirect(setting):
 	if setting not in SETTINGS:
 		return None
-	next = SETTINGS[setting].get('redirect')
-	if next:
-		return redirect(next)
+	next_redirect = SETTINGS[setting].get('redirect')
+	if next_redirect:
+		return redirect(next_redirect)
 	return setting
 
 
@@ -218,12 +220,20 @@ def get_cannon_name(setting):
 
 
 class DisabledCommandByServerOwner(discord.ext.commands.CheckFailure): pass
+class DisabledCommandByServerOwnerSilent(discord.ext.commands.CheckFailure): pass
+
+
+async def raise_if_command_disabled(bot, message, setting):
+	if not await bot.settings.resolve_message(setting, message):
+		if await bot.settings.resolve_message('m-disabled-cmd', message):
+			raise DisabledCommandByServerOwner
+		else:
+			raise DisabledCommandByServerOwnerSilent
 
 
 # Maybe move this to some other file??
 def command_allowed(setting):
 	async def predicate(context):
-		if not await context.bot.settings.resolve_message(setting, context.message):
-			raise DisabledCommandByServerOwner
+		await raise_if_command_disabled(context.bot, context.message, setting)
 		return True
 	return discord.ext.commands.check(predicate)

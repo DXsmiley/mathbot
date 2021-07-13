@@ -1,15 +1,21 @@
 # Provides stats on the bot to bot listing services
 
 import aiohttp
+from discord.ext.commands import Cog
 
-CARBON_URL = 'https://www.carbonitex.net/discord/data/botdata.php'
-DISCORD_BOTS_URL = 'https://bots.discord.pw/api/bots/{bot_id}/stats'
 BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
+BOTS_GG_URL = 'https://discord.bots.gg/api/v1/bots/{bot_id}/stats'
 
-class AnalyticsModule:
+HITLIST = [
+	(BOTS_ORG_URL, 'bots-org', 'server_count', 'shard_count', 'shard_id'),
+	(BOTS_GG_URL, 'bots-gg', 'guildCount', 'shardCount', 'shardId')
+]
+
+class AnalyticsModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
+		self.done_report = False
 
 	async def identify_bot_farms(self):
 		''' This function lists any medium / large servers with more bots
@@ -35,44 +41,38 @@ class AnalyticsModule:
 					server.name
 				))
 
+	@Cog.listener()
 	async def on_ready(self):
-		num_servers = len(self.bot.guilds)
-		num_shards = self.bot.parameters.get('shards total')
-		print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
-		async with aiohttp.ClientSession() as session:
-			for shard_id in self.bot.shard_ids:
-				# Submit stats to bots.discord.pw
-				discord_bots_key = self.bot.parameters.get('analytics discord-bots')
-				if discord_bots_key:
-					url = DISCORD_BOTS_URL.format(bot_id = self.bot.user.id)
-					await self.send_stats(session, num_servers, num_shards, shard_id, url, discord_bots_key)
-				# Submit to discordbots.org
-				bots_org_key = self.bot.parameters.get('analytics bots-org')
-				if bots_org_key:
-					url = BOTS_ORG_URL.format(bot_id = self.bot.user.id)
-					await self.send_stats(session, num_servers, num_shards, shard_id, url, bots_org_key)
-				# All servers get attached to the first shard, subsequent ones are zero
-				# bots.discord.pw bugs out when given zero servers though.
-				num_servers = 1
-
-	@staticmethod
-	async def send_stats(session, num_servers, num_shards, shard_id, url, key):
-		# Both the servers have a similar API so we can do this
-		payload = {
-			'json': {
-				'server_count': num_servers,
-				'shard_count': num_shards,
-				'shard_id': shard_id
-			},
-			'headers': {
-				'Authorization': key,
-				'Content-Type': 'application/json'
-			}
-		}
-		async with session.post(url, **payload) as response:
-			print(f'Analytics ({url}): {response.status}')
-			if response.status not in [200, 204]:
-				print(await response.text())
+		# gets triggered on every reconnect, but we only want to
+		# report things when the bot as a whole restarts,
+		# which is abouve once a day
+		if not self.done_report:
+			self.done_report = True
+			num_servers = len(self.bot.guilds)
+			num_shards = self.bot.parameters.get('shards total')
+			print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
+			async with aiohttp.ClientSession() as session:
+				for shard_id in self.bot.shard_ids:
+					for (url_template, key_location, k_servers, k_shard, k_sid) in HITLIST:
+						key = self.bot.parameters.get('analytics ' + key_location)
+						if key:
+							url = url_template.format(bot_id = self.bot.user.id)
+							payload = {
+								'json': {
+									k_servers: num_servers,
+									k_shard: num_shards,
+									k_sid: shard_id
+								},
+								'headers': {
+									'Authorization': key,
+									'Content-Type': 'application/json'
+								}
+							}
+							async with session.post(url, **payload) as response:
+								print(f'Analytics ({url}): {response.status}')
+								if response.status not in [200, 204]:
+									print(await response.text())
+					num_servers = 1
 
 
 def setup(bot):

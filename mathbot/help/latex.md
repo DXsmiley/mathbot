@@ -1,4 +1,4 @@
-:::topics latex tex rtex
+:::topics latex tex rtex texw texp
 
 # LaTeX
 
@@ -25,6 +25,8 @@ The bot currently uses an external rendering service. The following features are
  - Macros such as `\@ifpackageloaded`.
  - Loading of external images, and other resources.
 
+:::page-break
+
 ## Inline LaTeX
 
 *This feature is currently disabled by default and must be turned on by the server owner. The server owner should run the command `=set server f-tex-inline enable`.*
@@ -36,6 +38,13 @@ Examples
 `The answer is $$x^{2 + y}$$.`
 
 `$$1 + 2$$ equals $$3$$.`
+
+## Alternative forms
+
+The `{{prefix}}texw` command (**w** for **wide**) will increase the with of the "paper", allowing for wider equations.
+
+The `{{prefix}}texp` command (**p** for **plain**) will remove the `\begin` and `\end` boilerplate, allowing you to add your own. This is useful if you're using `tikzcd` or similar.
+
 
 ## Deleting Commands
 

@@ -2,7 +2,7 @@
 
 # Turing Completeness
 
-See `{{prefic}}help calc-more` for a list of basic builtin functions.
+See `{{prefix}}help calc-more` for a list of basic builtin functions.
 See `{{prefix}}help turing-library` for builtin functions that operate over more complicated data structures.
 
 ## Introduction
@@ -90,15 +90,17 @@ double = (x) -> x * 2
 
 Alternatively, functions defined at the top level can be given names.
 ```
-add(x y) -> x + y
+add(x y) = x + y
 ```
 
-Lambda functions that take a single argument can be defined using a shorthand that excludes the parenthesis.
+Anonymous functions that take a single argument can be defined using a shorthand that excludes the parenthesis.
 ```
 a -> a + 1
 ```
 
 ### Macro Functions
+
+*Macros may be removed at some point in the future, since they serve no purpose in a lazy language.*
 
 Macros are similar to normal functions, with the difference that all arguments have to be evaluated on demand: Your function gets a series of functions, which take no arguments and return the original value.
 
@@ -147,6 +149,30 @@ Appending a glyph to the start of a string (the brakets aren't required here)
 ```
 
 Note that `; ` is represents a single space.
+
+:::page-break
+
+### Assoc-Lists
+
+"Assoc-Lists" are a data structure similar to dictionaries. That means you can associate certain keys to certain values. For instance i could create a dictionary that says certain books refer to certain authors.
+
+Assoc-Lists are implemented as lists, and they consist of a list of pairs: `[["a" 1] ["b" 2] ["c" 3]]` would be an assoc list mapping.
+```
+"a" -> 1
+"b" -> 2
+"c" -> 3
+```
+You can add more key-value pairs to the list using the `assoc` function: `assoc([["a" 1] ["b" 2] ["c" 3]] "hello" 55)` would result in the assoc-list `[["a" 1] ["b" 2] ["c" 3] ["hello" 55]]`. One key can only be mapped to one element, for instance you can't get `[["a" 1] ["a" 2] ["b" 3]]`.
+
+You can get a value given a key by using the function `get`: `get([["a" 1] ["b" 2] ["c" 3] ["hello" 55]] "hello")` would return `55`.
+
+You can remove a key with the function `aremove`: `aremove([["a" 1] ["b" 2] ["c" 3] ["hello" 55]] "b")` would return `[["a" 1] ["c" 3] ["hello" 55]]`.
+
+### Sets
+
+Sets are lists where every element is unique, in order to make a set simply use the function `to_set`. As an example: `to_set([2,1,5,2,3,5,1])` would return `[3,1,5,2]`. Note that order isn't preserved, for instance `to_set([1,2,3,4])` gives `[1, 3, 4, 2]`.
+
+Adding an element to the set is done with `set_insert`: `set_insert([1,2,3,4], 2)` becomes `[4,3,2,1]`.  
 
 :::page-break
 

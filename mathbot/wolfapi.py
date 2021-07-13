@@ -17,6 +17,25 @@ codify = '`{}`'.format
 ASSUMPTION_EMOJI = '🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿'
 UNKNOWN_EMOJI = '❔'
 
+# There's a thing called 'podstates' which may be required to show
+# additional information. The API documentation doesn't have a list
+# of all the pod states, so I'm logging them and putting them here
+# as I discover them (or adding them to WOLF_PODSTATES if it's useful
+# to include them in queries)
+UNINTERESTING_PODSTATES = [
+	'Result__Step-by-step solution',
+	'DecimalApproximation__Fewer digits',
+	'Result__Hide limits'
+]
+
+WOLF_PODSTATES = [
+	'Result__Show limits',
+	'DecimalApproximation__More digits'
+]
+
+
+ALL_PODSTATES = UNINTERESTING_PODSTATES + WOLF_PODSTATES
+
 
 class WolframError(Exception):
 
@@ -67,6 +86,9 @@ class Result:
 
 		self.timeouts = list(filter(bool, qr.get('@timedout', '').split(',')))
 
+	def __repr__(self):
+		return f'Result(sections={self.sections}, assumptions={self.assumptions}, timeouts={self.timeouts})'
+
 	async def download_images(self, session):
 		futures = [i.get_futures(session) for i in self.sections]
 		await asyncio.gather(*futures)
@@ -89,12 +111,16 @@ class Client:
 		else:
 			return await self._request(query, assumptions, session=session, **kwargs)	
 
-	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=20) -> Result:
+	async def _request(self, query: str, assumptions: typing.List[str] = [], *, session: aiohttp.ClientSession, imperial: bool=False, debug: bool=False, download_images: bool=True, timeout: int=30, extra_pod_information: bool=False) -> Result:
 		payload = [
 			('appid', self._appid),
 			('input', query),
-			('units', 'nonmetric' if imperial else 'metric')
+			('units', 'nonmetric' if imperial else 'metric'),
+			('scantimeout', 25)
 		]
+		if extra_pod_information:
+			for i in WOLF_PODSTATES:
+				payload.append(('podstate', i))
 		for i in assumptions:
 			payload.append(('assumption', i))
 		async with session.get(self._server, params=payload, timeout=timeout) as result:
@@ -105,8 +131,6 @@ class Client:
 		if download_images:
 			await result.download_images(session)
 		return result
-
-
 
 
 async def download_image(session, url):
@@ -185,13 +209,12 @@ class Assumptions:
 		self.count += 1
 		self.count_known += 1
 		values = listify(assumption.get('value', []))
-		type = assumption['@type']
-		print('Processing assumption of type', type)
+		assumption_type = assumption['@type']
+		print('Processing assumption of type', assumption_type)
 		result = None
 		template = assumption.get('@template', 'Assuming ${desc1}. Use ${desc2} instead.').replace('${', '{').replace('\\"', '"')
-		if type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
+		if assumption_type in {'Clash', 'Unit', 'Function', 'NumberBase'}:
 			# typing.List of alternatives on a single line. "{word} is {description}"
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()
@@ -203,18 +226,17 @@ class Assumptions:
 				desc1 = values[0].get('@desc', '@desc'),
 				desc2 = ' or '.join(optext_array)
 			)
-		elif type == 'MultiClash':
+		elif assumption_type == 'MultiClash':
 			# Uses only substitution. Unique
 			sub_values = {}
 			word = 'error'
 			for i, o in enumerate(values):
-				description = o['@desc'].strip()
 				emoji = '' if i == 0 else self.use_emoji(o['@input']) + ' '
 				word = o['@word'] or word
 				sub_values['word' + str(i + 1)] = word
 				sub_values['desc' + str(i + 1)] = emoji + codify(o['@desc'])
 			result = template.format(**sub_values)
-		elif type in {'SubCategory', 'Attribute', 'TideStation'}:
+		elif assumption_type in {'SubCategory', 'Attribute', 'TideStation'}:
 			# typing.List of alternatives on different lines. "Assuming {desc}"
 			optext_array = []
 			for o in values[1:]:
@@ -225,9 +247,8 @@ class Assumptions:
 				values[0]['@desc'],
 				'\n'.join(optext_array)
 			)
-		elif type in {'DateOrder', 'CoordinateSystem'}:
+		elif assumption_type in {'DateOrder', 'CoordinateSystem'}:
 			# typing.List of alternatives on same line. No {word}
-			assumed = values[0]
 			optext_array = []
 			for o in values[1:]:
 				description = o['@desc'].strip()
@@ -238,7 +259,7 @@ class Assumptions:
 				values[0]['@desc'],
 				' or '.join(optext_array)
 			)
-		elif type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
+		elif assumption_type in {'MortalityYearDOB', 'typing.ListOrNumber', 'MixedFraction', 'AngleUnit', 'TimeAMOrPM', 'I', 'typing.ListOrTimes'}:
 			# Only two option. May or may not have {word}.
 			v = values[1]
 			sub_values = {
@@ -250,7 +271,7 @@ class Assumptions:
 		else:
 			self.count_known -= 1
 			self.count_unknown += 1
-			result = 'Unknown assumption type `{}`'.format(type)
+			result = 'Unknown assumption type `{}`'.format(assumption_type)
 		assert(result is not None)
 		self.as_text.append(result)
 
@@ -263,11 +284,14 @@ class Section:
 	def __init__(self, pod):
 		self.title = pod.get('@title') # type: str
 		self.id = pod.get('@id') # type: str
-		self._urls = [
-			subpod['img']['@src']
-			for subpod in listify(pod.get('subpod', []))
-		]
-		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image]]
+		subpods = listify(pod.get('subpod', []))
+		self.plaintext = ' '.join(subpod.get('plaintext') or '' for subpod in subpods) # type: str
+		self._urls = list(subpod['img']['@src'] for subpod in subpods)
+		self._images = [None] * len(self._urls) # type: typing.List[typing.Optional[PIL.Image.Image]]
+		# Just a logging thing
+		for i in listify(pod.get('states', {}).get('state', [])):
+			if i['@input'] not in ALL_PODSTATES:
+				print('Found a new podstate:', i['@name'], i['@input'])
 
 	def __getitem__(self, key):
 		v = self._images[key]
@@ -285,3 +309,6 @@ class Section:
 	def get_futures(self, session):
 		futures = [self.download_image(session, i) for i in range(len(self._urls))]
 		return asyncio.gather(*futures)
+
+	def __repr__(self):
+		return f'Section(title={self.title}, id={self.id}, plaintext={self.plaintext}, _urls={self._urls}, _images={self._images})'

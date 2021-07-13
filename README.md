@@ -30,7 +30,7 @@ Then open parameters.json and change `tokens` to the token of the bot used for d
 
 It is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Setup for development
 
@@ -44,7 +44,7 @@ pipenv install --dev --skip-lock
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
 
-Then navigate into the `mathbot` directory and run the bot with `python bot.py parameters.json`.
+Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
 
 ## Contributing guide
 
@@ -65,9 +65,9 @@ This should really only be used for development and personal use.
 
 Use the `test` script in side the `mathbot` folder to run the test suite.
 
-Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the neccicary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
+Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the necessary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
 
-For the sake example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
+For the sake of example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
 
 There are some additional tests that require a human to verify the bot's output. These can be enabled with `--run-automata-human`.
 
@@ -100,10 +100,22 @@ There are some additional tests that require a human to verify the bot's output.
 	- *interval* : the number of queries between mentions of the Patreon page. This is measured on a per-channel basis.
 	- *starting-amount* : Can be increased to lower the number of commands until the Patreon page is first mention.
 - *error-reporting*
-	- *channel*: ID of channel to send error reports to. If not specified, reports will not be sent.
+	- *channel*: ID of channel to send error reports to.
+	- *webhook*: Webhook to send error reports to.
 - *shards*
 	- *total*: The total number of shards that the bot is running on.
 	- *mine*: A list of integers (starting at `0`) specifying which shards should be run in this process.
-- *calculator*
-	- *persistent*: `true` or `false`. Enable to remember calculator history between runs. Off by default.
-	- *libraries*: `true` or `false`. Enables the `=libs` set of commands. Off by default.
+
+## Additional Installation Issues (Ubuntu only)
+
+If you don't have python 3.6
+```
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.6
+```
+
+If you have installation troubles with cffi or psutil
+```
+sudo apt-get install python3.6-dev
+```

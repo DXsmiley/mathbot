@@ -4,21 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-cffi = "*"
-aiohttp = "==3.3.2"
-sympy = "*"
-aioredis = "==0.3.0"
-coverage = "*"
-expiringdict = {git = "https://github.com/mailgun/expiringdict.git", ref = "2fa0e533c2737e89ccaf66e72b497f5a654d2607"}
-"discord.py" = {git = "https://github.com/Rapptz/discord.py", ref = "607771c4f49a12d984d782883a580e7332359a10"}
-psutil = "*"
-xmltodict = "*"
-Markdown = "*"
-Pillow = "*"
-termcolor = "*"
+cffi = ">=1.14.0"
+aiohttp = ">=3.3.2"
+aioredis = "==1.2.0"
+sympy = "==1.4"
+psutil = ">=5.7.2"
+xmltodict = ">=0.12.0"
+Pillow = ">=7.2.0 "
+termcolor = ">=1.1.0"
+objgraph = ">=3.4.1"
+"discord.py" = "==1.3.4"
 
 [dev-packages]
-pytest = "==3.6.1"
+pytest = ">=3.6.1"
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-ordering = "*"

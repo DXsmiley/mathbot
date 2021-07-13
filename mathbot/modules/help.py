@@ -2,7 +2,7 @@
 
 import re
 import core.help
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 import discord
 from utils import is_private
 
@@ -18,12 +18,16 @@ def doubleformat(string, **replacements):
 	return string
 
 
-class HelpModule:
+class HelpModule(Cog):
 	''' Module that serves help pages. '''
 
 	@command()
 	async def support(self, context):
 		await context.send(f'Mathbot support server: {SERVER_LINK}')
+
+	@command()
+	async def invite(self, context):
+		await context.send('Add mathbot to your server: https://dxsmiley.github.io/mathbot/add.html')
 
 	@command()
 	async def help(self, context, *, topic='help'):
@@ -42,6 +46,10 @@ class HelpModule:
 
 		# Display the default prefix if the user is in DMs and uses no prefix.
 		prefix = context.prefix or '='
+
+		print(prefix, context.bot.user.id)
+		if prefix.strip() in [f'<@{context.bot.user.id}>', f'<@!{context.bot.user.id}>']:
+			prefix = '@MathBot '
 		
 		try:
 			for index, page in enumerate(found_doc):
@@ -75,10 +83,10 @@ class HelpModule:
 	def _suggest_topics(self, typo):
 		suggestions = core.help.get_similar(typo)
 		if not suggestions:
-			return f"Help topic `{typo}` does not exist."
+			return f"That help topic does not exist."
 		elif len(suggestions) == 1:
-			return f"Help topic `{typo}` does not exist.\nMaybe you meant `{suggestions[0]}`?"
-		return f"Help topic `{typo}` does not exist.\nMaybe you meant one of: {', '.join(map('`{}`'.format, suggestions))}?"
+			return f"That help topic does not exist.\nMaybe you meant `{suggestions[0]}`?"
+		return f"That help topic does not exist.\nMaybe you meant one of: {', '.join(map('`{}`'.format, suggestions))}?"
 
 def setup(bot):
 	bot.add_cog(HelpModule())

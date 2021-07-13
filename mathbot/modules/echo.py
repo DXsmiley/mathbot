@@ -1,10 +1,10 @@
 # Has a command which echoes whatever text was given to it.
 # Used only for testing purposes.
 
-from discord.ext.commands import command
+from discord.ext.commands import command, Cog
 
 
-class EchoModule:
+class EchoModule(Cog):
 
 	def __init__(self, bot):
 		self.bot = bot

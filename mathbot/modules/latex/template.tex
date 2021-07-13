@@ -7,6 +7,7 @@
 \usepackage{chemfig}
 \usepackage[siunitx, american]{circuitikz}
 \usepackage{mathtools}
+\usepackage{esint} % Having this before mathtools causes problems
 \usepackage{mhchem}
 \usepackage{tikz-cd}
 \usepackage{color}
@@ -14,6 +15,13 @@
 \usepackage{cancel}
 \usepackage[#PAPERTYPE]{geometry}
 \usepackage{dsfont}
+\usepackage{bm}
+\usepackage{nicefrac}
+\usepackage{physics}
+
+% The physics package redifines \div to be "divergence",
+% but that's not what anyone wants
+\renewcommand{\div}{\divisionsymbol}
 
 % Hebrew characters (from https://tex.stackexchange.com/a/226850)
 \DeclareFontFamily{U}{rcjhbltx}{}
@@ -48,6 +56,34 @@
 \newcommand{\bigO}{\mathcal{O}}
 \newcommand{\ceil}[1]{\left\lceil{#1}\right\rceil}
 \newcommand{\floor}[1]{\left\lfloor{#1}\right\rfloor}
+\newcommand{\lif}{\rightarrow}
+
+\newcommand{\calA}{\mathcal{A}}
+\newcommand{\calB}{\mathcal{B}}
+\newcommand{\calC}{\mathcal{C}}
+\newcommand{\calD}{\mathcal{D}}
+\newcommand{\calE}{\mathcal{E}}
+\newcommand{\calF}{\mathcal{F}}
+\newcommand{\calG}{\mathcal{G}}
+\newcommand{\calH}{\mathcal{H}}
+\newcommand{\calI}{\mathcal{I}}
+\newcommand{\calJ}{\mathcal{J}}
+\newcommand{\calK}{\mathcal{K}}
+\newcommand{\calL}{\mathcal{L}}
+\newcommand{\calM}{\mathcal{M}}
+\newcommand{\calN}{\mathcal{N}}
+\newcommand{\calO}{\mathcal{O}}
+\newcommand{\calP}{\mathcal{P}}
+\newcommand{\calQ}{\mathcal{Q}}
+\newcommand{\calR}{\mathcal{R}}
+\newcommand{\calS}{\mathcal{S}}
+\newcommand{\calT}{\mathcal{T}}
+\newcommand{\calU}{\mathcal{U}}
+\newcommand{\calV}{\mathcal{V}}
+\newcommand{\calW}{\mathcal{W}}
+\newcommand{\calX}{\mathcal{X}}
+\newcommand{\calY}{\mathcal{Y}}
+\newcommand{\calZ}{\mathcal{Z}}
 
 \begin{document}
 
@@ -56,6 +92,8 @@
 % #COLOUR is the replaced with specified text colour.
 \definecolor{my_colour}{HTML}{#COLOUR}
 \color{my_colour}
+\ctikzset{color=my_colour}
+\ctikzset{bipoles/thickness=1}
 
 % #BLOCK is replaced by either gather* or flushleft, depending on
 % whether it's an explicit invocation or a an inline command

@@ -22,15 +22,7 @@ def main():
 	try:
 		args = parse_arguments()
 		filename = proc_filename(args.filename)
-		code = open(filename).read()
-		tokens, ast = parser.parse(code, source_name = filename)
-		btc = prepare_runtime(bytecode.CodeBuilder(), ast, exportable = args.compile)
-		if args.compile:
-			print(btc.dump())
-			return
-		interpereter = Interpereter(btc, trace = args.trace)
-		result = interpereter.run()
-		print(result)
+		sys.exit(run_file(filename))
 	except parser.ParseFailed as e:
 		print(format_error_place(code, e.position))
 
@@ -53,6 +45,21 @@ def proc_filename(filename):
 def print_token_parse_caret(to):
 	print(' '.join(to.tokens))
 	print((sum(map(len, to.tokens[:to.rightmost])) + to.rightmost) * ' ' + '^')
+
+
+def run_file(filename):
+	code = open(filename).read()
+
+	terminal = Terminal.new_blackbox_sync(
+		allow_special_commands=False,
+		yield_rate=1,
+		trap_unknown_errors=False
+	)
+
+	output, worked, details = terminal.execute(code)
+	print(output)
+
+	return 0 if worked else 1
 
 
 def interactive_terminal():

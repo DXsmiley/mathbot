@@ -14,29 +14,23 @@ class MessageEditGuard:
 		may be edited in order to re-invoke them.
 	'''
 
-	def __init__(self, trigger, destination, bot):
-		self._trigger = trigger
+	def __init__(self, message, destination, bot):
+		self._message = message
 		self._destination = destination
 		self._bot = bot
-		self._start_timestamp = self._get_timestamp()
+		self._initial_content = self._message.clean_content
 
 	def __enter__(self):
 		return self
 
 	def __exit__(self, type, value, traceback):
-		return isinstance(value, MessageEditGuard)
-
-	def _get_timestamp(self):
-		return self._trigger.edited_at or self._trigger.created_at
+		return isinstance(value, MessageEditedException)
 
 	async def send(self, *args, **kwargs):
-		if self._get_timestamp() != self._start_timestamp:
+		if self._initial_content != self._message.clean_content:
 			print('Edit guard prevented sending of message')
 			raise MessageEditedException
-		sent_message = await self._destination.send(*args, **kwargs)
-		self._bot.message_link(self._trigger, sent_message)
-		await core.blame.set_blame(self._bot.keystore, sent_message, self._trigger.author)
-		return sent_message
+		return await self._bot.send_patch(self._message, self._destination.send)(*args, **kwargs)
 
 
 def listify(function):

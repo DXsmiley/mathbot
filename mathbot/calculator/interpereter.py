@@ -41,7 +41,7 @@ class IndexedScope:
 		while depth > 0:
 			scope = scope.superscope
 			depth -= 1
-		if index >= len(scope.slots) or scope.slots[index].value == None:
+		if index >= len(scope.slots) or scope.slots[index].value is None:
 			raise ScopeMissedError
 		return scope.slots[index].value
 
@@ -301,7 +301,7 @@ class Interpereter:
 		''' Remove n items from the top of the stack and return them
 			The first item in the list comes from the top of the stack
 		'''
-		return [self.stack.pop() for i in range(count)]
+		return [self.stack.pop() for _ in range(count)]
 
 	def push(self, item):
 		'''Push an item to the stop of the stack'''
@@ -777,10 +777,10 @@ def test(string):
 	# print(json.dumps(ast, indent = 4))
 	# bytes = bytecode.build({'#': 'program', 'items': [ast]})
 	builder = bytecode.CodeBuilder()
-	bytes = runtime.wrap_with_runtime(builder, ast)
+	interpreter_bytes = runtime.wrap_with_runtime(builder, ast)
 	# for index, byte in enumerate(bytes):
 	# 	print('{:3d} - {}'.format(index, byte))
-	vm = Interpereter(bytes, builder = builder, trace = True)
+	vm = Interpereter(interpreter_bytes, builder = builder, trace = True)
 	return vm.run(tick_limit = 10000, error_if_exhausted = True)
 
 

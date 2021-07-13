@@ -5,7 +5,7 @@ import core.keystore
 import core.help
 import core.settings
 
-from discord.ext.commands import command, guild_only, has_permissions
+from discord.ext.commands import command, guild_only, has_permissions, Cog
 
 
 core.help.load_from_file('./help/settings.md')
@@ -47,7 +47,7 @@ class WasProblems(Exception):
 	pass
 
 
-class SettingsModule:
+class SettingsModule(Cog):
 
 	reduce_value = {
 		'enable': 1,
@@ -62,8 +62,6 @@ class SettingsModule:
 
 	expand_value = {
 		None: '--------',
-		1: 'enabled',
-		0: 'disabled',
 		True: 'enabled',
 		False: 'disabled'
 	}.get
@@ -148,19 +146,43 @@ class SettingsModule:
 		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
 
 	@command()
+	async def checkdmsettings(self, ctx):
+		lines = [
+			' Setting          | Default  | Resolved ',
+			'------------------+----------+----------'
+		]
+		items = [
+			(core.settings.get_cannon_name(name), details)
+			for name, details in core.settings.SETTINGS.items()
+			if 'redirect' not in details
+		]
+		for setting, s_details in sorted(items, key=lambda x: x[0]):
+			resolved = await ctx.bot.settings.resolve_message(setting, ctx.message)
+			lines.append(' {: <16} | {: <8} | {: <8}'.format(
+				setting,
+				SettingsModule.expand_value(s_details['default']),
+				resolved
+			))
+		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
+
+	@command()
 	@guild_only()
-	async def prefix(self, ctx):
+	async def prefix(self, ctx, *, arg=''):
 		prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
-		if prefix in [None, '=']:
-			await ctx.send('The prefix for this server is `=`, which is the default.')
+		p_text = prefix or '='
+		if p_text in [None, '=']:
+			m = 'The prefix for this server is `=`, which is the default.'
 		else:
-			await ctx.send(f'The prefix for this server is `{prefix}`, which has been customised.')
+			m = f'The prefix for this server is `{p_text}`, which has been customised.'
+		if arg:
+			m += '\nServer admins can use the `setprefix` command to change the prefix.'
+		await ctx.send(m)
 
 	@command()
 	@guild_only()
 	@has_permissions(administrator=True)
-	async def setprefix(self, ctx, *, arg):
-		prefix = arg.strip().replace('`', '')
+	async def setprefix(self, ctx, *, new_prefix):
+		prefix = new_prefix.strip().replace('`', '')
 		await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
 		await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
 

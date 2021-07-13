@@ -9,12 +9,13 @@ import asyncio
 import multiprocessing
 import async_timeout
 import time
-import logging
-import sys
 import traceback
+import random
+import logging
 
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 
 if multiprocessing.get_start_method(allow_none=True) is None:
@@ -23,16 +24,21 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 	# to break, and also the interrupe handlers in
 	# bot.py cause issues.
 	multiprocessing.set_start_method('spawn')
-	print('Crucible set multiprocessing start method')
+	log.info('Crucible set multiprocessing start method')
 
 
 def worker(pipe):
+	log.info('Crucible worker has started!')
 	while True:
 		if pipe.poll(None):
 			func, args = pipe.recv()
 			pipe.send(func(*args))
 			del func, args
 		time.sleep(0.1)
+
+
+def echo(argument):
+	return argument
 
 
 class Process:
@@ -57,6 +63,10 @@ class Process:
 		self._process.terminate()
 
 
+class StartupFailure(Exception):
+	pass
+
+
 class Pool:
 
 	__slots__ = ['_semaphore', '_idle']
@@ -75,28 +85,36 @@ class Pool:
 				else:
 					proc = Process()
 					log.info(f'Starting new process: {id(proc)}')
-					# Starting a new process has an overhead,
-					# so we give it extra time.
-					timeout += 3
-				async with async_timeout.timeout(timeout):
-					proc.send((function, arguments))
-					while not proc.poll():
-						await asyncio.sleep(0.01)
-					result = proc.recv()
-			except asyncio.TimeoutError:
-				log.info(f'Process timed out: {id(proc)}')
+					# Starting a new process has an overhead, so we shoudld wait
+					# for it before starting the real timer.
+					secret = random.randint(0, 1 << 20)
+					result = await self._roundtrip(proc, echo, (secret,), 20)
+					if result == secret:
+						log.info(f'Process successfully started {id(proc)}')
+					else:
+						log.warning('Crucible failed to start subprocess')
+						raise StartupFailure
+				result = await self._roundtrip(proc, function, arguments, timeout)
+			except Exception:
+				log.error(f'Process has failed: {id(proc)}')
 				try:
 					proc.terminate()
 				except Exception:
-					pass
+					print('Termination caused an exception')
+				else:
+					print('Termination succeeded')
 				raise
-			except Exception:
-				log.error('Crucible internal error')
-				log.error(traceback.format_exc())
 			else:
 				self._idle.append(proc)
 		return result
 
+	@staticmethod
+	async def _roundtrip(proc, function, arguments, timeout):
+		async with async_timeout.timeout(timeout):
+			proc.send((function, arguments))
+			while not proc.poll():
+				await asyncio.sleep(0.01)
+			return proc.recv()
 
 GLOBAL_POOL = Pool(4)
 async def run(function, arguments, *, timeout=5):
@@ -117,7 +135,7 @@ async def guard(f):
 	start = time.time()
 	try:
 		return await f
-	except Exception as e:
+	except Exception:
 		print('Guard', time.time() - start)
 
 async def many():
