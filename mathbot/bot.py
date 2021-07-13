@@ -233,7 +233,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
 			await destination.send(embed=discord.Embed(
 				title='Command disabled',
-				description=f'The sever owner has disabled that command in this location.',
+				description=f'The server owner has disabled that command in this location.',
 				colour=discord.Colour.orange()
 			))
 		elif isinstance(error, core.settings.DisabledCommandByServerOwnerSilent):
