@@ -30,9 +30,6 @@ from modules.reporter import report, report_via_webhook_only
 from advertising import AdvertisingMixin
 from patrons import PatronageMixin
 
-
-warnings.simplefilter('default')
-logging.basicConfig(level = logging.INFO)
 sys.setrecursionlimit(2500)
 
 

@@ -19,6 +19,8 @@ else:
     import aiohttp
     import asyncio
     import time
+    import logging
+    import warnings
 
     @utils.apply(core.parameters.load_parameters, list)
     def retrieve_parameters():
@@ -46,5 +48,11 @@ else:
 
     asyncio.get_event_loop().run_until_complete(wait_for_slot_in_gateway_queue())
 
-    bot.run(retrieve_parameters())
+    parameters = retrieve_parameters()
+
+    warnings.simplefilter('default')
+    logging.basicConfig(level = logging.INFO)
+    logging.getLogger('discord.state').setLevel(logging.ERROR)
+
+    bot.run(parameters)
  
