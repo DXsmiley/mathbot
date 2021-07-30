@@ -36,7 +36,12 @@ class OEIS(Cog):
 						name = res[0]['name']
 						number = res[0]['number']
 						digits = res[0]['data'].replace(',', ', ').strip()
-						m = f'There were {count} relevant sequences. Here is one:\n\n**{name}**\nhttps://oeis.org/A{number}\n\n{digits}\n'
+						match_text = (
+							f"There were {count} relevant sequences. Here is one:"
+							if count > 1
+							else "There was 1 relevant sequence:"
+						)
+						m = f"{match_text}\n\n**{name}**\nhttps://oeis.org/A{number}\n\n{digits}\n"
 						# for c in res[0]['comment']:
 						# 	if len(m) + len(c) + 10 < 2000:
 						# 		m += f'\n> {c}'
