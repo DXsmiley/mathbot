@@ -4,7 +4,7 @@ Hello! I'm a bot that provides some maths-related features.
 
 Add MathBot to your server using this link: <{{add_link}}>
 
-MathBot is developed by DXsmiley. You can talk to him via the official MathBot server: <{{server_link}}>
+MathBot is developed by DXsmiley. You can talk to her via the official MathBot server: <{{server_link}}>
 
 The following user commands are available:
 
@@ -24,5 +24,3 @@ More help is also available:
 	`{{prefix}}about` - General information about the bot.
 
 All commands can be invoked by mentioning the bot. For example, the command `@MathBot prefix` will always tell you the bot's prefix on the current server even if you don't know what it is.
-
-Support the bot on Patreon: https://www.patreon.com/dxsmiley

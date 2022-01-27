@@ -12,8 +12,6 @@ The bot is currently developed for python `3.6.4`.
 ## Links
 
 - [Add the bot to your own server](https://dxsmiley.github.io/mathbot/add.html)
-- [Support me on Patreon](https://www.patreon.com/dxsmiley)
-- [Project Trello Board](https://trello.com/b/j6b7vpGA/mathbot)
 - [Official Discord Server](https://discord.gg/JbJbRZS)
 
 ## Setup for use

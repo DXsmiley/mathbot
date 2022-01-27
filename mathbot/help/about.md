@@ -2,9 +2,7 @@
 
 Add MathBot to your server using this link: <{{add_link}}>
 
-MathBot is developed by DXsmiley. You can talk to him via the official MathBot server: <{{server_link}}>
-
-Support the bot via Patreon: <https://www.patreon.com/dxsmiley>
+MathBot is developed by DXsmiley. You can talk to her via the official MathBot server: <{{server_link}}>
 
 Source code: https://github.com/DXsmiley/mathbot
 

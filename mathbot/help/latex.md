@@ -41,7 +41,7 @@ Examples
 
 ## Alternative forms
 
-The `{{prefix}}texw` command (**w** for **wide**) will increase the with of the "paper", allowing for wider equations.
+The `{{prefix}}texw` command (**w** for **wide**) will increase the width of the "paper", allowing for wider equations.
 
 The `{{prefix}}texp` command (**p** for **plain**) will remove the `\begin` and `\end` boilerplate, allowing you to add your own. This is useful if you're using `tikzcd` or similar.
 
