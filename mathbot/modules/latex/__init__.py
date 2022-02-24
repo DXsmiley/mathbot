@@ -115,10 +115,9 @@ class LatexModule(Cog):
 				message,
 				latex,
 				colour_back,
-				oversampling=(1 if wide else 2)
 			)
 
-	async def render_and_reply(self, message, latex, colour_back, *, oversampling):
+	async def render_and_reply(self, message, latex, colour_back):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
 			async with message.channel.typing():
 				sent_message = None
@@ -126,7 +125,6 @@ class LatexModule(Cog):
 					render_result = await generate_image_online(
 						latex,
 						colour_back,
-						oversampling=oversampling
 					)
 				except asyncio.TimeoutError:
 					sent_message = await guard.send(LATEX_TIMEOUT_MESSAGE)
@@ -169,12 +167,12 @@ class LatexModule(Cog):
 		return '36393F', 'f0f0f0'
 
 
-async def generate_image_online(latex, colour_back, *, oversampling):
+async def generate_image_online(latex, colour_back):
 	payload = {
 		'format': 'png',
 		'code': latex.strip(),
-		'density': 220 * oversampling,
-		'quality': 100
+		'density': 770,
+		'quality': 75
 	}
 	async with aiohttp.ClientSession() as session:
 		try:
@@ -196,13 +194,12 @@ async def generate_image_online(latex, colour_back, *, oversampling):
 	if image.width <= 2 or image.height <= 2:
 		print('Image is empty')
 		raise RenderingError(None)
-	border_size = 5 * oversampling
+	border_size = 5
 	colour_back = imageutil.hex_to_tuple(colour_back)
 	width, height = image.size
 	backing = imageutil.new_monocolour((width + border_size * 2, height + border_size * 2), colour_back)
+	backing = backing.resize((backing.width // 3, backing.height // 3), resample = PIL.Image.BICUBIC)
 	backing.paste(image, (border_size, border_size), image)
-	if oversampling != 1:
-		backing = backing.resize((backing.width // oversampling, backing.height // oversampling), resample = PIL.Image.BICUBIC)
 	fobj = io.BytesIO()
 	backing.save(fobj, format='PNG')
 	fobj = io.BytesIO(fobj.getvalue())
