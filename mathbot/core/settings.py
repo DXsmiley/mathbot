@@ -84,6 +84,8 @@ class Settings:
 			return '='
 		if isinstance(context, discord.TextChannel):
 			context = context.guild
+		if isinstance(context, discord.VoiceChannel):
+			context = context.guild
 		if not isinstance(context, discord.Guild):
 			raise TypeError(f'{context} {type(context)} is not a valid context for the server prefix')
 		stored = await self.keystore.get(f's-prefix:{context.id}')
