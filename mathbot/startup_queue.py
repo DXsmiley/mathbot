@@ -1,15 +1,14 @@
 from aiohttp import web
 import time
 
-QUEUE_INTERVAL = 6
+QUEUE_INTERVAL = 10
 
 next_time_slot = 0
 
 async def request_spot_in_queue(request):
     global next_time_slot
-    this_time_slot = next_time_slot
     next_time_slot = max(time.time(), next_time_slot) + QUEUE_INTERVAL
-    return web.Response(text=str(this_time_slot))
+    return web.Response(text=str(next_time_slot))
 
 app = web.Application()
 app.add_routes([web.post('/', request_spot_in_queue)])
