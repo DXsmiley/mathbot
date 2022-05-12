@@ -28,7 +28,7 @@ core.help.load_from_file('./help/latex.md')
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'
 DELETE_EMOJI = '🗑'
-
+SPOILER_REGEXP = re.compile(r'^\|{2}\s+.*\|{2}$')
 
 # Load data from external files
 
@@ -104,21 +104,23 @@ class LatexModule(Cog):
 			await message.channel.send('Type `=help tex` for information on how to use this command.')
 		else:
 			print(f'LaTeX - {message.author} {message.author.id} - {source}')
+			is_spoiler = SPOILER_REGEXP.search(source) and (len(re.findall(r'(\s\|{2}|\|{2}\s)', source)) % 2 == 0)
 			colour_back, colour_text = await self.get_colours(message.author)
 			# Content replacement has to happen last in case it introduces a marker
 			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE
 			latex = latex.replace('#COLOUR',  colour_text) \
 			             .replace('#PAPERTYPE', 'a2paper' if wide else 'a5paper') \
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
-			             .replace('#CONTENT', process_latex(source, is_inline))
+			             .replace('#CONTENT', process_latex(source, is_spoiler, is_inline))
 			await self.render_and_reply(
 				message,
 				latex,
+				is_spoiler,
 				colour_back,
 				oversampling=(1 if wide else 2)
 			)
 
-	async def render_and_reply(self, message, latex, colour_back, *, oversampling):
+	async def render_and_reply(self, message, latex, is_spoiler, colour_back, *, oversampling):
 		with MessageEditGuard(message, message.channel, self.bot) as guard:
 			async with message.channel.typing():
 				sent_message = None
@@ -138,7 +140,7 @@ class LatexModule(Cog):
 					else:
 						sent_message = await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
-					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
+					sent_message = await guard.send(file=discord.File(render_result, 'latex.png', spoiler=is_spoiler))
 					await self.bot.advertise_to(message.author, message.channel, guard)
 					if await self.bot.settings.resolve_message('f-tex-delete', message):
 						try:
@@ -230,11 +232,14 @@ def extract_inline_tex(content):
 
 BLOCKFORMAT_REGEX = re.compile('^```(?:tex\n)?((?:.|\n)*)```$')
 
-def process_latex(latex, is_inline):
+def process_latex(latex, is_spoiler, is_inline):
 	latex = latex.strip(' \n')
 	blockformat = re.match(BLOCKFORMAT_REGEX, latex)
 	if blockformat:
 		latex = blockformat[1].strip(' \n')
+	if is_spoiler:
+		latex = latex[3:-3]
+		latex = latex.replace('\\|\\|', '||')
 	for key, value in TEX_REPLACEMENTS.items():
 		if key in latex:
 			latex = latex.replace(key, value)
