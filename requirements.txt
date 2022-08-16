@@ -21,6 +21,6 @@ psutil==5.9.0
 pycparser==2.21
 sympy==1.4
 termcolor==1.1.0
-websockets==8.1
+websockets==9.1
 xmltodict==0.12.0
 yarl==1.5.1
