@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
+from dataclasses import dataclass
 import sys
 import asyncio
 import traceback
@@ -37,6 +38,11 @@ You can seek additional support on the official mathbot server: https://discord.
 '''
 
 
+@dataclass
+class Snowflake:
+	id: int
+
+
 class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
 	def __init__(self, parameters):
@@ -66,6 +72,14 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_ready(self):
 		for i in _get_extensions(self.parameters):
 			await self.load_extension(i)
+		if self.release == 'development':
+			print('Syncing commands to test server...')
+			guild = Snowflake(134074627331719168)
+			self.tree.copy_global_to(guild=guild)
+			for i in self.tree.walk_commands():
+				print(i.name, i)
+			await self.tree.sync(guild=guild)
+			print('Done')
 
 	async def on_disconnect(self):
 		print('on_disconnect')

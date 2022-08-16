@@ -6,11 +6,13 @@ import asyncio
 import aiohttp
 import datetime
 import core.help
-from discord.ext.commands import command, Cog, Bot
+from discord.ext.commands import Cog, Bot, command, Context
 import codecs
 from modules.reporter import report
 from core.settings import command_allowed
 
+from discord import Interaction
+from discord.ext.commands.hybrid import hybrid_command
 
 
 BOT_COLOUR = 0x19BAE5
@@ -73,15 +75,15 @@ class AboutModule(Cog):
 		embed.set_footer(text='Time is in hh:mm')
 		await context.send(embed=embed)
 
-	@command()
-	async def ping(self, context):
-		await context.send(f'Pong! Latency {context.bot.latency}.')
+	@hybrid_command()
+	async def ping(self, ctx: Context):
+		await ctx.reply(f'Pong! Latency {ctx.bot.latency}.')
 
 	# Aliases for the help command
-	@command()
-	async def about(self, context):
-		cmd = context.bot.get_command('help')
-		await context.invoke(cmd, topic='about')
+	@hybrid_command()
+	async def about(self, ctx: Context):
+		cmd = ctx.bot.get_command('help')
+		await ctx.invoke(cmd, topic='about')
 
 	@command(name=codecs.encode('shefhvg', 'rot_13'))
 	@command_allowed('x-bonus')

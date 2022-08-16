@@ -34,7 +34,7 @@ class Heartbeat(Cog):
 				])
 				try:
 					await self.bot.change_presence(
-						activity=discord.Game('with numbers'),
+						activity=discord.Game('! use @MathBot !'),
 						status=discord.Status.idle if current_time - slowest >= 30 else discord.Status.online
 					)
 				except Exception:
