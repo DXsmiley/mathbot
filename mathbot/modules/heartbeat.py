@@ -63,4 +63,4 @@ class Heartbeat(Cog):
 		await context.send('\n'.join(lines))
 
 def setup(bot):
-	bot.add_cog(Heartbeat(bot))
+	return bot.add_cog(Heartbeat(bot))

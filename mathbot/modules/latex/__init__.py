@@ -242,4 +242,4 @@ def process_latex(latex, is_inline):
 
 
 def setup(bot):
-	bot.add_cog(LatexModule(bot))
+	return bot.add_cog(LatexModule(bot))

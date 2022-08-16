@@ -89,4 +89,4 @@ class HelpModule(Cog):
 		return f"That help topic does not exist.\nMaybe you meant one of: {', '.join(map('`{}`'.format, suggestions))}?"
 
 def setup(bot):
-	bot.add_cog(HelpModule())
+	return bot.add_cog(HelpModule())

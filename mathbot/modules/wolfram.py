@@ -540,4 +540,4 @@ def cleanup_section_list(items):
 
 
 def setup(bot):
-	bot.add_cog(WolframModule(bot))
+	return bot.add_cog(WolframModule(bot))

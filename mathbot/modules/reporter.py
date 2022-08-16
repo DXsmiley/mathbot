@@ -118,4 +118,4 @@ async def report_via_webhook_only(bot, string: str):
 
 
 def setup(bot):
-	bot.add_cog(ReporterModule(bot))
+	return bot.add_cog(ReporterModule(bot))

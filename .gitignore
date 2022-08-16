@@ -17,3 +17,4 @@ htmlcov
 .pytest_cache
 .vscode/
 Pipfile.lock
+.venv

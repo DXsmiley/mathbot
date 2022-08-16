@@ -22,4 +22,4 @@ class Reboot(Cog):
 			])
 
 def setup(bot):
-	bot.add_cog(Reboot())
+	return bot.add_cog(Reboot())

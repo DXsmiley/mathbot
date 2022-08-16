@@ -44,4 +44,4 @@ class OEIS(Cog):
 
 
 def setup(bot):
-	bot.add_cog(OEIS())
+	return bot.add_cog(OEIS())

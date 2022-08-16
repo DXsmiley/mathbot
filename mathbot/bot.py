@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-import os
 import sys
-import warnings
-import logging
 import asyncio
-import re
-import json
-import typing
 import traceback
-import objgraph
-import gc
 import time
 
 import termcolor
 import discord
 import discord.ext.commands
-from discord.ext.commands.errors import *
+from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument, TooManyArguments, BadArgument, NoPrivateMessage, MissingPermissions, DisabledCommand, CommandInvokeError
 
 import core.blame
 import core.keystore
@@ -53,11 +45,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
 		super().__init__(
 			command_prefix=_determine_prefix,
-			pm_help=True,
-			shard_count=shard_count,
-			shard_ids=shard_ids,
-			max_messages=2000,
-			fetch_offline_members=False
+			intents=discord.Intents.default()
 		)
 		self.parameters = parameters
 		self.release = parameters.get('release')
@@ -68,8 +56,6 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self.closing_due_to_indeterminite_prefix = False
 		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
-		for i in _get_extensions(parameters):
-			self.load_extension(i)
 
 	def run(self):
 		super().run(self.parameters.get('token'))
@@ -78,11 +64,8 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		print('on_shard_ready', shard_id)
 
 	async def on_ready(self):
-		print('on_ready')
-		self._connection.emoji = []
-		gc.collect()
-		objgraph.show_most_common_types()
-		# await self.leave_inactive_servers()
+		for i in _get_extensions(self.parameters):
+			await self.load_extension(i)
 
 	async def on_disconnect(self):
 		print('on_disconnect')

@@ -6,7 +6,7 @@ import asyncio
 import aiohttp
 import datetime
 import core.help
-from discord.ext.commands import command, Cog
+from discord.ext.commands import command, Cog, Bot
 import codecs
 from modules.reporter import report
 from core.settings import command_allowed
@@ -107,5 +107,5 @@ def get_memory_usage():
 	return mem // (1024 * 1024)
 
 
-def setup(bot):
-	bot.add_cog(AboutModule())
+def setup(bot: Bot):
+	return bot.add_cog(AboutModule())

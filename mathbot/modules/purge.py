@@ -35,4 +35,4 @@ class PurgeModule(Cog):
 					await asyncio.sleep(1)
 
 def setup(bot):
-	bot.add_cog(PurgeModule())
+	return bot.add_cog(PurgeModule())

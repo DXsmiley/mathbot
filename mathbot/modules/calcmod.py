@@ -548,4 +548,4 @@ async def download_text(session: aiohttp.ClientSession, url: str) -> str:
 
 
 def setup(bot):
-	bot.add_cog(CalculatorModule(bot))
+	return bot.add_cog(CalculatorModule(bot))

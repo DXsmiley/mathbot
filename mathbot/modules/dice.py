@@ -128,4 +128,4 @@ class DiceModule(Cog):
 		return int(random.gauss(mean, std))
 
 def setup(bot):
-	bot.add_cog(DiceModule())
+	return bot.add_cog(DiceModule())

@@ -187,4 +187,4 @@ class SettingsModule(Cog):
 		await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
 
 def setup(bot):
-	bot.add_cog(SettingsModule())
+	return bot.add_cog(SettingsModule())

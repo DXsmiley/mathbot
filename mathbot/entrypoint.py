@@ -46,7 +46,7 @@ else:
         except aiohttp.ClientConnectorError:
             print('Could not find gateway queue to connect to')
 
-    asyncio.get_event_loop().run_until_complete(wait_for_slot_in_gateway_queue())
+    asyncio.run(wait_for_slot_in_gateway_queue())
 
     parameters = retrieve_parameters()
 

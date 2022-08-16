@@ -15,4 +15,4 @@ class EchoModule(Cog):
 
 
 def setup(bot):
-	bot.add_cog(EchoModule(bot))
+	return bot.add_cog(EchoModule(bot))

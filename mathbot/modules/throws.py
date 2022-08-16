@@ -7,4 +7,4 @@ class ThrowsModule(Cog):
 		raise Exception('I wonder what went wrong?')
 
 def setup(bot):
-	bot.add_cog(ThrowsModule())
+	return bot.add_cog(ThrowsModule())
