@@ -1,6 +1,5 @@
 # Calculator module
 
-import re
 import asyncio
 import utils
 import safe
@@ -12,7 +11,6 @@ import calculator.blackbox
 import collections
 import traceback
 import patrons
-import advertising
 import aiohttp
 import async_timeout
 import json
@@ -21,9 +19,10 @@ import traceback
 import typing
 import discord
 import abc
-import functools
 
-from discord.ext.commands import command, guild_only, has_permissions, Cog
+from discord.ext.commands import command, guild_only, has_permissions, Cog, Context
+from discord.ext.commands.hybrid import hybrid_command
+
 
 core.help.load_from_file('./help/calculator_brief.md')
 core.help.load_from_file('./help/calculator_full.md')
@@ -98,11 +97,11 @@ class CalculatorModule(Cog):
 		self.command_history = collections.defaultdict(lambda : '')
 		self.replay_state = collections.defaultdict(ReplayState)
 
-	@command()
+	@hybrid_command()
 	@core.settings.command_allowed('c-calc')
-	async def calc(self, ctx, *, arg):
+	async def calc(self, ctx, *, expression):
 		''' Handle the standard =calc command '''
-		await self.perform_calculation(arg.strip(), ctx.message, ctx.send)
+		await self.perform_calculation(expression.strip(), ctx.message, ctx.send)
 
 	@command(name='calc-history', enabled=ENABLE_HISTORY)
 	async def handle_view_history(self, ctx):

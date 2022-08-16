@@ -4,7 +4,9 @@ import time
 import asyncio
 import discord
 import traceback
-from discord.ext.commands import command, Cog
+from discord.ext.commands import Cog, Context
+from discord.ext.commands.hybrid import hybrid_command
+
 
 class Heartbeat(Cog):
 
@@ -45,8 +47,8 @@ class Heartbeat(Cog):
 		for i in self.bot.shard_ids:
 			await self.bot.keystore.set('heartbeat', str(i), 1)
 
-	@command()
-	async def heartbeat(self, context):
+	@hybrid_command()
+	async def heartbeat(self, context: Context):
 		error_queue_length = await self.bot.keystore.llen('error-report')
 		current_time = int(time.time())
 		lines = ['```']

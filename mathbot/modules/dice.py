@@ -7,7 +7,9 @@ import random
 import core.help
 import core.settings
 import core.util
-from discord.ext.commands import command, Cog
+from discord.ext.commands import Cog, Context
+from discord.ext.commands.hybrid import hybrid_command
+
 import math
 
 core.help.load_from_file('./help/roll.md')
@@ -25,21 +27,21 @@ class DiceModule(Cog):
 
 	''' Module to allow the user to roll dice '''
 
-	@command()
+	@hybrid_command()
 	@core.settings.command_allowed('c-roll')
 	@core.util.respond
-	async def roll(self, ctx, arg):
-		''' Roll command. Argument should be of the format `2d6` or similar. '''
-		return await self.handle_roll(ctx, arg, should_sort=True)
+	async def roll(self, ctx: Context, dice: str) -> str:
+		''' Roll command. `dice` should be of the format `2d6` or similar. '''
+		return await self.handle_roll(ctx, dice, should_sort=True)
 
-	@command()
+	@hybrid_command()
 	@core.settings.command_allowed('c-roll')
 	@core.util.respond
-	async def rollu(self, ctx, arg):
+	async def rollu(self, ctx: Context, dice: str) -> str:
 		''' Variant of the roll command that does not sort the output. '''
-		return await self.handle_roll(ctx, arg, should_sort=False)
+		return await self.handle_roll(ctx, dice, should_sort=False)
 
-	async def handle_roll(self, ctx, arg, should_sort):
+	async def handle_roll(self, ctx: Context, arg: str, should_sort: bool) -> str:
 		match = FORMAT_REGEX.match(arg.strip('`'))
 		if match is None or match.group(2) is None:
 			return '🎲 Format your rolls like `2d6`.'

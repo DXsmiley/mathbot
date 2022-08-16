@@ -1,3 +1,4 @@
+from typing import Literal
 import aioredis
 import os
 import re
@@ -5,7 +6,8 @@ import core.keystore
 import core.help
 import core.settings
 
-from discord.ext.commands import command, guild_only, has_permissions, Cog
+from discord.ext.commands import command, guild_only, has_permissions, Cog, Context
+from discord.ext.commands.hybrid import hybrid_command
 
 
 core.help.load_from_file('./help/settings.md')
@@ -66,10 +68,16 @@ class SettingsModule(Cog):
 		False: 'disabled'
 	}.get
 
-	@command(name='set')
+	@hybrid_command(name='set')
 	@guild_only()
 	@has_permissions(administrator=True)
-	async def _set(self, ctx, context: str, setting: str, value: str):
+	async def _set(
+		self,
+		ctx: Context,
+		context: Literal['server', 'guild', 'channel'],
+		setting: str,
+		value: Literal['enable', 'disable', 'original', 'reset']
+	):
 		try:
 			async with ProblemReporter(ctx) as problem:
 				setting_details = core.settings.details(setting)
@@ -85,28 +93,28 @@ class SettingsModule(Cog):
 			context = ctx.message.channel if context[0] == 'c' else ctx.message.guild
 			val = SettingsModule.reduce_value(value)
 			await ctx.bot.settings.set(setting, context, val)
-			await ctx.send('Setting applied.')
+			await ctx.reply('Setting applied.')
 
-	@command()
-	async def theme(self, ctx, theme):
+	@hybrid_command()
+	async def theme(self, ctx: Context, theme: Literal['light', 'dark']):
 		theme = theme.lower()
 		if theme not in ['light', 'dark']:
 			return f'`{theme}` is not a valid theme. Valid options are `light` and `dark`.'
 		await ctx.bot.keystore.set(f'p-tex-colour:{ctx.message.author.id}', theme)
-		await ctx.send(f'Your theme has been set to `{theme}`.')
+		await ctx.reply(f'Your theme has been set to `{theme}`.')
 
-	@command()
-	async def units(self, ctx, units: str):
+	@hybrid_command()
+	async def units(self, ctx: Context, units: Literal['metric', 'imperial']):
 		units = units.lower()
 		if units not in ['metric', 'imperial']:
-			await ctx.send(f'`{units}` is not a unit system. Valid units are `metric` and `imperial`.')
+			await ctx.reply(f'`{units}` is not a unit system. Valid units are `metric` and `imperial`.')
 		else:
 			await ctx.bot.keystore.set(f'p-wolf-units:{ctx.author.id}', units)
-			await ctx.send(f'Your units have been set to `{units}`.')
+			await ctx.reply(f'Your units have been set to `{units}`.')
 
-	@command()
+	@hybrid_command()
 	@guild_only()
-	async def checksetting(self, ctx, setting):
+	async def checksetting(self, ctx: Context, setting: str):
 		if core.settings.details(setting) is None:
 			return '`{}` is not a valid setting. See `=help settings` for a list of valid settings.'
 		value_server = await ctx.bot.settings.get_single(setting, ctx.message.guild)
@@ -115,16 +123,16 @@ class SettingsModule(Cog):
 		print('Server: ', value_server)
 		print('Channel:', value_channel)
 		default = core.settings.details(setting).get('default')
-		await ctx.send(CHECKSETTING_TEMPLATE.format(
+		await ctx.reply(CHECKSETTING_TEMPLATE.format(
 			setting,
 			SettingsModule.expand_value(value_channel),
 			SettingsModule.expand_value(value_server),
 			SettingsModule.expand_value(default)
 		))
 
-	@command()
+	@hybrid_command()
 	@guild_only()
-	async def checkallsettings(self, ctx):
+	async def checkallsettings(self, ctx: Context):
 		lines = [
 			' Setting          | Channel  | Server   | Default',
 			'------------------+----------+----------+----------'
@@ -143,8 +151,9 @@ class SettingsModule(Cog):
 				SettingsModule.expand_value(value_server),
 				SettingsModule.expand_value(s_details['default'])
 			))
-		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
+		await ctx.reply('```\n{}\n```'.format('\n'.join(lines)))
 
+	# TODO: Figure out what this is even for?
 	@command()
 	async def checkdmsettings(self, ctx):
 		lines = [
@@ -165,6 +174,7 @@ class SettingsModule(Cog):
 			))
 		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
 
+	# Intentionally not making a slash command of this
 	@command()
 	@guild_only()
 	async def prefix(self, ctx, *, arg=''):
@@ -178,6 +188,7 @@ class SettingsModule(Cog):
 			m += '\nServer admins can use the `setprefix` command to change the prefix.'
 		await ctx.send(m)
 
+	# Intentionally not making a slash command of this
 	@command()
 	@guild_only()
 	@has_permissions(administrator=True)

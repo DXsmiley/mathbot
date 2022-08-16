@@ -1,10 +1,12 @@
 ''' Module used to send help documents to users. '''
 
-import re
 import core.help
-from discord.ext.commands import command, Cog
+from discord.ext.commands import Cog, Context
 import discord
+from discord.ext.commands.hybrid import hybrid_command
+
 from utils import is_private
+
 
 
 SERVER_LINK = 'https://discord.gg/JbJbRZS'
@@ -21,27 +23,28 @@ def doubleformat(string, **replacements):
 class HelpModule(Cog):
 	''' Module that serves help pages. '''
 
-	@command()
-	async def support(self, context):
+	@hybrid_command()
+	async def support(self, context: Context):
 		await context.send(f'Mathbot support server: {SERVER_LINK}')
 
-	@command()
-	async def invite(self, context):
+	@hybrid_command()
+	async def invite(self, context: Context):
 		await context.send('Add mathbot to your server: https://dxsmiley.github.io/mathbot/add.html')
 
-	@command()
-	async def help(self, context, *, topic='help'):
+	@hybrid_command()
+	async def help(self, context: Context, *, topic: str = 'help'):
 		''' Help command itself.
 			Help is sent via DM, but a small message is also sent in the public chat.
 			Specifying a non-existent topic will show an error and display a list
 			of topics that the user could have meant.
 		'''
 		if topic in ['topics', 'topic', 'list']:
-			return await self._send_topic_list(context)
+			await context.reply(self._topic_list())
+			return
 
 		found_doc = core.help.get(topic)
 		if found_doc is None:
-			await context.send(self._suggest_topics(topic))
+			await context.reply(self._suggest_topics(topic))
 			return
 
 		# Display the default prefix if the user is in DMs and uses no prefix.
@@ -62,14 +65,16 @@ class HelpModule(Cog):
 					patreon_listing=await context.bot.get_patron_listing()
 				)
 				await context.message.author.send(page)
+				if not is_private(context.channel):
+					await context.reply('Help has been sent to your DMs!')
 		except discord.Forbidden:
-			await context.send(embed=discord.Embed(
+			await context.reply(embed=discord.Embed(
 				title='The bot was unable to slide into your DMs',
 				description=f'Please try modifying your privacy settings to allow DMs from server members. If you are still experiencing problems, contact the developer at the mathbot server: {SERVER_LINK}',
 				colour=discord.Colour.red()
 			))
 
-	async def _send_topic_list(self, context):
+	def _topic_list(self) -> str:
 		topics = core.help.listing()
 		column_width = max(map(len, topics))
 		columns = 3
@@ -78,7 +83,7 @@ class HelpModule(Cog):
 			reply += t.ljust(column_width)
 			reply += '\n' if (i + 1) % columns == 0 else '  ';
 		reply += '```\n'
-		await context.send(reply)
+		return reply
 
 	def _suggest_topics(self, typo):
 		suggestions = core.help.get_similar(typo)

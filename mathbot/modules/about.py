@@ -43,8 +43,8 @@ class AboutModule(Cog):
 
 	# Send a message detailing the shard number, server count,
 	# uptime and and memory using of this shard
-	@command()
-	async def stats(self, context):
+	@hybrid_command()
+	async def stats(self, context: Context):
 		embed = discord.Embed(title='MathBot Stats', colour=BOT_COLOUR)
 		embed.add_field(
 			name='Total Servers',

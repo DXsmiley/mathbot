@@ -2,17 +2,18 @@ import aiohttp
 import json
 
 from urllib.parse import urlencode
-from discord.ext.commands import command, Cog
+from discord.ext.commands import Cog, Context
 from core.settings import command_allowed
-import core
+from discord.ext.commands.hybrid import hybrid_command
+import core.help
 
 core.help.load_from_file('./help/oeis.md')
 
 class OEIS(Cog):
 
-	@command()
+	@hybrid_command()
 	@command_allowed('c-oeis')
-	async def oeis(self, ctx, *, query=''):
+	async def oeis(self, ctx: Context, *, query=''):
 		if query == '':
 			await ctx.send(f'The `{ctx.prefix}oeis` command is used to query the Online Encyclopedia of Integer Sequences. See `{ctx.prefix}help oeis` for details.')
 			return

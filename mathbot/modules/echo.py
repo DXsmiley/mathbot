@@ -4,6 +4,7 @@
 from discord.ext.commands import command, Cog
 
 
+
 class EchoModule(Cog):
 
 	def __init__(self, bot):

@@ -1,6 +1,7 @@
 import sys
 import functools
 import discord
+from discord.ext.commands import Context
 import io
 import core.blame
 
@@ -31,6 +32,13 @@ class MessageEditGuard:
 			print('Edit guard prevented sending of message')
 			raise MessageEditedException
 		return await self._bot.send_patch(self._message, self._destination.send)(*args, **kwargs)
+
+	async def reply(self, context: Context, *args, **kwargs):
+		if self._initial_content != self._message.clean_content:
+			print('Edit guard prevented sending of message')
+			raise MessageEditedException
+		# TODO: Handle blame
+		return await context.reply(*args, **kwargs)
 
 
 def listify(function):

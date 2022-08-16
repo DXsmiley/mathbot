@@ -1,27 +1,22 @@
-import random
-import os
-import safe
 import PIL
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 import io
 import core.settings
-import urllib
 import aiohttp
 import asyncio
-import traceback
 import re
 import imageutil
 import core.help
-import advertising
 import discord
 import json
-from queuedict import QueueDict
 from open_relative import *
-from discord.ext.commands import command, Cog
+from discord.ext.commands import command, Cog, Context
 from utils import is_private, MessageEditGuard
 from contextlib import suppress
+
+from discord.ext.commands.hybrid import hybrid_command
 
 core.help.load_from_file('./help/latex.md')
 
@@ -76,20 +71,25 @@ class LatexModule(Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
+	@hybrid_command()
+	@core.settings.command_allowed('c-tex')
+	async def tex(self, context: Context, *, latex: str):
+		await self.handle(context, latex, is_inline=False)
+
 	@command(aliases=['latex', 'rtex'])
 	@core.settings.command_allowed('c-tex')
-	async def tex(self, context, *, latex=''):
-		await self.handle(context.message, latex, is_inline=False)
+	async def _tex(self, context, *, latex=''):
+		await self.handle(context, latex, is_inline=False)
 
 	@command(aliases=['wtex'])
 	@core.settings.command_allowed('c-tex')
 	async def texw(self, context, *, latex=''):
-		await self.handle(context.message, latex, wide=True, is_inline=False)
+		await self.handle(context, latex, wide=True, is_inline=False)
 
 	@command(aliases=['ptex'])
 	@core.settings.command_allowed('c-tex')
 	async def texp(self, context, *, latex=''):
-		await self.handle(context.message, latex, noblock=True, is_inline=False)
+		await self.handle(context, latex, noblock=True, is_inline=False)
 
 	@Cog.listener()
 	async def on_message_discarded(self, message):
@@ -99,12 +99,12 @@ class LatexModule(Cog):
 				if latex != '':
 					await self.handle(message, latex, centre=False, is_inline=True)
 
-	async def handle(self, message, source, *, is_inline, centre=True, wide=False, noblock=False):
+	async def handle(self, context: Context, source, *, is_inline, centre=True, wide=False, noblock=False):
 		if source == '':
-			await message.channel.send('Type `=help tex` for information on how to use this command.')
+			await context.reply('Type `=help tex` for information on how to use this command.')
 		else:
-			print(f'LaTeX - {message.author} {message.author.id} - {source}')
-			colour_back, colour_text = await self.get_colours(message.author)
+			print(f'LaTeX - {context.author} {context.author.id} - {source}')
+			colour_back, colour_text = await self.get_colours(context.author)
 			# Content replacement has to happen last in case it introduces a marker
 			latex = TEMPLATE.replace('\\begin{#BLOCK}', '').replace('\\end{#BLOCK}', '') if noblock else TEMPLATE
 			latex = latex.replace('#COLOUR',  colour_text) \
@@ -112,15 +112,15 @@ class LatexModule(Cog):
 			             .replace('#BLOCK', 'gather*' if centre else 'flushleft') \
 			             .replace('#CONTENT', process_latex(source, is_inline))
 			await self.render_and_reply(
-				message,
+				context,
 				latex,
 				colour_back,
 				oversampling=(1 if wide else 2)
 			)
 
-	async def render_and_reply(self, message, latex, colour_back, *, oversampling):
-		with MessageEditGuard(message, message.channel, self.bot) as guard:
-			async with message.channel.typing():
+	async def render_and_reply(self, context: Context, latex: str, colour_back: str, *, oversampling: int):
+		with MessageEditGuard(context.message, context.message.channel, self.bot) as guard:
+			async with context.typing():
 				sent_message = None
 				try:
 					render_result = await generate_image_online(
@@ -129,26 +129,25 @@ class LatexModule(Cog):
 						oversampling=oversampling
 					)
 				except asyncio.TimeoutError:
-					sent_message = await guard.send(LATEX_TIMEOUT_MESSAGE)
+					sent_message = await guard.reply(context, LATEX_TIMEOUT_MESSAGE)
 				except RenderingError as e:
 					err = e.log is not None and re.search(r'^!.*?^!', e.log + '\n!', re.MULTILINE + re.DOTALL)
 					if err and len(err[0]) < 1000:
 						m = err[0].strip("!\n")
-						sent_message = await guard.send(f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
+						sent_message = await guard.reply(context, f'Rendering failed. Check your code. You may edit your existing message.\n\n**Error Log:**\n```\n{m}\n```')
 					else:
-						sent_message = await guard.send('Rendering failed. Check your code. You can edit your existing message if needed.')
+						sent_message = await guard.reply(context, 'Rendering failed. Check your code. You can edit your existing message if needed.')
 				else:
-					sent_message = await guard.send(file=discord.File(render_result, 'latex.png'))
-					await self.bot.advertise_to(message.author, message.channel, guard)
-					if await self.bot.settings.resolve_message('f-tex-delete', message):
+					sent_message = await guard.reply(context, file=discord.File(render_result, 'latex.png'))
+					if await self.bot.settings.resolve_message('f-tex-delete', context.message):
 						try:
-							await message.delete()
+							await context.message.delete()
 						except discord.errors.NotFound:
 							pass
 						except discord.errors.Forbidden:
-							await guard.send('Failed to delete source message automatically - either grant the bot "Manage Messages" permissions or disable `f-tex-delete`')
+							await guard.reply(context, 'Failed to delete source message automatically - either grant the bot "Manage Messages" permissions or disable `f-tex-delete`')
 
-				if sent_message and await self.bot.settings.resolve_message('f-tex-trashcan', message):
+				if sent_message and await self.bot.settings.resolve_message('f-tex-trashcan', context.message):
 					with suppress(discord.errors.NotFound):
 						await sent_message.add_reaction(DELETE_EMOJI)
 

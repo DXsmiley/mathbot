@@ -6,16 +6,16 @@
 
 import core.help
 from core.util import respond
-from discord.ext.commands import command, Cog
+from discord.ext.commands import Cog, Context
 from discord import Embed, Colour
-import json
+from discord.ext.commands.hybrid import hybrid_command
 
 
 class BlameModule(Cog):
 
-	@command()
+	@hybrid_command()
 	@respond
-	async def blame(self, context, message_id: str):
+	async def blame(self, context: Context, message_id: str):
 		if message_id == 'recent':
 			async for m in context.channel.history(limit=100):
 				if m.author == context.bot.user:

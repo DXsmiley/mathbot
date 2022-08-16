@@ -1,10 +1,11 @@
 import core.help
 import discord
 import asyncio
-from utils import is_private
 
 
-from discord.ext.commands import command, guild_only, has_permissions, Cog
+from discord.ext.commands import guild_only, has_permissions, Cog, Context
+from discord.ext.commands.hybrid import hybrid_command
+
 
 USER_PERM_ERROR = '''\
 You do not have the permissions required to perform that operation in this channel.
@@ -19,7 +20,7 @@ See `=help purge` for more details.
 core.help.load_from_file('./help/purge.md')
 
 class PurgeModule(Cog):
-	@command()
+	@hybrid_command()
 	@guild_only()
 	@has_permissions(manage_messages=True)
 	async def purge(self, ctx, number: int):
