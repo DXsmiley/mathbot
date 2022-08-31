@@ -19,14 +19,12 @@ apt-get update
 
 apt-add-repository ppa:deadsnakes/ppa
 apt-get update
-apt-get install python3.6 -y
-apt-get install python3.6-dev -y
-
+apt-get install python3.8 -y
+apt-get install python3.8-dev -y
 apt-get install python3-pip -y
-pip3 --version
+apt-get install python3.8-venv -y
 
-pip3 install pipenv
-pipenv --version
+python3.8 -m pip install --upgrade pip
 
 curl -sL https://deb.nodesource.com/setup_12.x | bash -
 apt-get install nodejs -y

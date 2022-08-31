@@ -23,13 +23,14 @@ echo "Stopping shards"
 # Returns 1 if there are no processes, so we need to ignore this "error"
 pm2 stop all || true
 
-export PIPENV_YES=1
-pipenv install
+# export PIPENV_YES=1
+# pipenv install
 
-pm2 start "./scripts/startup_queue.sh" --name "startup-queue"
+if [ ! -d ".venv" ]; then
+    python3.8 -m venv .venv
+fi
 
-echo "Starting shards again"
-for i in $(seq 0 $LAST_SHARD)
-do
-    pm2 start "./scripts/pm2_main.sh" --name "mathbot-$i" -- $i
-done
+.venv/bin/pip install --upgrade pip
+.venv/bin/pip install -r requirements.txt
+
+pm2 start "./scripts/pm2_main.sh" --name "mathbot-new" -- 0
