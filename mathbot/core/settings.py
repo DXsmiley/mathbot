@@ -1,3 +1,4 @@
+from threading import Thread
 import core.keystore
 import warnings
 import discord
@@ -85,6 +86,9 @@ class Settings:
 		if isinstance(context, discord.TextChannel):
 			context = context.guild
 		if isinstance(context, discord.VoiceChannel):
+			context = context.guild
+		# Hmmmm should this return the channel the thread is part of instead?
+		if isinstance(context, discord.Thread):
 			context = context.guild
 		if not isinstance(context, discord.Guild):
 			raise TypeError(f'{context} {type(context)} is not a valid context for the server prefix')

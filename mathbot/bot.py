@@ -72,14 +72,13 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def on_ready(self):
 		for i in _get_extensions(self.parameters):
 			await self.load_extension(i)
-		if self.release == 'development':
-			print('Syncing commands to test server...')
-			guild = Snowflake(134074627331719168)
-			self.tree.copy_global_to(guild=guild)
-			for i in self.tree.walk_commands():
-				print(i.name, i)
-			await self.tree.sync(guild=guild)
-			print('Done')
+		print('Syncing commands to test server...')
+		guild = Snowflake(134074627331719168)
+		self.tree.copy_global_to(guild=guild)
+		for i in self.tree.walk_commands():
+			print(i.name, i)
+		await self.tree.sync(guild=guild)
+		print('Done')
 
 	async def on_disconnect(self):
 		print('on_disconnect')
@@ -288,8 +287,8 @@ def _get_extensions(parameters):
 		yield 'modules.echo'
 		yield 'modules.throws'
 	yield 'patrons' # This is a little weird.
-	if parameters.get('release') == 'release':
-		yield 'modules.analytics'
+	# if parameters.get('release') == 'release':
+	# 	yield 'modules.analytics'
 
 
 def _create_keystore(parameters):
@@ -322,7 +321,7 @@ async def _determine_prefix(bot, message):
 	except Exception:
 		# Avoid a flood of error messages.
 		if not bot.closing_due_to_indeterminite_prefix:
-			m = f'Exception occurred while determining prefixes, shutting down bot (shards `{bot.shard_ids}`)'
+			m = f'Exception occurred while determining prefixes, ignoring (shards `{bot.shard_ids}`)'
 			termcolor.cprint('*' * len(m), 'red')
 			termcolor.cprint(m, 'red')
 			termcolor.cprint('*' * len(m), 'red')
@@ -331,8 +330,8 @@ async def _determine_prefix(bot, message):
 			# might be unavailable at this point
 			bot.closing_due_to_indeterminite_prefix = True
 			await report_via_webhook_only(bot, m)
-			await bot.close()
-		return NO_VALID_PREFIXES
+			# await bot.close()
+		return ['']
 
 
 if __name__ == '__main__':

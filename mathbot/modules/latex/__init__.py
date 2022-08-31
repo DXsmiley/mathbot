@@ -16,6 +16,7 @@ from discord.ext.commands import command, Cog, Context
 from utils import is_private, MessageEditGuard
 from contextlib import suppress
 
+from discord import Message
 from discord.ext.commands.hybrid import hybrid_command
 
 core.help.load_from_file('./help/latex.md')
@@ -66,6 +67,19 @@ class RenderingError(Exception):
 		return f'RenderingError@{id(self)}'
 
 
+class MessagePretendingToBeAContext:
+
+	def __init__(self, message: Message):
+		self.message = message
+
+	def __getattr__(self, name):
+		if hasattr(self.message, name):
+			return getattr(self.message, name)
+		if hasattr(self.message.channel, name):
+			return getattr(self.message.channel, name)
+		return TypeError(f'MessagePretendingToBeAContext doesnt have a {name}')
+
+
 class LatexModule(Cog):
 
 	def __init__(self, bot):
@@ -92,12 +106,12 @@ class LatexModule(Cog):
 		await self.handle(context, latex, noblock=True, is_inline=False)
 
 	@Cog.listener()
-	async def on_message_discarded(self, message):
+	async def on_message_discarded(self, message: Message):
 		if not message.author.bot and message.content.count('$$') >= 2 and not message.content.startswith('=='):
 			if is_private(message.channel) or (await self.bot.settings.resolve_message('c-tex', message) and await self.bot.settings.resolve_message('f-inline-tex', message)):
 				latex = extract_inline_tex(message.clean_content)
 				if latex != '':
-					await self.handle(message, latex, centre=False, is_inline=True)
+					await self.handle(MessagePretendingToBeAContext(message), latex, centre=False, is_inline=True)
 
 	async def handle(self, context: Context, source, *, is_inline, centre=True, wide=False, noblock=False):
 		if source == '':
