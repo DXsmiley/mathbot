@@ -41,9 +41,13 @@ class Settings:
 			return f'{setting}:{context.id}' + ('c' if context.guild.id == context.id else '')
 		# if isinstance(context, discord.DMChannel):
 		# 	return f'{setting}:{context.id}'
+		if isinstance(context, discord.ForumChannel):
+			return f'{setting}:{context.id}-forum-channel'
+		if isinstance(context, discord.Thread):
+			return f'{setting}:{context.id}-thread'
 		if isinstance(context, discord.Guild):
 			return f'{setting}:{context.id}'
-		raise TypeError('Type {context.__class__} if not a valid settings context')
+		raise TypeError(f'Type ({type(context)}) {context.__class__} if not a valid settings context')
 
 	async def get_single(self, setting, context):
 		return await self.keystore.get(self._get_key(setting, context))
