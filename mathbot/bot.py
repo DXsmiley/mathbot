@@ -222,7 +222,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		elif isinstance(error, NoPrivateMessage):
 			await destination.send(f'That command cannot be used in DMs.')
 		elif isinstance(error, MissingPermissions):
-			await destination.send(f'You are missing the following permissions required to run the command: {", ".join(error.missing_perms)}.')
+			await destination.send(f'You are missing the following permissions required to run the command: {", ".join(error.missing_permissions)}.')
 		elif isinstance(error, core.settings.DisabledCommandByServerOwner):
 			await destination.send(embed=discord.Embed(
 				title='Command disabled',
@@ -274,7 +274,7 @@ def _get_extensions(parameters):
 	yield 'modules.calcmod'
 	yield 'modules.dice'
 	# yield 'modules.greeter'
-	yield 'modules.heartbeat'
+	# yield 'modules.heartbeat'
 	yield 'modules.help'
 	yield 'modules.latex'
 	yield 'modules.purge'

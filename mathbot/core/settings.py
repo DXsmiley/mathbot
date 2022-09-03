@@ -58,13 +58,15 @@ class Settings:
 			return default
 		return SETTINGS[setting]['default']
 
-	async def resolve_message(self, setting, message):
+	async def resolve_message(self, setting, message: discord.Message):
 		setting = redirect(setting)
 		if isinstance(message.channel, discord.DMChannel):
 			so = SETTINGS[setting]
 			return so.get('private', so['default'])
 		if isinstance(message.channel, discord.TextChannel):
 			return await self.resolve(setting, message.channel, message.channel.guild)
+		if hasattr(message, 'channel') and hasattr(message, 'guild'):
+			return await self.resolve(setting, message.channel, message.guild)
 		raise ValueError(f'{message} cannot be resolved for settings')
 
 	async def set(self, setting, context, value):

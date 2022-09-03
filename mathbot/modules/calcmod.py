@@ -267,7 +267,8 @@ class CalculatorModule(Cog):
 						result = result.replace(special_char, '\\' + special_char)
 				result = result.replace('@', '@\N{zero width non-joiner}')
 				if result == '':
-					await message.add_reaction('👍')
+					await send('👍')
+					# await message.add_reaction('👍')
 				else:
 					if result == '':
 						result = ':thumbsup:'
@@ -391,15 +392,16 @@ class CalculatorModule(Cog):
 	async def allow_calc_history(self, channel):
 		if self.bot.parameters.get('release') == 'development':
 			return True
-		if not ENABLE_HISTORY:
-			return False
-		if utils.is_private(channel):
-			return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
-		if channel.guild in HISTORY_ENABLED_SERVERS:
-			return True
-		if (await self.bot.patron_tier(channel.guild.owner_id)) >= patrons.TIER_CONSTANT:
-			return True
-		return False
+		return ENABLE_HISTORY
+		# if not ENABLE_HISTORY:
+		# 	return False
+		# if utils.is_private(channel):
+		# 	return (await self.bot.patron_tier(channel.recipient.id)) >= patrons.TIER_CONSTANT
+		# if channel.guild in HISTORY_ENABLED_SERVERS:
+		# 	return True
+		# if (await self.bot.patron_tier(channel.guild.owner_id)) >= patrons.TIER_CONSTANT:
+		# 	return True
+		# return False
 
 
 def expression_has_side_effect(expr):

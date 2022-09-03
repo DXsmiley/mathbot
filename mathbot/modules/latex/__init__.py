@@ -162,7 +162,7 @@ class LatexModule(Cog):
 							await guard.reply(context, 'Failed to delete source message automatically - either grant the bot "Manage Messages" permissions or disable `f-tex-delete`')
 
 				if sent_message and await self.bot.settings.resolve_message('f-tex-trashcan', context.message):
-					with suppress(discord.errors.NotFound):
+					with suppress(discord.errors.NotFound, discord.errors.Forbidden):
 						await sent_message.add_reaction(DELETE_EMOJI)
 
 	@Cog.listener()

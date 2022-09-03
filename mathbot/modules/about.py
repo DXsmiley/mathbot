@@ -43,37 +43,37 @@ class AboutModule(Cog):
 
 	# Send a message detailing the shard number, server count,
 	# uptime and and memory using of this shard
-	@hybrid_command()
-	async def stats(self, context: Context):
-		embed = discord.Embed(title='MathBot Stats', colour=BOT_COLOUR)
-		embed.add_field(
-			name='Total Servers',
-			# MathBot's ID, hard coded for proper testing.
-			value=await get_bot_total_servers('134073775925886976'),
-			inline=True
-		)
-		embed.add_field(
-			name='Visible Servers',
-			value=len(context.bot.guilds),
-			inline=True
-		)
-		embed.add_field(
-			name='Shard IDs',
-			value=', '.join([str(i + 1) for i in context.bot.shard_ids]),
-			inline=True
-		)
-		embed.add_field(
-			name='Uptime',
-			value=get_uptime(),
-			inline=True
-		)
-		embed.add_field(
-			name='Memory Usage',
-			value='{} MB'.format(get_memory_usage()),
-			inline=True
-		)
-		embed.set_footer(text='Time is in hh:mm')
-		await context.send(embed=embed)
+	# @hybrid_command()
+	# async def stats(self, context: Context):
+	# 	embed = discord.Embed(title='MathBot Stats', colour=BOT_COLOUR)
+	# 	embed.add_field(
+	# 		name='Total Servers',
+	# 		# MathBot's ID, hard coded for proper testing.
+	# 		value=await get_bot_total_servers('134073775925886976'),
+	# 		inline=True
+	# 	)
+	# 	embed.add_field(
+	# 		name='Visible Servers',
+	# 		value=len(context.bot.guilds),
+	# 		inline=True
+	# 	)
+	# 	embed.add_field(
+	# 		name='Shard IDs',
+	# 		value=', '.join([str(i + 1) for i in context.bot.shard_ids]),
+	# 		inline=True
+	# 	)
+	# 	embed.add_field(
+	# 		name='Uptime',
+	# 		value=get_uptime(),
+	# 		inline=True
+	# 	)
+	# 	embed.add_field(
+	# 		name='Memory Usage',
+	# 		value='{} MB'.format(get_memory_usage()),
+	# 		inline=True
+	# 	)
+	# 	embed.set_footer(text='Time is in hh:mm')
+	# 	await context.send(embed=embed)
 
 	@hybrid_command()
 	async def ping(self, ctx: Context):
