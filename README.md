@@ -7,7 +7,7 @@ It's primary features are:
 - Querying Wolfram|Alpha
 - A Turing complete calculator
 
-The bot is currently developed for python `3.6.4`.
+The bot is currently developed for python `3.8`.
 
 ## Links
 
@@ -20,8 +20,9 @@ The bot is currently developed for python `3.6.4`.
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pipenv --python 3.6
-pipenv install --skip-lock
+python3 -m venv venv
+source venv/bin/activate
+pip install -Ur requirements.txt
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
@@ -36,8 +37,9 @@ Then navigate into the `mathbot` directory and run the bot with `python entrypoi
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
 cp mathbot/parameters_default.json mathbot/parameters.json
-pipenv --python 3.6
-pipenv install --dev --skip-lock
+python3 -m venv venv
+source venv/bin/activate
+pip install -Ur requirements.txt
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
