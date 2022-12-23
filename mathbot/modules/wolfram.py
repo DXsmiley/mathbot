@@ -37,6 +37,7 @@ import core.blame
 from imageutil import *
 
 from discord.ext.commands import command, check, Cog
+from discord.ext.commands.hybrid import hybrid_command
 from core.util import respond
 from utils import is_private, image_to_discord_file
 
@@ -212,13 +213,13 @@ class WolframModule(Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
-	@command()
+	@hybrid_command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
 	async def wolf(self, ctx, *, query=''):
 		await self.command_impl(ctx, query, False, 'wolf')
 
-	@command()
+	@hybrid_command()
 	@core.settings.command_allowed('c-wolf')
 	@check(require_api)
 	async def pup(self, ctx, *, query=''):
