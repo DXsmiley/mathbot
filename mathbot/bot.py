@@ -6,6 +6,7 @@ import sys
 import asyncio
 import traceback
 import time
+from typing import List
 
 import termcolor
 import discord
@@ -310,7 +311,8 @@ def _create_keystore(parameters):
 NO_VALID_PREFIXES = ['\uE000no-valid-prefixes']
 
 
-async def _determine_prefix(bot, message):
+async def _determine_prefix(bot, message) -> List[str]:
+	return ['', '= ', '=']
 	if bot.closing_due_to_indeterminite_prefix:
 		return NO_VALID_PREFIXES
 	try:

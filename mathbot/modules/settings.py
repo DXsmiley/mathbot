@@ -175,27 +175,27 @@ class SettingsModule(Cog):
 		await ctx.send('```\n{}\n```'.format('\n'.join(lines)))
 
 	# Intentionally not making a slash command of this
-	@command()
-	@guild_only()
-	async def prefix(self, ctx, *, arg=''):
-		prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
-		p_text = prefix or '='
-		if p_text in [None, '=']:
-			m = 'The prefix for this server is `=`, which is the default.'
-		else:
-			m = f'The prefix for this server is `{p_text}`, which has been customised.'
-		if arg:
-			m += '\nServer admins can use the `setprefix` command to change the prefix.'
-		await ctx.send(m)
+	# @command()
+	# @guild_only()
+	# async def prefix(self, ctx, *, arg=''):
+	# 	prefix = await ctx.bot.settings.get_server_prefix(ctx.message.guild)
+	# 	p_text = prefix or '='
+	# 	if p_text in [None, '=']:
+	# 		m = 'The prefix for this server is `=`, which is the default.'
+	# 	else:
+	# 		m = f'The prefix for this server is `{p_text}`, which has been customised.'
+	# 	if arg:
+	# 		m += '\nServer admins can use the `setprefix` command to change the prefix.'
+	# 	await ctx.send(m)
 
 	# Intentionally not making a slash command of this
-	@command()
-	@guild_only()
-	@has_permissions(administrator=True)
-	async def setprefix(self, ctx, *, new_prefix):
-		prefix = new_prefix.strip().replace('`', '')
-		await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
-		await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
+	# @command()
+	# @guild_only()
+	# @has_permissions(administrator=True)
+	# async def setprefix(self, ctx, *, new_prefix):
+	# 	prefix = new_prefix.strip().replace('`', '')
+	# 	await ctx.bot.settings.set_server_prefix(ctx.guild, prefix)
+	# 	await ctx.send(f'Bot prefix for this server has been changed to `{prefix}`.')
 
 def setup(bot):
 	return bot.add_cog(SettingsModule())

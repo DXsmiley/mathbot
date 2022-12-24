@@ -16,11 +16,11 @@ mpmath==1.2.1
 multidict==4.7.6
 objgraph==3.5.0
 orjson==3.6.8
-Pillow==9.1.0
+Pillow==9.3.0
 psutil==5.9.0
 pycparser==2.21
 sympy==1.4
 termcolor==1.1.0
-websockets==8.1
+websockets==9.1
 xmltodict==0.12.0
 yarl==1.5.1

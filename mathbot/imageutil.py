@@ -100,4 +100,4 @@ def textimage(txt, format = 'RGBA'):
 	draw = PIL.ImageDraw.Draw(image)
 	font = PIL.ImageFont.truetype(TEXT_FONTFACE, TEXT_FONTSIZE)
 	draw.text((2, 0), txt, TEXT_COLOUR, font = font)
-	return image.resize((TEXT_WIDTH, TEXT_HEIGHT), PIL.Image.ANTIALIAS)
+	return image.resize((TEXT_WIDTH, TEXT_HEIGHT), PIL.Image.Resampling.LANCZOS)

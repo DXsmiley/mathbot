@@ -85,6 +85,7 @@ class Settings:
 			await self.keystore.set(key, value)
 
 	async def get_server_prefix(self, context):
+		return '='
 		if isinstance(context, discord.Message):
 			context = context.channel
 		if isinstance(context, discord.DMChannel):
