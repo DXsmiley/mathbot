@@ -3,13 +3,14 @@
 # a file on disk.
 
 
+from dataclasses import dataclass
 import re
 import asyncio
 import collections
 import json
+from typing import Any, Dict, Optional
 import aioredis
 import time
-import warnings
 import abc
 
 
@@ -41,6 +42,70 @@ class Driver(abc.ABC):
 	@abc.abstractmethod
 	async def rpop(self, key):
 		pass
+
+
+@dataclass
+class InMemoryThing:
+	expires: Optional[float]
+	value: Any
+
+
+class InMemory(Driver):
+
+	data: Dict[str, InMemoryThing]
+
+	def __init__(self):
+		self.data = collections.defaultdict(
+			lambda : InMemoryThing(None, None)
+		)
+
+	def is_expired(self, key):
+		exp = self.data[key].expires
+		return exp is not None and exp < time.time()
+
+	@staticmethod
+	def decipher(value):
+		try:
+			return int(value)
+		except (ValueError, TypeError):
+			pass
+		return value
+
+	async def get(self, key):
+		# if the key is expires, there is no value
+		if self.is_expired(key):
+			self.data[key].value = None
+		return self.decipher(self.data[key].value)
+
+	async def set(self, key, value):
+		# If the key is expired, the new key has no expiery
+		if self.is_expired(key):
+			self.data[key].value = None
+		self.data[key] = InMemoryThing(expires=None, value=value)
+
+	async def delete(self, key):
+		if key in self.data:
+			del self.data[key]
+
+	async def expire(self, key, seconds):
+		self.data[key].expires = time.time() + seconds
+
+	async def lpush(self, key, value):
+		if not isinstance(self.data[key].value, collections.deque):
+			await self.set(key, collections.deque())
+		self.data[key].value.appendleft(value)
+
+	async def rpop(self, key):
+		if not isinstance(self.data[key].value, collections.deque):
+			await self.set(key, collections.deque())
+		if len(self.data[key].value) == 0:
+			return None
+		return self.decipher(self.data[key].value.pop())
+
+	async def llen(self, key):
+		if not isinstance(self.data[key].value, collections.deque):
+			return 0
+		return len(self.data[key].value)
 
 
 class Redis(Driver):
@@ -279,6 +344,10 @@ def create_redis(url, number = 0):
 
 def create_disk(filename):
 	return Interface(Disk(filename))
+
+
+def create_memory() -> Interface:
+	return Interface(InMemory())
 
 
 def reduce_key(keys):

@@ -294,6 +294,8 @@ def _get_extensions(parameters):
 
 def _create_keystore(parameters):
 	keystore_mode = parameters.get('keystore mode')
+	if keystore_mode == 'memory':
+		return core.keystore.create_memory()
 	if keystore_mode == 'redis':
 		return core.keystore.create_redis(
 			parameters.get('keystore redis url'),
