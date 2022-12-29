@@ -312,7 +312,7 @@ NO_VALID_PREFIXES = ['\uE000no-valid-prefixes']
 
 
 async def _determine_prefix(bot, message) -> List[str]:
-	return ['', '= ', '=']
+	return discord.ext.commands.when_mentioned_or('', '= ', '=')(bot, message)
 	if bot.closing_due_to_indeterminite_prefix:
 		return NO_VALID_PREFIXES
 	try:
