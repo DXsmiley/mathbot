@@ -50,9 +50,11 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		shard_count = parameters.get('shards total')
 		shard_ids = parameters.get('shards mine')
 		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
+		intents = discord.Intents.default()
+		intents.message_content = True
 		super().__init__(
 			command_prefix=_determine_prefix,
-			intents=discord.Intents.default()
+			intents=intents
 		)
 		self.parameters = parameters
 		self.release = parameters.get('release')
