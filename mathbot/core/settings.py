@@ -21,7 +21,7 @@ SETTINGS = {
 	'f-delete-tex': {'default': False},
 	'f-tex-inline': {'redirect': 'f-inline-tex', 'cannon-name': True},
 	'f-tex-delete': {'redirect': 'f-delete-tex', 'cannon-name': True},
-	'f-tex-trashcan': {'default': True},
+	'f-tex-trashcan': {'default': False}, # Previously True, but currently broken so it's disabled by default
 	'f-roll-unlimited': {'default': False},
 	'm-disabled-cmd': {'default': True},
 	'x-bonus': {'default': True},
