@@ -33,20 +33,20 @@ else:
                 with open(i) as f:
                     yield json.load(f)
 
-    async def wait_for_slot_in_gateway_queue():
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post('http://127.0.0.1:7023/', timeout=5) as resp:
-                    wait_until = float(await resp.text())
-                    cur_time = time.time()
-                    sleep_time = wait_until - cur_time
-                    if sleep_time > 0:
-                        print(f'Sleeping in gateway queue for {sleep_time} seconds')
-                        await asyncio.sleep(sleep_time)
-        except aiohttp.ClientConnectorError:
-            print('Could not find gateway queue to connect to')
+    # async def wait_for_slot_in_gateway_queue():
+    #     try:
+    #         async with aiohttp.ClientSession() as session:
+    #             async with session.post('http://127.0.0.1:7023/', timeout=5) as resp:
+    #                 wait_until = float(await resp.text())
+    #                 cur_time = time.time()
+    #                 sleep_time = wait_until - cur_time
+    #                 if sleep_time > 0:
+    #                     print(f'Sleeping in gateway queue for {sleep_time} seconds')
+    #                     await asyncio.sleep(sleep_time)
+    #     except aiohttp.ClientConnectorError:
+    #         print('Could not find gateway queue to connect to')
 
-    asyncio.run(wait_for_slot_in_gateway_queue())
+    # asyncio.run(wait_for_slot_in_gateway_queue())
 
     parameters = retrieve_parameters()
 
