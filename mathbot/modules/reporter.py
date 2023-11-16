@@ -11,6 +11,9 @@ import core.parameters
 
 import typing
 
+if typing.TYPE_CHECKING:
+	from bot import MathBot
+
 
 
 # This queue is a global object, which actually means that multiple
@@ -37,7 +40,7 @@ class ReporterModule(Cog):
 
 class ReporterTask:
 
-	def __init__(self, bot):
+	def __init__(self, bot: 'MathBot'):
 		self.bot = bot
 		self.should_end = False
 		self.bot.loop.create_task(self.send_reports())
@@ -85,7 +88,7 @@ class ReporterTask:
 			traceback.print_exc()
 
 	async def get_report_channel(self) -> typing.Optional[discord.TextChannel]:
-		channel_id = self.bot.parameters.get('error-reporting channel')
+		channel_id = self.bot.parameters.error_reporting.channel
 		if channel_id:
 			try:
 				return self.bot.get_channel(channel_id)
@@ -98,14 +101,14 @@ async def cprint_and_report(bot, color: str, string: str):
 	await report(bot, string)
 
 
-async def report(bot, string: str):
-	if bot.parameters.get('error-reporting channel'):
+async def report(bot: 'MathBot', string: str):
+	if bot.parameters.error_reporting.channel:
 		await bot.keystore.lpush('error-report', string)
 	await report_via_webhook_only(bot, string)
 
 
-async def report_via_webhook_only(bot, string: str):
-	webhook_url = bot.parameters.get('error-reporting webhook')
+async def report_via_webhook_only(bot: 'MathBot', string: str):
+	webhook_url = bot.parameters.error_reporting.webhook
 	if webhook_url is not None:
 		async with aiohttp.ClientSession() as session:
 			if len(string) > 2000:

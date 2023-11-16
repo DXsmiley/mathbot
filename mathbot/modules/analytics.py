@@ -2,6 +2,10 @@
 
 import aiohttp
 from discord.ext.commands import Cog
+import typing
+
+if typing.TYPE_CHECKING:
+	from bot import MathBot
 
 BOTS_ORG_URL = 'https://discordbots.org/api/bots/{bot_id}/stats'
 BOTS_GG_URL = 'https://discord.bots.gg/api/v1/bots/{bot_id}/stats'
@@ -13,7 +17,7 @@ HITLIST = [
 
 class AnalyticsModule(Cog):
 
-	def __init__(self, bot):
+	def __init__(self, bot: 'MathBot'):
 		self.bot = bot
 		self.done_report = False
 
@@ -49,11 +53,12 @@ class AnalyticsModule(Cog):
 		if not self.done_report:
 			self.done_report = True
 			num_servers = len(self.bot.guilds)
-			num_shards = self.bot.parameters.get('shards total')
+			num_shards = self.bot.parameters.shards.total
 			print('Shards', self.bot.shard_ids, 'are on', num_servers, 'servers')
 			async with aiohttp.ClientSession() as session:
 				for shard_id in self.bot.shard_ids:
 					for (url_template, key_location, k_servers, k_shard, k_sid) in HITLIST:
+						# UHHHHHHH I think we're not using this anymore
 						key = self.bot.parameters.get('analytics ' + key_location)
 						if key:
 							url = url_template.format(bot_id = self.bot.user.id)

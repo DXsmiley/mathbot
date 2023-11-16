@@ -6,6 +6,7 @@ import json
 import re
 import utils
 import core.parameters
+from core.parameters import Parameters
 import objgraph
 import discord
 import discord.ext.commands
@@ -18,25 +19,24 @@ logging.basicConfig(level = logging.INFO)
 
 class MyBot(discord.ext.commands.AutoShardedBot):
 
-	def __init__(self, parameters):
+	def __init__(self, parameters: Parameters):
 		super().__init__(
 			command_prefix='nobodyisgonnausethis',
 			pm_help=True,
-			shard_count=parameters.get('shards total'),
-			shard_ids=parameters.get('shards mine'),
+			shard_count=parameters.shards.total,
+			shard_ids=parameters.shards.mine,
 			max_messages=2000,
 			fetch_offline_members=False
 		)
 		self.parameters = parameters
-		self.release = parameters.get('release')
+		self.release = parameters.release
 		# self.keystore = _create_keystore(parameters)
 		# self.settings = core.settings.Settings(self.keystore)
 		# self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
-		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 
 	def run(self):
-		super().run(self.parameters.get('token'))
+		super().run(self.parameters.token)
 
 
 	async def on_ready(self):

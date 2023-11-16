@@ -19,9 +19,13 @@ import traceback
 import typing
 import discord
 import abc
+import typing
 
 from discord.ext.commands import command, guild_only, has_permissions, Cog, Context
 from discord.ext.commands.hybrid import hybrid_command
+
+if typing.TYPE_CHECKING:
+	from bot import MathBot
 
 
 core.help.load_from_file('./help/calculator_brief.md')
@@ -92,7 +96,7 @@ class CalculatorModule(Cog):
 
 	__slots__ = ['bot', 'command_history', 'replay_state']
 
-	def __init__(self, bot):
+	def __init__(self, bot: 'MathBot'):
 		self.bot = bot
 		self.command_history = collections.defaultdict(lambda : '')
 		self.replay_state = collections.defaultdict(ReplayState)
@@ -390,7 +394,7 @@ class CalculatorModule(Cog):
 			await self.bot.keystore.set('calculator', 'history', str(channel.id), to_store, expire = EXPIRE_TIME)
 
 	async def allow_calc_history(self, channel):
-		if self.bot.parameters.get('release') == 'development':
+		if self.bot.parameters.release == 'development':
 			return True
 		return ENABLE_HISTORY
 		# if not ENABLE_HISTORY:

@@ -24,7 +24,7 @@ parameters = retrive_parameters()
 
 client = discord.Client(
     shard_id=0,
-    shard_count=parameters.get('shards total')
+    shard_count=parameters.shards.total
 )
 
 @client.event
@@ -36,4 +36,4 @@ async def on_ready():
     print('Done updating profile picture')
     client.close()
 
-client.run(parameters.get('token'))
+client.run(parameters.token)

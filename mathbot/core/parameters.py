@@ -7,6 +7,8 @@
 import os
 import json
 import sys
+from pydantic import BaseModel
+from typing import Literal, List, Dict, Any, Optional
 
 
 DEFAULT_PARAMETER_FILE = 'parameters_default.json'
@@ -46,32 +48,52 @@ def load_parameters(sources):
 	if not isinstance(sources, list):
 		raise TypeError('Sources should be a list')
 	default = _load_json_file(DEFAULT_PARAMETER_FILE)
+	Parameters.model_validate(default)
 	dictionary = resolve_parameters(dictionary_overwrite(default, *sources))
-	return Parameters(dictionary)
+	return Parameters.model_validate(dictionary)
 
 
 def _load_json_file(filename):
 	with open(filename) as f:
 		return json.load(f)
+	
+
+class KeyStoreModel(BaseModel):
+	mode: Literal['memory']
 
 
-class Parameters:
+class WolframModel(BaseModel):
+	key: str
+	
 
-	def __init__(self, dictionary):
-		self.dictionary = dictionary
+class ErrorReportingModel(BaseModel):
+	channel: Optional[str]
+	webhook: Optional[str]
 
-	def get(self, path):
-		peices = path.replace('.', ' ').split(' ')
-		result = self.dictionary
-		for i in peices:
-			result = result[i]
-		return result
 
-	def getd(self, path, default):
-		peices = path.replace('.', ' ').split(' ')
-		result = self.dictionary
-		for i in peices:
-			if i not in result:
-				return default
-			result = result[i]
-		return result
+class ShardsModel(BaseModel):
+	total: int
+	mine: List[int]
+
+
+class CalculatorModel(BaseModel):
+	persistent: bool
+	libraries: bool
+
+
+class AdvertisingModel(BaseModel):
+	enable: bool
+	interval: int
+	starting_amount: int
+
+
+class Parameters(BaseModel):
+	release: Literal['development', 'release', 'beta']
+	token: str
+	keystore: KeyStoreModel
+	wolfram: WolframModel
+	error_reporting: ErrorReportingModel
+	shards: ShardsModel
+	calculator: CalculatorModel
+	blocked_users: List[int]
+	advertising: AdvertisingModel

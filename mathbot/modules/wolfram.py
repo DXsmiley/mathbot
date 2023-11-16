@@ -42,6 +42,10 @@ from core.util import respond
 from utils import is_private, image_to_discord_file
 
 
+if typing.TYPE_CHECKING:
+	from bot import MathBot
+
+
 core.help.load_from_file('./help/wolfram.md')
 
 ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
@@ -113,10 +117,6 @@ MAX_REACTIONS_IN_MESSAGE = 18
 ASSUMPTIONS_MADE_MESSAGE = \
 	'**Assumptions were made**\nPress {} to show them.\n\n'.format(EXPAND_EMOJI)
 
-# api_key = core.parameters.get('wolfram key')
-# api = None
-# if api_key is not None:
-# 	api = wolfapi.Client(api_key)
 
 class AssumptionDataScope:
 
@@ -143,9 +143,9 @@ class AssumptionDataScope:
 
 
 API_CLIENT = None
-def get_api(bot):
+def get_api(bot: 'MathBot'):
 	global API_CLIENT
-	key = bot.parameters.get('wolfram key')
+	key = bot.parameters.wolfram.key
 	if API_CLIENT is None and key:
 		API_CLIENT = wolfapi.Client(key)
 	return API_CLIENT

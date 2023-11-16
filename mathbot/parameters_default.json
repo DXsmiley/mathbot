@@ -1,18 +1,11 @@
 {
 	"release": "development",
-	"token": null,
+	"token": "NEED THIS",
 	"keystore": {
-		"disk": {
-			"filename": "keystore.json"
-		},
-		"redis": {
-			"url": "redis://user:@localhost:6379",
-			"number": 0
-		},
-		"mode": "disk"
+		"mode": "memory"
 	},
 	"wolfram": {
-		"key": null
+		"key": "NEED THIS"
 	},
 	"patrons": {
 
@@ -30,10 +23,11 @@
 	"advertising": {
 		"enable": true,
 		"interval": 200,
-		"starting-amount": 50
+		"starting_amount": 50
 	},
-	"error-reporting": {
-		"channel": null
+	"error_reporting": {
+		"channel": null,
+		"webhook": null
 	},
 	"shards": {
 		"total": 1,
@@ -43,5 +37,5 @@
 		"persistent": false,
 		"libraries": false
 	},
-	"blocked-users": []
+	"blocked_users": []
 }

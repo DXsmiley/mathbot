@@ -23,6 +23,7 @@ from modules.reporter import report, report_via_webhook_only
 
 from advertising import AdvertisingMixin
 from patrons import PatronageMixin
+from core.parameters import Parameters
 
 sys.setrecursionlimit(2500)
 
@@ -46,12 +47,11 @@ class Snowflake:
 
 class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoShardedBot):
 
-	def __init__(self, parameters):
-		shard_count = parameters.get('shards total')
-		shard_ids = parameters.get('shards mine')
+	def __init__(self, parameters: Parameters):
+		shard_count = parameters.shards.total
+		shard_ids = parameters.shards.mine
 		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
-		self.release = parameters.get('release')
-		assert self.release in ['development', 'beta', 'release']
+		self.release = parameters.release
 		intent = discord.Intents.default()
 		if self.release == 'development':
 			intent.message_content = True
@@ -60,12 +60,12 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		self.keystore = _create_keystore(parameters)
 		self.settings = core.settings.Settings(self.keystore)
 		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
-		self.blocked_users = parameters.get('blocked-users')
+		self.blocked_users = parameters.blocked_users
 		self.closing_due_to_indeterminite_prefix = False
 		self.remove_command('help')
 
 	def run(self):
-		super().run(self.parameters.get('token'))
+		super().run(self.parameters.token)
 
 	async def on_shard_ready(self, shard_id):
 		print('on_shard_ready', shard_id)
@@ -259,17 +259,17 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			await report(self, f'{self.shard_ids} {human_details}\n```\n{tb}\n```')
 
 
-def run(parameters):
+def run(parameters: Parameters):
 	if sys.getrecursionlimit() < 2500:
 		sys.setrecursionlimit(2500)
-	shards_total = parameters.get('shards total')
-	shards_mine = parameters.get('shards mine')
+	shards_total = parameters.shards.total
+	shards_mine = parameters.shards.mine
 	print(f'Running shards {shards_mine} (total {shards_total})')
 	MathBot(parameters).run()
 
 
 @utils.listify
-def _get_extensions(parameters):
+def _get_extensions(parameters: Parameters):
 	yield 'modules.about'
 	yield 'modules.blame'
 	yield 'modules.calcmod'
@@ -284,7 +284,7 @@ def _get_extensions(parameters):
 	yield 'modules.wolfram'
 	yield 'modules.reboot'
 	yield 'modules.oeis'
-	if parameters.get('release') == 'development':
+	if parameters.release == 'development':
 		yield 'modules.echo'
 		yield 'modules.throws'
 	yield 'patrons' # This is a little weird.
@@ -292,18 +292,19 @@ def _get_extensions(parameters):
 	# 	yield 'modules.analytics'
 
 
-def _create_keystore(parameters):
-	keystore_mode = parameters.get('keystore mode')
+def _create_keystore(parameters: Parameters):
+	keystore_mode = parameters.keystore.mode
 	if keystore_mode == 'memory':
 		return core.keystore.create_memory()
-	if keystore_mode == 'redis':
-		return core.keystore.create_redis(
-			parameters.get('keystore redis url'),
-			parameters.get('keystore redis number')
-		)
-	if keystore_mode == 'disk':
-		return core.keystore.create_disk(parameters.get('keystore disk filename'))
-	raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
+	# This never happens:
+	# if keystore_mode == 'redis':
+	# 	return core.keystore.create_redis(
+	# 		parameters.get('keystore redis url'),
+	# 		parameters.get('keystore redis number')
+	# 	)
+	# if keystore_mode == 'disk':
+	# 	return core.keystore.create_disk(parameters.get('keystore disk filename'))
+	# raise ValueError(f'"{keystore_mode}" is not a valid keystore mode')
 
 
 # Need to do this since discord.py doesn't like iterables in here
