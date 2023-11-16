@@ -50,18 +50,18 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 		shard_count = parameters.get('shards total')
 		shard_ids = parameters.get('shards mine')
 		print(f'Starting bot shards {shard_ids} ({shard_count} total)')
-		super().__init__(
-			command_prefix=_determine_prefix,
-			intents=discord.Intents.default()
-		)
-		self.parameters = parameters
 		self.release = parameters.get('release')
+		assert self.release in ['development', 'beta', 'release']
+		intent = discord.Intents.default()
+		if self.release == 'development':
+			intent.message_content = True
+		super().__init__(command_prefix=_determine_prefix, intents=intent)
+		self.parameters = parameters
 		self.keystore = _create_keystore(parameters)
 		self.settings = core.settings.Settings(self.keystore)
 		self.command_output_map = QueueDict(timeout = 60 * 10) # 10 minute timeout
 		self.blocked_users = parameters.get('blocked-users')
 		self.closing_due_to_indeterminite_prefix = False
-		assert self.release in ['development', 'beta', 'release']
 		self.remove_command('help')
 
 	def run(self):
