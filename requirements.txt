@@ -12,7 +12,7 @@ frozenlist==1.3.1
 graphviz==0.20
 hiredis==2.0.0
 idna==3.3
-mpmath==1.2.1
+mpmath==1.3.0
 multidict==4.7.6
 objgraph==3.5.0
 orjson==3.6.8
