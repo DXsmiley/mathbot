@@ -7,7 +7,7 @@ It's primary features are:
 - Querying Wolfram|Alpha
 - A Turing complete calculator
 
-The bot is currently developed for python `3.6.4`.
+The bot is currently developed on python `3.8.10`, but should work on later versions of Python.
 
 ## Links
 
@@ -19,30 +19,21 @@ The bot is currently developed for python `3.6.4`.
 ```bash
 git clone https://github.com/DXsmiley/mathbot.git
 cd mathbot
-cp mathbot/parameters_default.json mathbot/parameters.json
-pipenv --python 3.6
-pipenv install --skip-lock
+cp mathbot/parameters_default.json ./parameters.json
+python3.8 -m venv .venv # or later version
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 Then open parameters.json and change `tokens` to the token of the bot used for development. Optionally change the other parameters.
 
 It is *strongly* recommend that you setup an instance of Redis if you want to use the bot on even a moderate scale. The disk-based keystore is easy to setup but runs very slowly, and as such is only useful of a development tool.
 
-Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
+Run the bot with `python -m mathbot parameters.json`.
 
 ## Setup for development
 
-```bash
-git clone https://github.com/DXsmiley/mathbot.git
-cd mathbot
-cp mathbot/parameters_default.json mathbot/parameters.json
-pipenv --python 3.6
-pipenv install --dev --skip-lock
-```
-
-Then open parameters.json and change `tokens` to the token of the bot. Change `release` to `development`. Optionally change the other parameters.
-
-Then navigate into the `mathbot` directory and run the bot with `python entrypoint.py parameters.json`.
+Follow above instructions, but additionally run `pip install -r dev_requirements.txt`
 
 ## Contributing guide
 
@@ -61,13 +52,13 @@ This should really only be used for development and personal use.
 
 ## Test Suite
 
-Use the `test` script in side the `mathbot` folder to run the test suite.
+Invoke `pytest` to run the test suite.
 
-Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the necessary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.
+~~Some of the tests require that a bot is running and connected to Discord. To enable them, use the `--run-automata` command line argument. In addition a file with the necessary tokens filled out needs to be provided to the `--parameter-file` argument. To get all tests running, the *token*, *automata* and *wolfram* parameters need to be filled out.~~
 
-For the sake of example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.
+~~For the sake of example, I run my tests with the command `./test --run-automata --parameter-file=dev.json`. You should replace `dev.json` with a path to your own parameter file.~~
 
-There are some additional tests that require a human to verify the bot's output. These can be enabled with `--run-automata-human`.
+~~There are some additional tests that require a human to verify the bot's output. These can be enabled with `--run-automata-human`.~~
 
 ## Guide to `parameters.json`
 
@@ -106,14 +97,14 @@ There are some additional tests that require a human to verify the bot's output.
 
 ## Additional Installation Issues (Ubuntu only)
 
-If you don't have python 3.6
+If you don't have python 3.8
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
-sudo apt install python3.6
+sudo apt install python3.8
 ```
 
 If you have installation troubles with cffi or psutil
 ```
-sudo apt-get install python3.6-dev
+sudo apt-get install python3.8-dev
 ```
