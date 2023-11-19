@@ -39,10 +39,6 @@ Follow above instructions, but additionally run `pip install -r dev_requirements
 
 Relevent discussion takes place on [the MathBot Discord server](https://discord.gg/JbJbRZS).
 
-For small changes, feel free to fork the repo and make a pull request once you've made the changes. For larger things, check the [Trello board](https://trello.com/b/j6b7vpGA/mathbot) and see if anyone's already working on it. If not, shoot me a message to say that you're working on it so we don't get multiple people doing the same thing.
-
-Yes I use tabs for indentation.
-
 ## Setting up Wolfram|Alpha
 
 1. [Grab yourself an API key](https://products.wolframalpha.com/api/)
