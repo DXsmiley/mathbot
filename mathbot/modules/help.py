@@ -1,11 +1,11 @@
 ''' Module used to send help documents to users. '''
 
-import core.help
+from mathbot import core
 from discord.ext.commands import Cog, Context
 import discord
 from discord.ext.commands.hybrid import hybrid_command
 
-from utils import is_private
+from mathbot.utils import is_private
 
 
 

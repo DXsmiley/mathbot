@@ -6,8 +6,8 @@
 
 import discord
 import asyncio
-import core.parameters
-import utils
+from mathbot import core
+from mathbot import utils
 
 @utils.apply(core.parameters.load_parameters, list)
 def retrieve_parameters():

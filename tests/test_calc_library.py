@@ -2,7 +2,7 @@ import operator
 import pytest
 from random import randint
 
-from test_calc_helpers import *
+from tests.test_calc_helpers import *
 
 def list_of(thetype, min_items=0, max_items=20):
     return pytest.list_of(thetype,

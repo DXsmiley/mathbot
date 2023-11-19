@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from typing import Literal, List, Dict, Any, Optional
 
 
-DEFAULT_PARAMETER_FILE = 'parameters_default.json'
+DEFAULT_PARAMETER_FILE = './mathbot/parameters_default.json'
 
 
 def _dictionary_overwrite(old, new):

@@ -6,8 +6,8 @@
 '''
 
 import sympy
-import calculator.functions
-import calculator.errors
+from . import functions
+from . import errors
 import re
 
 
@@ -33,7 +33,7 @@ class Collector:
 		self.parts += args
 		self.length += sum(map(len, args))
 		if self.limit and self.length > self.limit:
-			raise calculator.errors.TooMuchOutputError
+			raise errors.TooMuchOutputError
 
 	def drop(self):
 		''' Remove the last item from the buffer. '''
@@ -109,11 +109,11 @@ class SimpleFormatter:
 				self.fmt_py_string(i)
 			elif isinstance(i, list):
 				self.fmt_py_list(i)
-			elif isinstance(i, calculator.functions.Array):
+			elif isinstance(i, functions.Array):
 				self.fmt_array(i)
-			elif isinstance(i, calculator.functions.ListBase):
+			elif isinstance(i, functions.ListBase):
 				self.fmt_list(i)
-			elif isinstance(i, calculator.functions.Glyph):
+			elif isinstance(i, functions.Glyph):
 				self.fmt_glyph(i)
 			elif isinstance(i, ALL_SYMPY_CLASSES):
 				self.fmt_sympy_object(i)
@@ -147,7 +147,7 @@ class SimpleFormatter:
 		''' Format a list '''
 		is_string = True
 		for i in lst:
-			if not isinstance(i, calculator.functions.Glyph):
+			if not isinstance(i, functions.Glyph):
 				is_string = False
 		if len(lst) == 0:
 			self.fmt('[]')

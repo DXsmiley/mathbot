@@ -6,8 +6,7 @@ from discord.ext.commands import Cog
 import termcolor
 import aiohttp
 
-import core.keystore
-import core.parameters
+from mathbot import core
 
 import typing
 

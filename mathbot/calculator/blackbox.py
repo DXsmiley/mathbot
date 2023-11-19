@@ -1,12 +1,12 @@
 import asyncio
-import calculator.interpereter
-import calculator.parser
-import calculator.runtime
-import calculator.bytecode
-import calculator.errors
-import calculator.runtime
-import calculator.formatter
-import calculator.crucible
+from . import interpereter
+from . import parser
+from . import runtime
+from . import bytecode
+from . import errors
+from . import runtime
+from . import formatter
+from . import crucible
 import sympy
 import async_timeout
 import json
@@ -41,10 +41,10 @@ class Terminal:
         self.show_tree = False
         self.show_parsepoint = False
         self.show_result_type = False
-        self.builder = calculator.bytecode.Builder()
+        self.builder = bytecode.Builder()
         self.allow_special_commands = allow_special_commands
         self.colour_output = colour_output
-        self.interpereter = calculator.interpereter.Interpereter(yield_rate=yield_rate, use_crucible=True)
+        self.interpereter = interpereter.Interpereter(yield_rate=yield_rate, use_crucible=True)
         self.line_count = 0
         self.retain_cache = retain_cache
         self.output_limit = output_limit
@@ -60,14 +60,14 @@ class Terminal:
     async def new_blackbox(**kwargs):
         term = Terminal(_called_directly=False, **kwargs)
         try:
-            runtime_segment = calculator.runtime.prepare_runtime(term.builder)
-        except calculator.parser.ParseFailed as e:
+            runtime_segment = runtime.prepare_runtime(term.builder)
+        except parser.ParseFailed as e:
             print('RUNTIME ISSUE: Parse error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            print(format_error_place(runtime.LIBRARY_CODE, e.position))
             raise e
-        except calculator.parser.TokenizationFailed as e:
+        except parser.TokenizationFailed as e:
             print('RUNTIME ISSUE: Tokenization error')
-            print(format_error_place(calculator.runtime.LIBRARY_CODE, e.position))
+            print(format_error_place(runtime.LIBRARY_CODE, e.position))
             raise e
         try:
             await term.interpereter.run_async(
@@ -78,7 +78,7 @@ class Terminal:
         except Exception:
             print('Error during library loading. Re-running with trace.')
             traceback.print_exc()
-            temp_interp = calculator.interpereter.Interpereter(
+            temp_interp = interpereter.Interpereter(
                 term.linker.constructed(),
                 yield_rate=kwargs.get('yield_rate', 100),
                 trace=True
@@ -107,7 +107,7 @@ class Terminal:
             args = list(args)
             for i, v in enumerate(args):
                 try:
-                    args[i] = calculator.formatter.format(v, limit = self.output_limit)
+                    args[i] = formatter.format(v, limit = self.output_limit)
                 except Exception:
                     print(e)
             output.append(' '.join(map(str, args)))
@@ -150,7 +150,7 @@ class Terminal:
         else:
             try:
                 worked = False
-                tokens, ast = calculator.parser.parse(line, source_name = 'iterm_' + str(self.line_count))
+                tokens, ast = parser.parse(line, source_name = 'iterm_' + str(self.line_count))
                 if self.show_tree:
                     prt(json.dumps(ast, indent = 4))
                 ast = {'#': 'program', 'items': [ast, {'#': 'end'}]}
@@ -169,19 +169,19 @@ class Terminal:
                 worked = True
                 for result in result_items:
                     if isinstance(result, tuple(sympy.core.all_classes)):
-                        f_res = await calculator.crucible.run(
-                            calculator.formatter.format,
+                        f_res = await crucible.run(
+                            formatter.format,
                             (result,),
                             timeout = 2 if self.timeout else 10 ** 10
                         )
                     else:
-                        f_res = calculator.formatter.format(result, limit=self.output_limit)
+                        f_res = formatter.format(result, limit=self.output_limit)
                     try:
-                        exact = await calculator.crucible.run(result.evalf, (), timeout= 2 if self.timeout else 10 ** 10)
+                        exact = await crucible.run(result.evalf, (), timeout= 2 if self.timeout else 10 ** 10)
                         details['exact'] = exact
-                        f_ext = calculator.formatter.format(exact, limit=self.output_limit)
+                        f_ext = formatter.format(exact, limit=self.output_limit)
                         f_ext = re.sub(r'\d+\.\d+', lambda x: x.group(0).rstrip('0').rstrip('.'), f_ext)
-                        f_ext = calculator.formatter.sympy_cleanup(f_ext)
+                        f_ext = formatter.sympy_cleanup(f_ext)
                         if f_ext in ['inf', '-inf', f_res.replace('\N{SINGLE LOW-9 QUOTATION MARK}', '')]:
                             raise Exception
                         prt(f_res, '=', f_ext)
@@ -192,12 +192,12 @@ class Terminal:
                     if self.show_result_type:
                         prt(result.__class__)
                         prt(result.__class__.__mro__)
-            except calculator.errors.CompilationError as e:
+            except errors.CompilationError as e:
                 prt('Compilation error')
                 prt(e.description)
                 if e.position is not None:
                     prt(format_error_place(line, e.position))
-            except calculator.errors.EvaluationError as e:
+            except errors.EvaluationError as e:
                 dbg = e._linking
                 if dbg is None:
                     prt('No debugging information available for this error.')
@@ -207,13 +207,13 @@ class Terminal:
                     prt(format_error_place(dbg['code'], dbg['position']))
                 prt(str(e))
                 # prt('-' * len(str(e)), '\n')
-            except calculator.parser.ParseFailed as e:
+            except parser.ParseFailed as e:
                 prt('Parse error')
                 prt(format_error_place(line, e.position))
-            except calculator.parser.TokenizationFailed as e:
+            except parser.TokenizationFailed as e:
                 prt('Tokenization error')
                 prt(format_error_place(line, e.position))
-            except calculator.errors.TooMuchOutputError:
+            except errors.TooMuchOutputError:
                 prt('Output was too large to display')
             except asyncio.TimeoutError:
                 prt('Operation timed out')

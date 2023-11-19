@@ -3,11 +3,11 @@ import json
 
 from urllib.parse import urlencode
 from discord.ext.commands import Cog, Context
-from core.settings import command_allowed
+from mathbot.core.settings import command_allowed
 from discord.ext.commands.hybrid import hybrid_command
-import core.help
+from mathbot import core
 
-core.help.load_from_file('./help/oeis.md')
+core.help.load_from_file('./mathbot/help/oeis.md')
 
 class OEIS(Cog):
 

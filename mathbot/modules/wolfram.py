@@ -26,27 +26,23 @@ import PIL.ImageDraw
 import PIL.ImageFont
 import xml
 
-import safe
-import wolfapi
-import wordfilter
-import core.help
-import core.settings
-import core.keystore
-import core.parameters
-import core.blame
-from imageutil import *
+from mathbot import safe
+from mathbot import wolfapi
+from mathbot import wordfilter
+from mathbot import core
+from mathbot.core.util import respond
+from mathbot.imageutil import *
+from mathbot.utils import is_private, image_to_discord_file
 
 from discord.ext.commands import command, check, Cog
 from discord.ext.commands.hybrid import hybrid_command
-from core.util import respond
-from utils import is_private, image_to_discord_file
 
 
 if typing.TYPE_CHECKING:
 	from bot import MathBot
 
 
-core.help.load_from_file('./help/wolfram.md')
+core.help.load_from_file('./mathbot/help/wolfram.md')
 
 ERROR_MESSAGE_NO_RESULTS = """Wolfram|Alpha didn't send a result back.
 Maybe your query was malformed?

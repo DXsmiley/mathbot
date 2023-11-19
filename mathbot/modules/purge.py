@@ -1,4 +1,4 @@
-import core.help
+from mathbot import core
 import discord
 import asyncio
 
@@ -17,7 +17,7 @@ The `=purge` command cannot be used in a private channel.
 See `=help purge` for more details.
 '''
 
-core.help.load_from_file('./help/purge.md')
+core.help.load_from_file('./mathbot/help/purge.md')
 
 class PurgeModule(Cog):
 	@hybrid_command()

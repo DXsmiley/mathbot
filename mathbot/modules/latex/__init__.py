@@ -3,23 +3,23 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 import io
-import core.settings
+from mathbot import core
 import aiohttp
 import asyncio
 import re
-import imageutil
-import core.help
+from mathbot import imageutil
+from mathbot import core
 import discord
 import json
-from open_relative import *
+from mathbot.open_relative import *
 from discord.ext.commands import command, Cog, Context
-from utils import is_private, MessageEditGuard
+from mathbot.utils import is_private, MessageEditGuard
 from contextlib import suppress
 
 from discord import Message
 from discord.ext.commands.hybrid import hybrid_command
 
-core.help.load_from_file('./help/latex.md')
+core.help.load_from_file('./mathbot/help/latex.md')
 
 
 LATEX_SERVER_URL = 'http://rtex.probablyaweb.site/api/v2'

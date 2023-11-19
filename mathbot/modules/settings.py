@@ -2,18 +2,18 @@ from typing import Literal
 import aioredis
 import os
 import re
-import core.keystore
-import core.help
-import core.settings
+from mathbot import core
+from mathbot import core
+from mathbot import core
 
 from discord.ext.commands import command, guild_only, has_permissions, Cog, Context
 from discord.ext.commands.hybrid import hybrid_command
 
 
-core.help.load_from_file('./help/settings.md')
-core.help.load_from_file('./help/theme.md')
-core.help.load_from_file('./help/units.md')
-core.help.load_from_file('./help/prefix.md')
+core.help.load_from_file('./mathbot/help/settings.md')
+core.help.load_from_file('./mathbot/help/theme.md')
+core.help.load_from_file('./mathbot/help/units.md')
+core.help.load_from_file('./mathbot/help/prefix.md')
 
 
 CHECKSETTING_TEMPLATE = '''\

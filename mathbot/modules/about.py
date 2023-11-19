@@ -5,11 +5,11 @@ import os
 import asyncio
 import aiohttp
 import datetime
-import core.help
+from mathbot import core
 from discord.ext.commands import Cog, Bot, command, Context
 import codecs
-from modules.reporter import report
-from core.settings import command_allowed
+from mathbot.modules.reporter import report
+from mathbot.core.settings import command_allowed
 
 from discord import Interaction
 from discord.ext.commands.hybrid import hybrid_command
@@ -25,10 +25,11 @@ Uptime: {} days {} hours {} minutes {} seconds
 """
 
 
-core.help.load_from_file('./help/help.md', topics = [''])
-core.help.load_from_file('./help/about.md')
-core.help.load_from_file('./help/management.md')
-core.help.load_from_file('./help/commands.md')
+# TODO: Make paths relative to code file
+core.help.load_from_file('./mathbot/help/help.md', topics = [''])
+core.help.load_from_file('./mathbot/help/about.md')
+core.help.load_from_file('./mathbot/help/management.md')
+core.help.load_from_file('./mathbot/help/commands.md')
 
 
 async def get_bot_total_servers(id):

@@ -5,13 +5,13 @@ import asyncio
 import traceback
 import sys
 
-from calculator.interpereter import Interpereter
-import calculator.parser as parser
-import calculator.bytecode as bytecode
-import calculator.runtime as runtime
-import calculator.errors as errors
-from calculator.runtime import prepare_runtime
-from calculator.blackbox import Terminal, format_error_place
+from .interpereter import Interpereter
+from . import parser
+from . import bytecode
+from . import runtime
+from . import errors
+from .runtime import prepare_runtime
+from .blackbox import Terminal, format_error_place
 
 
 def main():

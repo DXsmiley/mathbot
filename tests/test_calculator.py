@@ -1,10 +1,10 @@
-import calculator
+from mathbot import calculator
 import pytest
 import math
 import cmath
 import sympy
 
-from test_calc_helpers import *
+from tests.test_calc_helpers import *
 
 def test_negation():
 	doit("9", 9)

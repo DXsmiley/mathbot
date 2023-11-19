@@ -3,7 +3,7 @@ import pytest
 
 @pytest.fixture(scope = 'function')
 def chelp():
-	import core.help
+	from mathbot import core
 	yield core.help
 	core.help.TOPICS = {}
 

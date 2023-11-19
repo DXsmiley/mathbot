@@ -4,8 +4,8 @@
 # innapropriate things. This allows server moderators (or anyone else really)
 # to track down the person responsible
 
-import core.help
-from core.util import respond
+from mathbot import core
+from mathbot.core.util import respond
 from discord.ext.commands import Cog, Context
 from discord import Embed, Colour
 from discord.ext.commands.hybrid import hybrid_command
@@ -41,5 +41,5 @@ def error_response(text):
 
 
 def setup(bot):
-	core.help.load_from_file('./help/blame.md')
+	core.help.load_from_file('./mathbot/help/blame.md')
 	return bot.add_cog(BlameModule())

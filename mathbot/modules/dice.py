@@ -4,15 +4,15 @@
 import re
 import random
 
-import core.help
-import core.settings
-import core.util
+from mathbot import core
+from mathbot import core
+from mathbot import core
 from discord.ext.commands import Cog, Context
 from discord.ext.commands.hybrid import hybrid_command
 
 import math
 
-core.help.load_from_file('./help/roll.md')
+core.help.load_from_file('./mathbot/help/roll.md')
 
 FORMAT_REGEX = re.compile(r'^(?:(\d*)[ d]+)?(\d+)$')
 

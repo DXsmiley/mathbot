@@ -1,8 +1,8 @@
 import enum
-import calculator.parser as parser
-import calculator.errors
-import calculator.functions
-import calculator.formatter
+from . import parser as parser
+from . import errors as errors
+from . import functions
+from . import formatter
 import itertools
 import json
 import sympy
@@ -182,7 +182,7 @@ class ConstructionContext:
 
 	def readyup(self):
 		if self._staged:
-			raise calculator.errors.CompilationError('Attmped to re-use a ConstructionContext.')
+			raise errors.CompilationError('Attmped to re-use a ConstructionContext.')
 		self._staged = True
 
 	def __call__(self,  **kwargs):
@@ -313,7 +313,7 @@ class CodeSegment:
 		node_type = node['#']
 		handler = getattr(self, 'btcfy_' + node_type, None)
 		if handler is None:
-			raise calculator.errors.CompilationError('Unknown AST node: {}. Cannot convert to bytecode.'.format(node_type))
+			raise errors.CompilationError('Unknown AST node: {}. Cannot convert to bytecode.'.format(node_type))
 		return handler(node, keys)
 
 	def btcfy_number(self, node, _):
@@ -324,15 +324,15 @@ class CodeSegment:
 		''' Bytecodifies a glyph node '''
 		string = node['string'][1:]
 		# string = bytes(string, 'utf-8').decode('unicode_escape')
-		# print(string, calculator.formatter.string_backslash_escaping(string))
-		self.push(I.CONSTANT_GLYPH, calculator.formatter.string_backslash_escaping(string))
+		# print(string, formatter.string_backslash_escaping(string))
+		self.push(I.CONSTANT_GLYPH, formatter.string_backslash_escaping(string))
 
 	def btcfy_string(self, node, _):
 		''' Bytecodifies a string node '''
 		string = node['string'][1:-1]
 		# string = bytes(string, 'utf-8').decode('unicode_escape')
 		# print(string)
-		self.push(I.CONSTANT_STRING, calculator.formatter.string_backslash_escaping(string))
+		self.push(I.CONSTANT_STRING, formatter.string_backslash_escaping(string))
 
 	def btcfy_bin_op(self, node, keys):
 		op = node['operator']
@@ -418,7 +418,7 @@ class CodeSegment:
 		self.bytecodeify(node['value'], keys())
 		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
-			raise calculator.errors.CompilationError(m, node['variable'])
+			raise errors.CompilationError(m, node['variable'])
 		scope, depth, index = keys.scope.find_value(name)
 		assert scope == self.master.globalscope
 		# print(scope, depth, index)
@@ -433,7 +433,7 @@ class CodeSegment:
 		name = node['name']['string'].lower()
 		if name in PROTECTED_NAMES and not keys.unsafe:
 			m = 'Cannot assign to variable "{}"'.format(name)
-			raise calculator.errors.CompilationError(m, node['name'])
+			raise errors.CompilationError(m, node['name'])
 		scope, depth, index = keys.scope.find_value(name)
 		assert scope == self.master.globalscope
 		self.push(I.DECLARE_SYMBOL)
@@ -557,7 +557,7 @@ class CodeSegment:
 
 	def btcfy_func_try(self, node, keys, args):
 		if len(args) < 2:
-			raise calculator.error.CompilationError('Too few arguments for try function')
+			raise error.CompilationError('Too few arguments for try function')
 		block_end = Destination()
 		land_on_error = Destination()
 		for case in args[:-1]:
@@ -576,7 +576,7 @@ class CodeSegment:
 
 	def btcfy_func_ifelse(self, node, keys, args):
 		if len(args) < 3 or len(args) % 2 == 0:
-			raise calculator.errors.CompilationError('Invalid number of arguments for ifelse function')
+			raise errors.CompilationError('Invalid number of arguments for ifelse function')
 		p_end = Destination()
 		p_false = Destination()
 		for condition, result in zip(args[::2], args[1::2]):
@@ -593,7 +593,7 @@ class CodeSegment:
 
 	def btcfy_func_if(self, node, keys, args):
 		if len(args) != 3:
-			raise calculator.errors.CompilationError('Invalid number of arguments for if function')
+			raise errors.CompilationError('Invalid number of arguments for if function')
 		p_end = Destination()
 		p_false = Destination()
 		self.bytecodeify(args[0], keys())
@@ -618,7 +618,7 @@ class CodeSegment:
 		for n, i in zip(params, node['parameters']['items']):
 			if n in PROTECTED_NAMES:
 				m = f'"{n}" is not allowed as a funcation parameter'
-				raise calculator.errors.CompilationError(m, i)
+				raise errors.CompilationError(m, i)
 		is_macro = int(node.get('kind') == '~>')
 		contents = CodeSegment(self.master)
 		start_address = Destination()

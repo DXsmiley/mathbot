@@ -1,16 +1,13 @@
 # Calculator module
 
 import asyncio
-import utils
-import safe
-import core.help
-import core.util
-import core.settings
-import calculator
-import calculator.blackbox
+from mathbot import utils
+from mathbot import safe
+from mathbot import core
+from mathbot.calculator import blackbox
 import collections
 import traceback
-import patrons
+from mathbot import patrons
 import aiohttp
 import async_timeout
 import json
@@ -28,13 +25,13 @@ if typing.TYPE_CHECKING:
 	from bot import MathBot
 
 
-core.help.load_from_file('./help/calculator_brief.md')
-core.help.load_from_file('./help/calculator_full.md')
-core.help.load_from_file('./help/calculator_history.md')
-core.help.load_from_file('./help/calculator_libraries.md')
-core.help.load_from_file('./help/turing.md')
-core.help.load_from_file('./help/turing_functions.md')
-# core.help.load_from_file('./help/turing.md')
+core.help.load_from_file('./mathbot/help/calculator_brief.md')
+core.help.load_from_file('./mathbot/help/calculator_full.md')
+core.help.load_from_file('./mathbot/help/calculator_history.md')
+core.help.load_from_file('./mathbot/help/calculator_libraries.md')
+core.help.load_from_file('./mathbot/help/turing.md')
+core.help.load_from_file('./mathbot/help/turing_functions.md')
+# core.help.load_from_file('./mathbot/help/turing.md')
 
 
 SHORTCUT_HELP_CLARIFICATION = '''\
@@ -57,7 +54,7 @@ SCOPES = dict()
 
 async def get_scope(place):
 	if place not in SCOPES:
-		SCOPES[place] = await calculator.blackbox.Terminal.new_blackbox(
+		SCOPES[place] = await blackbox.Terminal.new_blackbox(
 			retain_cache=False,
 			output_limit=1950,
 			yield_rate=1,

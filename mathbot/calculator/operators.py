@@ -4,7 +4,7 @@ import math
 import cmath
 import sympy
 
-import calculator.errors
+from . import errors
 
 DIGITS_LIMIT = 2000
 MAXIMUM_INTEGER = 10 ** DIGITS_LIMIT
@@ -76,8 +76,8 @@ class Overloadable:
 			self.raise_error(*args)
 
 	def raise_error(self, *args):
-		reps = list(map(calculator.errors.format_value, args))
-		raise calculator.errors.EvaluationError(self.error_format.format(*reps, *self.format_defaults, *LIST_OF_NOTHING))
+		reps = list(map(errors.format_value, args))
+		raise errors.EvaluationError(self.error_format.format(*reps, *self.format_defaults, *LIST_OF_NOTHING))
 
 
 def compose(*functions):
@@ -92,7 +92,7 @@ def compose(*functions):
 
 def cap_integer_size(x):
 	if isinstance(x, int) and abs(x) > MAXIMUM_INTEGER:
-		raise calculator.errors.EvaluationError('Integer overflow')
+		raise errors.EvaluationError('Integer overflow')
 	return x
 
 
@@ -113,7 +113,7 @@ def multiply_ints(a, b):
 				return float(a) * float(b)
 		return cap_integer_size(a * b)
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Cannot multiply {} and {}. Result too large.'.format(a, b))
+		raise errors.EvaluationError('Cannot multiply {} and {}. Result too large.'.format(a, b))
 operator_multiply.overload(COMPLEX, COMPLEX)(operator.mul)
 
 operator_modulo = Overloadable('Cannot perform modulo on {0} and {1}')
@@ -122,7 +122,7 @@ def modulo_ints(a, b):
 	try:
 		return a % b
 	except (ZeroDivisionError, TypeError):
-		raise calculator.errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
+		raise errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
 
 operator_division = Overloadable('Cannot divide {0} by {1}')
 
@@ -133,25 +133,25 @@ def divison(a, b):
 			return a // b
 		return a / b
 	except (ZeroDivisionError, TypeError):
-		raise calculator.errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
+		raise errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Diving {} by {} caused an overflow'.format(a, b))
+		raise errors.EvaluationError('Diving {} by {} caused an overflow'.format(a, b))
 
 @operator_division.overload(COMPLEX, COMPLEX)
 def divison(a, b):
 	try:
 		return a / b
 	except (ZeroDivisionError, TypeError):
-		raise calculator.errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
+		raise errors.EvaluationError('Cannot divide {} by {}'.format(a, b))
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Diving {} by {} caused an overflow'.format(a, b))
+		raise errors.EvaluationError('Diving {} by {} caused an overflow'.format(a, b))
 
 operator_power = Overloadable('Cannot raise {0} to the power of {1}')
 
 @operator_power.overload(int, int)
 def power_int(base, exponent):
 	if base == 0 and exponent == 0:
-		raise calculator.errors.EvaluationError('Cannot raise 0 to the power of 0')
+		raise errors.EvaluationError('Cannot raise 0 to the power of 0')
 	if base == 0:
 		return 0
 	try:
@@ -161,13 +161,13 @@ def power_int(base, exponent):
 		result = base ** exponent
 		return cap_integer_size(result)
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Overflow while calculating exponential')
+		raise errors.EvaluationError('Overflow while calculating exponential')
 
 @operator_power.overload(NUMBER, NUMBER)
 def power_float(base, exponent):
 	try:
 		if base == 0 and exponent == 0:
-			raise calculator.errors.EvaluationError('Cannot raise 0 to the power of 0')
+			raise errors.EvaluationError('Cannot raise 0 to the power of 0')
 		if base == 0:
 			return 0
 		result_length = abs(exponent * math.log10(abs(base)))
@@ -178,7 +178,7 @@ def power_float(base, exponent):
 		result = base ** exponent
 		return cap_integer_size(result)
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Overflow while calculating exponential')
+		raise errors.EvaluationError('Overflow while calculating exponential')
 
 operator_less = Overloadable('Cannot compare {0} and {1}.')
 operator_less.overload(NUMBER, NUMBER)(operator.lt)
@@ -198,9 +198,9 @@ def power_complex(base, exponent):
 	try:
 		return base ** exponent
 	except OverflowError:
-		raise calculator.errors.EvaluationError('Overflow while calculating exponential')
+		raise errors.EvaluationError('Overflow while calculating exponential')
 	except TypeError:
-		raise calculator.errors.EvaluationError('Cannot raise {} to the power {}'.format(base, exponent))
+		raise errors.EvaluationError('Cannot raise {} to the power {}'.format(base, exponent))
 
 function_factorial = Overloadable('Cannot perform the factorial function on {0}')
 @function_factorial.overload(NUMBER)
@@ -208,17 +208,17 @@ def protected_factorial(x):
 	return sympy.gamma(x + 1)
 	# try:
 	# 	if x > 300:
-	# 		raise calculator.errors.EvaluationError('Cannot perform factorial on a number greater than 300')
+	# 		raise errors.EvaluationError('Cannot perform factorial on a number greater than 300')
 	# 	if not float(x).is_integer() or x < 0:
 	# 		try:
 	# 			return sympy.Number(sympy.gamma(x + 1))
 	# 		except ValueError:
-	# 			raise calculator.errors.EvaluationError('Cannot perform factorial on a negative integer')
+	# 			raise errors.EvaluationError('Cannot perform factorial on a negative integer')
 	# 		except OverflowError:
-	# 			raise calculator.errors.EvaluationError('Overflow inside gamma function')
+	# 			raise errors.EvaluationError('Overflow inside gamma function')
 	# 	return sympy.Number(cap_integer_size(math.factorial(float(x))))
 	# except TypeError:
-	# 	raise calculator.errors.EvaluationError('Cannot perform factorial on {}'.format(x))
+	# 	raise errors.EvaluationError('Cannot perform factorial on {}'.format(x))
 
 def log_func_real(number, base = 10):
 	try:
@@ -226,7 +226,7 @@ def log_func_real(number, base = 10):
 			return math.log10(number)
 		return math.log(number, base)
 	except (ValueError, TypeError, ZeroDivisionError):
-		raise calculator.errors.EvaluationError('Cannot calculate logarithm of {} with base {}'.format(number, base))
+		raise errors.EvaluationError('Cannot calculate logarithm of {} with base {}'.format(number, base))
 
 def log_func_complex(number, base = 10):
 	try:
@@ -234,7 +234,7 @@ def log_func_complex(number, base = 10):
 			return cmath.log10(number)
 		return cmath.log(number, base)
 	except (ValueError, TypeError, ZeroDivisionError):
-		raise calculator.errors.EvaluationError('Cannot calculate logarithm of {} with base {}', number, base)
+		raise errors.EvaluationError('Cannot calculate logarithm of {} with base {}', number, base)
 
 function_logarithm = Overloadable('Cannot perform the logarithm on {0} with base {1}', [10])
 function_logarithm.overload(NUMBER, NUMBER)(log_func_real)

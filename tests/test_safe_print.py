@@ -1,4 +1,4 @@
-import safe
+from mathbot import safe
 
 def test_sprint_working(capsys):
     safe.sprint('Hello, world!')

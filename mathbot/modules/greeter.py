@@ -1,5 +1,5 @@
-import core.module
-import core.handles
+from mathbot import core
+from mathbot import core
 
 GREETING_MESSAGE = '''\
 Welcome to the MathBot server!

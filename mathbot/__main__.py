@@ -13,9 +13,9 @@ else:
     import sys
     import json
     import re
-    import bot
-    import utils
-    import core.parameters
+    from . import bot
+    from . import utils
+    from mathbot import core
     import aiohttp
     import asyncio
     import time

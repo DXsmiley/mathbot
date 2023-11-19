@@ -3,7 +3,7 @@ import functools
 import discord
 from discord.ext.commands import Context
 import io
-import core.blame
+from mathbot import core
 
 
 class MessageEditedException(Exception):

@@ -11,14 +11,15 @@ import operator
 import warnings
 import traceback
 
-import calculator.runtime as runtime
-import calculator.bytecode as bytecode
-import calculator.errors
-from calculator.errors import EvaluationError
-from calculator.parser import parse
-from calculator.functions import *
-import calculator.operators as operators
-import calculator.crucible
+from . import runtime
+from . import bytecode
+from . import errors
+from .errors import EvaluationError
+from .parser import parse
+from .functions import *
+from . import functions
+from . import operators
+from . import crucible
 
 
 class ScopeMissedError(Exception):
@@ -34,7 +35,7 @@ class IndexedScope:
 	def __init__(self, superscope, size, values):
 		self.superscope = superscope
 		if size != len(values):
-			raise calculator.errors.SystemError('Attempted to create a scope with number of values unequal to the size')
+			raise errors.SystemError('Attempted to create a scope with number of values unequal to the size')
 		self.slots = [DataSlot(i, 0) for i in values]
 
 	def get(scope, index, depth):
@@ -77,7 +78,7 @@ async def do_nothing_async():
 async def protected_power(use_crucible, a, b):
 	if use_crucible:
 		try:
-			return await calculator.crucible.run(_protected_power_crucible, (a, b), timeout=2)
+			return await crucible.run(_protected_power_crucible, (a, b), timeout=2)
 		except asyncio.TimeoutError:
 			raise EvaluationError('Operation timed out. Perhaps the values were too large?')
 	else:
@@ -552,7 +553,7 @@ class Interpereter:
 			value = self.root_scope.get(index, 0)
 			self.push(value)
 		except ScopeMissedError:
-			raise calculator.errors.AccessFailedError(name)
+			raise errors.AccessFailedError(name)
 
 	async def inst_access_local(self):
 		''' Access a local variable '''
@@ -662,26 +663,26 @@ class Interpereter:
 		self.place -= 1 + 1
 
 	async def inst_list_create_empty(self):
-		self.push(calculator.functions.EmptyList())
+		self.push(functions.EmptyList())
 
 	async def inst_list_extract_first(self):
 		value = self.pop()
-		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
+		if not isinstance(value, (functions.ListBase, functions.Array)):
 			raise EvaluationError('Attempted to extract head of non-list')
 		self.push(value.head)
 
 	async def inst_list_extract_rest(self):
 		value = self.pop()
-		if not isinstance(value, (calculator.functions.ListBase, calculator.functions.Array)):
+		if not isinstance(value, (functions.ListBase, functions.Array)):
 			raise EvaluationError('Attempted to extract tail of non-list')
 		self.push(value.rest)
 
 	async def inst_list_prepend(self):
 		new = self.pop()
 		lst = self.pop()
-		if not isinstance(lst, calculator.functions.ListBase):
+		if not isinstance(lst, functions.ListBase):
 			raise EvaluationError('Attempt to prepend to start of non-list')
-		self.push(calculator.functions.List(new, lst))
+		self.push(functions.List(new, lst))
 
 	async def inst_push_error_stopgap(self):
 		handler_segment, handler_address = self.next()

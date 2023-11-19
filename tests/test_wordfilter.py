@@ -1,5 +1,5 @@
 import pytest
-from wordfilter import is_bad
+from mathbot.wordfilter import is_bad
 
 def test_friendly():
 	assert not is_bad('Hello, world!')

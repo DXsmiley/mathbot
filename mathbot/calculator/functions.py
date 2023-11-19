@@ -1,7 +1,7 @@
 import asyncio
 
-import calculator.errors
-import calculator.operators
+from . import errors
+from . import operators
 
 
 class Glyph:
@@ -18,12 +18,12 @@ class Glyph:
 
 	def __eq__(self, other):
 		if not isinstance(other, Glyph):
-			raise calculator.errors.EvaluationError('Cannot compare Glyph to non-glyph')
+			raise errors.EvaluationError('Cannot compare Glyph to non-glyph')
 		return self.value == other.value
 
 	def __lt__(self, other):
 		if not isinstance(other, Glyph):
-			raise calculator.errors.EvaluationError('Cannot compare Glyph to non-glyph')
+			raise errors.EvaluationError('Cannot compare Glyph to non-glyph')
 		return self.value < other.value
 
 	def __str__(self):
@@ -76,13 +76,13 @@ class SequenceBase:
 		if a is b:
 			return True
 		if not isinstance(b, SequenceBase):
-			raise calculator.errors.EvaluationError('Attempted to compare sequence to non-sequence')
+			raise errors.EvaluationError('Attempted to compare sequence to non-sequence')
 		if len(a) != len(b):
 			return False
 		while a:
 			# Let the event loop do work in case this takes a while
 			await asyncio.sleep(0)
-			if not await calculator.operators.super_equals(a.head, b.head):
+			if not await operators.super_equals(a.head, b.head):
 				return False
 			a = a.rest
 			b = b.rest
@@ -92,12 +92,12 @@ class SequenceBase:
 		if a is b:
 			return False
 		if not isinstance(b, SequenceBase):
-			raise calculator.errors.EvaluationError('Attempted to compare sequence to non-sequence')
+			raise errors.EvaluationError('Attempted to compare sequence to non-sequence')
 		while a and b:
 			# Let the event loop do work in case this takes a while
 			await asyncio.sleep(0)
-			if not await calculator.operators.super_equals(a.head, b.head):
-				return await calculator.operators.super_less_than(a.head, b.head)
+			if not await operators.super_equals(a.head, b.head):
+				return await operators.super_less_than(a.head, b.head)
 			a = a.rest
 			b = b.rest
 		# If a still has things, it's greater, False (because longer)
@@ -117,13 +117,13 @@ class Array(SequenceBase):
 	@property
 	def head(self):
 		if self.start >= self.end:
-			raise calculator.errors.EvaluationError('Attempted to get head of an empty Array')
+			raise errors.EvaluationError('Attempted to get head of an empty Array')
 		return self.items[self.start]
 
 	@property
 	def rest(self):
 		if self.start >= self.end:
-			raise calculator.errors.EvaluationError('Attempted to get tail of an empty Array')
+			raise errors.EvaluationError('Attempted to get tail of an empty Array')
 		return Array(self.items, self.start + 1, self.end)
 
 	def __call__(self, index):
@@ -132,7 +132,7 @@ class Array(SequenceBase):
 				raise IndexError
 			return self.items[self.start + index]
 		except Exception:
-			raise calculator.errors.EvaluationError('Invalid array index')
+			raise errors.EvaluationError('Invalid array index')
 
 	def __len__(self):
 		return self.end - self.start
@@ -259,11 +259,11 @@ class EmptyList(ListBase):
 
 	@property
 	def head(self):
-		raise calculator.errors.EvaluationError('Attempt to get head of empty list')
+		raise errors.EvaluationError('Attempt to get head of empty list')
 
 	@property
 	def rest(self):
-		raise calculator.errors.EvaluationError('Attempted to get the tail of an empty list')
+		raise errors.EvaluationError('Attempted to get the tail of an empty list')
 
 	def __str__(self):
 		return '.'
@@ -322,7 +322,7 @@ class Expanded:
 	def __iter__(self):
 		for i in self.arrays:
 			if not isinstance(i, (Array, ListBase)):
-				raise calculator.errors.EvaluationError('Cannot expand something that\'s not a list or an array')
+				raise errors.EvaluationError('Cannot expand something that\'s not a list or an array')
 			cur = i
 			while cur:
 				yield cur.head

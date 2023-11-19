@@ -1,7 +1,7 @@
 import dismock as automata
 import pytest
 import asyncio
-import core.parameters
+from mathbot import core
 
 from typing import Callable
 
@@ -102,7 +102,7 @@ def __automata_fixture():
 
     try:
 
-        import bot
+        from mathbot import bot
         if not bot.DONE_SETUP:
             bot.do_setup()
 

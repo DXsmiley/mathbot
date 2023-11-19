@@ -10,12 +10,12 @@ import types
 import collections
 import functools
 
-from calculator.bytecode import *
-from calculator.functions import *
-from calculator.errors import EvaluationError
-import calculator.parser as parser
-import calculator.formatter as formatter
-import calculator.crucible as crucible
+from .bytecode import *
+from .functions import *
+from .errors import EvaluationError
+from . import parser
+from . import formatter
+from . import crucible
 
 
 ALL_SYMPY_CLASSES = tuple(sympy.core.all_classes)
@@ -42,8 +42,8 @@ def is_sequence(val):
 def format_normal(val):
 	try:
 		string = formatter.format(val, limit=5000)
-	except calculator.errors.TooMuchOutputError:
-		raise calculator.errors.EvaluationError('repr function received object that was too large')
+	except errors.TooMuchOutputError:
+		raise errors.EvaluationError('repr function received object that was too large')
 	else:
 		glyphs = list(map(Glyph, string))
 		return create_list(glyphs)
@@ -59,8 +59,8 @@ def format_smart(val):
 			return EMPTY_LIST
 		try:
 			string = formatter.format(val, limit=5000)
-		except calculator.errors.TooMuchOutputError:
-			raise calculator.errors.EvaluationError('repr function received object that was too large')
+		except errors.TooMuchOutputError:
+			raise errors.EvaluationError('repr function received object that was too large')
 		else:
 			glyphs = list(map(Glyph, string[1:-1]))
 			return create_list(glyphs)

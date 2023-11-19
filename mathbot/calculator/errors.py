@@ -1,5 +1,5 @@
 import re
-import calculator.formatter
+from . import formatter
 
 
 def wrap_if_plus(s):
@@ -42,7 +42,7 @@ class FormattedError(Exception):
 		if len(values) == 0:
 			self.description = description
 		else:
-			formatted = list(map(lambda x: calculator.formatter.format(x, limit = 2000), values))
+			formatted = list(map(lambda x: formatter.format(x, limit = 2000), values))
 			self.description = description.format(*formatted)
 
 	def __str__(self):

@@ -4,9 +4,9 @@ import os
 import sys
 import json
 import re
-import utils
-import core.parameters
-from core.parameters import Parameters
+from mathbot import utils
+from mathbot import core
+from mathbot.core.parameters import Parameters
 import objgraph
 import discord
 import discord.ext.commands

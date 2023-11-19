@@ -7,31 +7,31 @@
 
 '''
 
-import asyncio
-import calculator.interpereter
-import calculator.parser
-import calculator.runtime
-import calculator.bytecode
-import calculator.errors
-import calculator.blackbox
+from . import interpereter
+from . import parser
+from . import runtime
+from . import bytecode
+from . import functions
+from . import errors
+
 
 def calculate(equation, tick_limit=None, trace=False, use_runtime=True):
 	''' Evaluate an expression '''
-	interp = calculator.interpereter.Interpereter(trace=trace)
-	builder = calculator.bytecode.Builder()
+	interp = interpereter.Interpereter(trace=trace)
+	builder = bytecode.Builder()
 	# Setup the runtime
 	if use_runtime:
 		segment_runtime = runtime.prepare_runtime(builder)
 		interp.run(segment=segment_runtime)
 	# Run the actual program
-	_, ast = calculator.parser.parse(equation)
+	_, ast = parser.parse(equation)
 	segment_program = builder.build(ast)
 	return interp.run(segment=segment_program, tick_limit=tick_limit, error_if_exhausted=True)
 
 
 async def calculate_async(equation):
 	''' Evaluate an expression asyncronously '''
-	_, ast = calculator.parser.parse(equation)
-	bytecode = calculator.runtime.wrap_simple(ast)
-	interp = calculator.interpereter.Interpereter(bytecode)
+	_, ast = parser.parse(equation)
+	bc = runtime.wrap_simple(ast)
+	interp = interpereter.Interpereter(bc)
 	return await interp.run_async()

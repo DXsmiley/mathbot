@@ -1,7 +1,7 @@
-import patrons
+from mathbot import patrons
 import random
 import discord
-from utils import is_private
+from mathbot.utils import is_private
 
 MESSAGES = [
     'Every little bit helps',

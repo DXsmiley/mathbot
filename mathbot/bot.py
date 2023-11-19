@@ -13,17 +13,17 @@ import discord
 import discord.ext.commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument, TooManyArguments, BadArgument, NoPrivateMessage, MissingPermissions, DisabledCommand, CommandInvokeError
 
-import core.blame
-import core.keystore
-import core.settings
-import utils
+from mathbot import core
+from mathbot import core
+from mathbot import core
+from mathbot import utils
 
-from queuedict import QueueDict
-from modules.reporter import report, report_via_webhook_only
+from mathbot.queuedict import QueueDict
+from mathbot.modules.reporter import report, report_via_webhook_only
 
-from advertising import AdvertisingMixin
-from patrons import PatronageMixin
-from core.parameters import Parameters
+from mathbot.advertising import AdvertisingMixin
+from mathbot.patrons import PatronageMixin
+from mathbot.core.parameters import Parameters
 
 sys.setrecursionlimit(2500)
 
@@ -204,7 +204,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 			msg = f'**Error while handling a message**'
 			await self.handle_contextual_error(args[0].channel, error, msg)
 		else:
-			termcolor.cprint(traceback.format_exc(), 'blue')
+			termcolor.cprint(traceback.format_exc(), 'yellow')
 			await self.report_error(None, error, f'An error occurred during and event and was not reported: {event}')
 
 	async def on_command_error(self, context, error):
@@ -246,7 +246,7 @@ class MathBot(AdvertisingMixin, PatronageMixin, discord.ext.commands.AutoSharded
 	async def report_error(self, destination, error, human_details):
 		tb = ''.join(traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__))
 		termcolor.cprint(human_details, 'red')
-		termcolor.cprint(tb, 'blue')
+		termcolor.cprint(tb, 'yellow')
 		try:
 			if destination is not None:
 				embed = discord.Embed(
@@ -270,24 +270,24 @@ def run(parameters: Parameters):
 
 @utils.listify
 def _get_extensions(parameters: Parameters):
-	yield 'modules.about'
-	yield 'modules.blame'
-	yield 'modules.calcmod'
-	yield 'modules.dice'
-	# yield 'modules.greeter'
-	# yield 'modules.heartbeat'
-	yield 'modules.help'
-	yield 'modules.latex'
-	yield 'modules.purge'
-	yield 'modules.reporter'
-	yield 'modules.settings'
-	yield 'modules.wolfram'
-	yield 'modules.reboot'
-	yield 'modules.oeis'
+	yield 'mathbot.modules.about'
+	yield 'mathbot.modules.blame'
+	yield 'mathbot.modules.calcmod'
+	yield 'mathbot.modules.dice'
+	# yield 'mathbot.modules.greeter'
+	# yield 'mathbot.modules.heartbeat'
+	yield 'mathbot.modules.help'
+	yield 'mathbot.modules.latex'
+	yield 'mathbot.modules.purge'
+	yield 'mathbot.modules.reporter'
+	yield 'mathbot.modules.settings'
+	yield 'mathbot.modules.wolfram'
+	yield 'mathbot.modules.reboot'
+	yield 'mathbot.modules.oeis'
 	if parameters.release == 'development':
-		yield 'modules.echo'
-		yield 'modules.throws'
-	yield 'patrons' # This is a little weird.
+		yield 'mathbot.modules.echo'
+		yield 'mathbot.modules.throws'
+	yield 'mathbot.patrons' # This is a little weird.
 	# if parameters.get('release') == 'release':
 	# 	yield 'modules.analytics'
 

@@ -1,4 +1,4 @@
-import calculator
+from mathbot import calculator
 import pytest
 import math
 import cmath

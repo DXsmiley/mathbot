@@ -1,5 +1,4 @@
 from threading import Thread
-import core.keystore
 import warnings
 import discord
 import discord.ext.commands
